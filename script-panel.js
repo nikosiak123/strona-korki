@@ -1,0 +1,398 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    const loadingState = document.getElementById('loadingState');
+    const contentDiv = document.getElementById('content');
+    const scheduleForm = document.getElementById('scheduleForm');
+    const welcomeTutor = document.getElementById('welcomeTutor');
+    const scheduleFields = document.getElementById('scheduleFields');
+    const calendarContainer = document.getElementById('calendar-container');
+    const upcomingLessonsContainer = document.getElementById('upcomingLessonsContainer');
+    
+    const lessonDetailsModal = document.getElementById('lessonDetailsModal');
+    const modalDetailsContent = document.getElementById('modalDetailsContent');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const actionModal = document.getElementById('actionModal');
+    const actionModalTitle = document.getElementById('actionModalTitle');
+    const actionModalText = document.getElementById('actionModalText');
+    const actionModalButtons = document.getElementById('actionModalButtons');
+
+    const API_BASE_URL = 'http://127.0.0.1:5000'; // Zmień na URL produkcyjny
+    const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+    const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
+    const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+
+    const params = new URLSearchParams(window.location.search);
+    const tutorID = params.get('tutorID');
+    let tutorName = "";
+    let currentWeekStart = getMonday(new Date());
+    let upcomingLessons = [];
+    let masterScheduleTimes = []; // Tutaj przechowamy "główną" siatkę godzin
+
+    if (!tutorID) {
+        loadingState.innerHTML = '<h2>Błąd: Brak identyfikatora korepetytora w linku. Dostęp zabroniony.</h2>';
+        return;
+    }
+
+    try {
+        // Najpierw pobierz "główną" siatkę wszystkich możliwych godzin
+        masterScheduleTimes = await fetchMasterSchedule();
+
+        const data = await fetchTutorData(tutorID);
+        tutorName = data['Imię i Nazwisko'];
+        welcomeTutor.textContent = `Witaj, ${tutorName}!`;
+        
+        renderStaticScheduleForm(data);
+        await fetchAndRenderUpcomingLessons(tutorName);
+        await renderWeeklyCalendar(currentWeekStart);
+
+        loadingState.style.display = 'none';
+        contentDiv.style.display = 'block';
+
+    } catch (error) {
+        loadingState.innerHTML = `<h2>Wystąpił błąd: ${error.message}</h2>`;
+    }
+
+    scheduleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveButton = document.getElementById('saveScheduleBtn');
+        saveButton.textContent = 'Zapisywanie...';
+        saveButton.disabled = true;
+        const scheduleData = {};
+        daysOfWeek.forEach(day => {
+            const start = document.querySelector(`input[name="${day}_start"]`).value;
+            const end = document.querySelector(`input[name="${day}_end"]`).value;
+            scheduleData[day] = (start && end) ? `${start}-${end}` : "";
+        });
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/update-tutor-schedule`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tutorID: tutorID, schedule: scheduleData })
+            });
+            if (!response.ok) throw new Error("Nie udało się zapisać zmian.");
+            const result = await response.json();
+            alert(result.message);
+        } catch (error) {
+            alert(`Wystąpił błąd: ${error.message}`);
+        } finally {
+            saveButton.textContent = 'Zapisz stały grafik';
+            saveButton.disabled = false;
+        }
+    });
+
+    if(lessonDetailsModal) {
+        modalCloseBtn.addEventListener('click', () => lessonDetailsModal.classList.remove('active'));
+        lessonDetailsModal.addEventListener('click', (e) => {
+            if (e.target === lessonDetailsModal) lessonDetailsModal.classList.remove('active');
+        });
+    }
+
+    if(actionModal) {
+        actionModal.addEventListener('click', (e) => {
+            if (e.target === actionModal) actionModal.classList.remove('active');
+        });
+    }
+    
+    async function fetchMasterSchedule() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/get-master-schedule`);
+            if (!response.ok) throw new Error("Błąd pobierania głównego grafiku.");
+            return await response.json();
+        } catch (error) {
+            console.error("Krytyczny błąd:", error);
+            return [];
+        }
+    }
+
+    async function fetchAndRenderUpcomingLessons(name) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/get-tutor-lessons?tutorName=${name}`);
+            if (!response.ok) throw new Error("Błąd pobierania listy lekcji.");
+            
+            upcomingLessons = await response.json();
+
+            if (upcomingLessons.length > 0) {
+                upcomingLessonsContainer.innerHTML = '';
+                upcomingLessons.forEach((lesson, index) => {
+                    const lessonElement = document.createElement('div');
+                    lessonElement.className = 'lesson-list-item';
+                    lessonElement.dataset.lessonIndex = index;
+                    lessonElement.innerHTML = `
+                        <div class="lesson-summary">
+                            <span class="time">${lesson.date} o ${lesson.time}</span>
+                            <span class="student">${lesson.studentName}</span>
+                        </div>
+                    `;
+                    upcomingLessonsContainer.appendChild(lessonElement);
+                    lessonElement.addEventListener('click', () => showLessonDetailsModal(index));
+                });
+            } else {
+                upcomingLessonsContainer.innerHTML = '<p>Brak nadchodzących lekcji.</p>';
+            }
+        } catch (error) {
+            upcomingLessonsContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
+    }
+
+    function showLessonDetailsModal(lessonOrIndex) {
+        const lesson = typeof lessonOrIndex === 'number' ? upcomingLessons[lessonOrIndex] : lessonOrIndex;
+        if (!lesson) return;
+        
+        modalDetailsContent.innerHTML = `
+            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${lesson.studentName || 'Brak danych'}</span></div>
+            <div class="modal-details-item"><strong>Termin:</strong> <span>${lesson.date} o ${lesson.time}</span></div>
+            <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${lesson.subject || 'Brak danych'}</span></div>
+            <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${lesson.schoolType || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Poziom:</strong> <span>${lesson.schoolLevel || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Klasa:</strong> <span>${lesson.schoolClass || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Link Teams:</strong> <a href="${lesson.teamsLink || '#'}" target="_blank">Dołącz</a></div>
+        `;
+        lessonDetailsModal.classList.add('active');
+    }
+
+    function showActionModal(slot) {
+        // Log do weryfikacji, czy funkcja otrzymuje wszystkie dane
+        console.log("Dane otrzymane przez showActionModal:", slot);
+    
+        actionModalTitle.textContent = `Zarządzaj terminem (${slot.date} o ${slot.time})`;
+        
+        // Generujemy pełną listę szczegółów, używając danych z obiektu 'slot'
+        let detailsHtml = `
+            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${slot.studentName || 'Brak danych'}</span></div>
+            <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${slot.subject || 'Brak danych'}</span></div>
+            <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${slot.schoolType || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Poziom:</strong> <span>${slot.schoolLevel || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Klasa:</strong> <span>${slot.schoolClass || 'N/A'}</span></div>
+            <div class="modal-details-item"><strong>Link Teams:</strong> <a href="${slot.teamsLink || '#'}" target="_blank">Dołącz</a></div>
+        `;
+        
+        actionModalText.innerHTML = detailsHtml;
+    
+        // Generowanie przycisków akcji
+        actionModalButtons.innerHTML = `
+            <button class="modal-btn primary" id="rescheduleBtn">Przełóż zajęcia</button>
+            <button class="modal-btn secondary" id="closeActionModalBtn">Anuluj</button>
+        `;
+        actionModal.classList.add('active');
+    
+        // Przypisanie akcji do przycisków
+        document.getElementById('closeActionModalBtn').onclick = () => actionModal.classList.remove('active');
+        
+        document.getElementById('rescheduleBtn').onclick = async () => {
+            if (confirm("Czy na pewno chcesz przenieść te zajęcia? Uczeń będzie musiał wybrać nowy termin.")) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/tutor-reschedule`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ tutorName, date: slot.date, time: slot.time })
+                    });
+                    if (!response.ok) throw new Error("Nie udało się przenieść lekcji.");
+                    alert("Lekcja została oznaczona jako przeniesiona.");
+                    actionModal.classList.remove('active');
+                    
+                    // Odświeżenie obu widoków po pomyślnej akcji
+                    await fetchAndRenderUpcomingLessons(tutorName); 
+                    await renderWeeklyCalendar(currentWeekStart); 
+                } catch (error) {
+                    alert(`Błąd: ${error.message}`);
+                }
+            }
+        };
+    }
+
+    async function renderWeeklyCalendar(startDate) {
+        calendarContainer.innerHTML = '<p>Ładowanie grafiku...</p>';
+        const params = new URLSearchParams({ startDate: getFormattedDate(startDate), tutorName: tutorName });
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/get-schedule?${params.toString()}`);
+            if (!response.ok) throw new Error("Błąd ładowania grafiku.");
+            
+            const fullSchedule = await response.json();
+            console.log("Otrzymano pełny grafik z backendu:", fullSchedule); // KLUCZOWY LOG
+
+            const scheduleMap = {};
+            fullSchedule.forEach(slot => {
+                if (!scheduleMap[slot.date]) scheduleMap[slot.date] = {};
+                scheduleMap[slot.date][slot.time] = slot;
+            });
+
+            calendarContainer.innerHTML = '';
+            const daysInWeek = Array.from({length: 7}, (_, i) => {
+                const d = new Date(startDate);
+                d.setDate(d.getDate() + i);
+                return d;
+            });
+
+            const calendarNavigation = document.createElement('div');
+            calendarNavigation.className = 'calendar-navigation';
+            const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()]}`;
+            const lastDayFormatted = `${dayNamesFull[daysInWeek[6].getDay()].substring(0,3)}. ${daysInWeek[6].getDate()} ${monthNames[daysInWeek[6].getMonth()]}`;
+            calendarNavigation.innerHTML = `<button id="prevWeek">Poprzedni tydzień</button><h3>${firstDayFormatted} - ${lastDayFormatted}</h3><button id="nextWeek">Następny tydzień</button>`;
+            calendarContainer.appendChild(calendarNavigation);
+
+            const table = document.createElement('table');
+            table.className = 'calendar-grid-table';
+            let headerRow = '<tr><th class="time-label">Godzina</th>';
+            daysInWeek.forEach(day => { headerRow += `<th>${dayNamesFull[day.getDay()]}<br>${String(day.getDate()).padStart(2, '0')} ${monthNames[day.getMonth()]}</th>`; });
+            headerRow += '</tr>';
+            table.createTHead().innerHTML = headerRow;
+            const tbody = table.createTBody();
+
+            let masterTime = new Date();
+            masterTime.setHours(8, 0, 0, 0);
+            const endMasterTime = new Date();
+            endMasterTime.setHours(22, 0, 0, 0);
+
+            while (masterTime < endMasterTime) {
+                const timeSlot = masterTime.toTimeString().substring(0, 5);
+                const row = tbody.insertRow();
+                row.insertCell().outerHTML = `<td class="time-label">${timeSlot}</td>`;
+                
+                daysInWeek.forEach(day => {
+                    const cell = row.insertCell();
+                    const formattedDate = getFormattedDate(day);
+                    const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
+                    
+                    const block = document.createElement('div');
+                    block.className = 'time-block';
+                    
+                    if (slotData) {
+                        switch(slotData.status) {
+                            case 'available':
+                                block.classList.add('available');
+                                block.textContent = "Dostępny";
+                                block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
+                                break;
+                            case 'booked_lesson':
+                            case 'cyclic_reserved':
+                                block.classList.add('booked-lesson');
+                                block.textContent = slotData.studentName;
+                                block.addEventListener('click', () => showActionModal(slotData));
+                                break;
+                            case 'rescheduled_by_tutor':
+                                block.classList.add('rescheduled');
+                                block.textContent = "PRZENIESIONE";
+                                block.style.cursor = 'not-allowed';
+                                break;
+                            case 'blocked_by_tutor':
+                                block.classList.add('unavailable');
+                                block.textContent = "BLOKADA";
+                                block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
+                                break;
+                            default:
+                                 block.classList.add('unavailable');
+                                 block.textContent = "Zajęty";
+                                 block.style.cursor = 'not-allowed';
+                        }
+                    } else {
+                        block.classList.add('disabled');
+                        block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
+                    }
+                    
+                    cell.appendChild(block);
+                });
+                masterTime.setMinutes(masterTime.getMinutes() + 70);
+            }
+            calendarContainer.appendChild(table);
+            
+            document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
+            document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
+        } catch (error) {
+            console.error("Błąd podczas renderowania kalendarza:", error);
+            calendarContainer.innerHTML = '<p style="color: red;">Wystąpił krytyczny błąd podczas renderowania kalendarza.</p>';
+        }
+    }
+
+
+    
+    async function handleBlockClick(date, time) {
+        const block = event.target;
+        block.textContent = '...';
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/block-single-slot`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tutorID, tutorName, date, time })
+            });
+            if (!res.ok) throw new Error("Błąd serwera");
+            await renderWeeklyCalendar(currentWeekStart);
+        } catch (error) {
+            alert("Nie udało się zaktualizować terminu.");
+            await renderWeeklyCalendar(currentWeekStart);
+        }
+    }
+
+    async function handleAddHocSlot(date, time) {
+        const block = event.target;
+        block.textContent = '...';
+        
+        if (!confirm(`Czy na pewno chcesz dodać jednorazowy, dostępny termin w dniu ${date} o godzinie ${time}?`)) {
+            renderWeeklyCalendar(currentWeekStart);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/add-adhoc-slot`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tutorID, tutorName, date, time })
+            });
+            if (!res.ok) throw new Error("Błąd serwera");
+            await renderWeeklyCalendar(currentWeekStart);
+        } catch (error) {
+            alert("Nie udało się dodać nowego terminu.");
+            await renderWeeklyCalendar(currentWeekStart);
+        }
+    }
+
+    function changeWeek(days) {
+        currentWeekStart.setDate(currentWeekStart.getDate() + days);
+        renderWeeklyCalendar(currentWeekStart);
+    }
+    
+    async function fetchTutorData(id) {
+        const response = await fetch(`${API_BASE_URL}/api/get-tutor-schedule?tutorID=${id}`);
+        if (!response.ok) throw new Error('Nie udało się pobrać danych.');
+        return await response.json();
+    }
+    
+    function renderStaticScheduleForm(data) {
+        scheduleFields.innerHTML = '';
+        const formatTime = (timeStr) => {
+            if (!timeStr) return '';
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return '';
+            const hour = String(parts[0]).padStart(2, '0');
+            const minute = String(parts[1]).padStart(2, '0');
+            return `${hour}:${minute}`;
+        };
+        daysOfWeek.forEach(day => {
+            const timeRange = data[day] || "";
+            const [startTime = '', endTime = ''] = timeRange.split('-');
+            const row = document.createElement('div');
+            row.className = 'day-row';
+            row.innerHTML = `
+                <div class="day-label">${day}</div>
+                <div class="time-inputs">
+                    <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
+                    <span>-</span>
+                    <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
+                </div>
+            `;
+            scheduleFields.appendChild(row);
+        });
+    }
+
+    function getFormattedDate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    function getMonday(d) {
+        d = new Date(d);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+});

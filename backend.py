@@ -1,0 +1,874 @@
+import os
+import json
+import uuid
+import traceback
+from flask import Flask, jsonify, request, abort
+from flask_cors import CORS
+from pyairtable import Api
+from datetime import datetime, timedelta, time
+import requests
+
+# --- Konfiguracja ---
+AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
+AIRTABLE_BASE_ID = "appTjrMTVhYBZDPw9"
+TUTORS_TABLE_NAME = "Korepetytorzy"
+RESERVATIONS_TABLE_NAME = "Rezerwacje"
+CLIENTS_TABLE_NAME = "Klienci"
+CYCLIC_RESERVATIONS_TABLE_NAME = "StaleRezerwacje"
+
+MS_TENANT_ID = "58928953-69aa-49da-b96c-100396a3caeb"
+MS_CLIENT_ID = "8bf9be92-1805-456a-9162-ffc7cda3b794"
+MS_CLIENT_SECRET = "MQ~8Q~VD9sI3aB19_Drwqndp4j5V_WAjmwK3yaQD"
+MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
+
+api = Api(AIRTABLE_API_KEY)
+tutors_table = api.table(AIRTABLE_BASE_ID, TUTORS_TABLE_NAME)
+reservations_table = api.table(AIRTABLE_BASE_ID, RESERVATIONS_TABLE_NAME)
+clients_table = api.table(AIRTABLE_BASE_ID, CLIENTS_TABLE_NAME)
+cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABLE_NAME)
+
+app = Flask(__name__)
+CORS(app)
+
+WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
+LEVEL_MAPPING = {
+    "szkola_podstawowa": ["podstawowka"], "liceum_podstawowy": ["liceum_podstawa"],
+    "technikum_podstawowy": ["liceum_podstawa"], "liceum_rozszerzony": ["liceum_rozszerzenie"],
+    "technikum_rozszerzony": ["liceum_rozszerzenie"]
+}
+last_fetched_schedule = {}
+
+# --- Funkcje pomocnicze ---
+def parse_time_range(time_range_str):
+    try:
+        if not time_range_str or '-' not in time_range_str: return None, None
+        start_str, end_str = time_range_str.split('-')
+        start_time = datetime.strptime(start_str.strip(), '%H:%M').time()
+        end_time = datetime.strptime(end_str.strip(), '%H:%M').time()
+        return start_time, end_time
+    except ValueError: return None, None
+
+def generate_teams_meeting_link(meeting_subject):
+    token_url = f"https://login.microsoftonline.com/{MS_TENANT_ID}/oauth2/v2.0/token"
+    token_data = {'grant_type': 'client_credentials', 'client_id': MS_CLIENT_ID, 'client_secret': MS_CLIENT_SECRET, 'scope': 'https://graph.microsoft.com/.default'}
+    token_r = requests.post(token_url, data=token_data)
+    if token_r.status_code != 200: return None
+    access_token = token_r.json().get('access_token')
+    if not access_token: return None
+    meetings_url = f"https://graph.microsoft.com/v1.0/users/{MEETING_ORGANIZER_USER_ID}/onlineMeetings"
+    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+    start_time = datetime.utcnow() + timedelta(minutes=5)
+    end_time = start_time + timedelta(hours=1)
+    meeting_payload = {"subject": meeting_subject, "startDateTime": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'), "endDateTime": end_time.strftime('%Y-%m-%dT%H:%M:%SZ'), "lobbyBypassSettings": {"scope": "everyone"}, "allowedPresenters": "everyone"}
+    meeting_r = requests.post(meetings_url, headers=headers, data=json.dumps(meeting_payload))
+    if meeting_r.status_code == 201: return meeting_r.json().get('joinUrl')
+    return None
+
+def find_reservation_by_token(token):
+    if not token: return None
+    return reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
+
+def is_cancellation_allowed(record):
+    fields = record.get('fields', {})
+    lesson_date_str = fields.get('Data')
+    lesson_time_str = fields.get('Godzina')
+    if not lesson_date_str or not lesson_time_str: return False
+    lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+    return (lesson_datetime - datetime.now()) > timedelta(hours=12)
+
+# --- Endpointy API ---
+@app.route('/api/get-tutor-lessons')
+def get_tutor_lessons():
+    try:
+        tutor_name = request.args.get('tutorName')
+        if not tutor_name:
+            abort(400, "Brak parametru tutorName.")
+
+        # Pobierz mapę klientów, aby łatwo znaleźć ich imiona
+        all_clients_records = clients_table.all()
+        clients_map = {
+            rec['fields'].get('ClientID'): rec['fields'].get('Imię', 'Uczeń')
+            for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
+        }
+
+        # Formuła do Airtable: znajdź rezerwacje dla danego korepetytora od dzisiaj w przyszłość
+        # DATEADD(TODAY(), -1, 'days') to pewny sposób na uwzględnienie dzisiejszego dnia
+        formula = f"AND({{Korepetytor}} = '{tutor_name}', IS_AFTER({{Data}}, DATEADD(TODAY(), -1, 'days')))"
+        
+        lessons_records = reservations_table.all(formula=formula)
+
+        upcoming_lessons = []
+        for record in lessons_records:
+            fields = record.get('fields', {})
+            
+            # Pomijamy sloty, które są tylko blokadami lub wolnymi terminami korepetytora
+            status = fields.get('Status')
+            if status in ['Niedostępny', 'Dostępny']:
+                continue
+
+            client_id = fields.get('Klient')
+            student_name = clients_map.get(client_id, 'Brak danych')
+            
+            lesson_data = {
+                'date': fields.get('Data'),
+                'time': fields.get('Godzina'),
+                'studentName': student_name,
+                'subject': fields.get('Przedmiot'),
+                'schoolType': fields.get('TypSzkoły'),
+                'schoolLevel': fields.get('Poziom'),
+                'schoolClass': fields.get('Klasa'),
+                'teamsLink': fields.get('TeamsLink')
+            }
+            upcoming_lessons.append(lesson_data)
+        
+        # Sortuj lekcje chronologicznie
+        upcoming_lessons.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
+
+        return jsonify(upcoming_lessons)
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd serwera podczas pobierania lekcji korepetytora.")
+
+@app.route('/api/get-master-schedule')
+def get_master_schedule():
+    try:
+        all_tutors_templates = tutors_table.all()
+        master_time_slots = set()
+
+        for template in all_tutors_templates:
+            fields = template.get('fields', {})
+            for day_column in WEEKDAY_MAP.values():
+                time_range_str = fields.get(day_column)
+                if not time_range_str:
+                    continue
+
+                start_time, end_time = parse_time_range(time_range_str)
+                if not start_time or not end_time:
+                    continue
+                
+                # Używamy fikcyjnej daty, bo interesują nas tylko godziny
+                dummy_date = datetime.now().date()
+                current_slot_datetime = datetime.combine(dummy_date, start_time)
+                end_datetime = datetime.combine(dummy_date, end_time)
+
+                while current_slot_datetime < end_datetime:
+                    if (current_slot_datetime + timedelta(minutes=60)) > end_datetime:
+                        break
+                    
+                    master_time_slots.add(current_slot_datetime.strftime('%H:%M'))
+                    current_slot_datetime += timedelta(minutes=70)
+        
+        # Sortuj godziny i zwróć jako listę
+        sorted_slots = sorted(list(master_time_slots))
+        return jsonify(sorted_slots)
+        
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Błąd serwera podczas generowania głównego grafiku.")
+
+@app.route('/api/tutor-reschedule', methods=['POST'])
+def tutor_reschedule():
+    try:
+        data = request.json
+        tutor_name = data.get('tutorName')
+        date = data.get('date')
+        time = data.get('time')
+
+        # Znajdź rezerwację na podstawie danych
+        formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
+        record_to_reschedule = reservations_table.first(formula=formula)
+
+        if record_to_reschedule:
+            # Scenariusz 1: To jest już potwierdzona lekcja w tabeli Rezerwacje
+            reservations_table.update(record_to_reschedule['id'], {"Status": "Przeniesiona"})
+            return jsonify({"message": "Status lekcji został zmieniony na 'Przeniesiona'. Uczeń został poinformowany."})
+        else:
+            # Scenariusz 2: To jest stały termin z tabeli StaleRezerwacje
+            # Tworzymy "negatywny" wpis w Rezerwacje, aby zablokować ten jeden termin
+            new_exception = {
+                "Korepetytor": tutor_name,
+                "Data": date,
+                "Godzina": time,
+                "Status": "Przeniesiona",
+                "Typ": "Cykliczna Wyjątek" # Specjalny typ
+            }
+            reservations_table.create(new_exception)
+            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiony'. Uczeń zostanie poinformowany."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas przenoszenia lekcji.")
+
+@app.route('/api/add-adhoc-slot', methods=['POST'])
+def add_adhoc_slot():
+    try:
+        data = request.json
+        tutor_id, tutor_name, date, time = data.get('tutorID'), data.get('tutorName'), data.get('date'), data.get('time')
+
+        if not all([tutor_id, tutor_name, date, time]):
+            abort(400, "Brak wymaganych danych.")
+
+        tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+        if not tutor_record or tutor_record['fields'].get('Imię i Nazwisko') != tutor_name:
+            abort(403, "Brak uprawnień.")
+        
+        new_available_slot = {
+            "Korepetytor": tutor_name,
+            "Data": date,
+            "Godzina": time,
+            "Typ": "Jednorazowa",
+            "Status": "Dostępny" # Ta opcja musi istnieć w Airtable
+        }
+        reservations_table.create(new_available_slot)
+        
+        print(f"DODANO JEDNORAZOWY TERMIN: {date} {time} dla {tutor_name}")
+        # ### POPRAWKA - DODANO BRAKUJĄCY RETURN ###
+        return jsonify({"message": "Dodano nowy, jednorazowy dostępny termin."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas dodawania terminu.")
+
+
+@app.route('/api/verify-client')
+def verify_client():
+    client_id = request.args.get('clientID')
+    if not client_id: abort(400, "Brak identyfikatora klienta.")
+    client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
+    if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
+    return jsonify({"firstName": client_record['fields'].get('Imię'), "lastName": client_record['fields'].get('Nazwisko')})
+
+@app.route('/api/get-tutor-schedule')
+def get_tutor_schedule():
+    tutor_id = request.args.get('tutorID')
+    if not tutor_id: abort(400, "Brak identyfikatora korepetytora.")
+    tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+    if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
+    fields = tutor_record.get('fields', {})
+    return jsonify({
+        "Imię i Nazwisko": fields.get("Imię i Nazwisko"), "Poniedziałek": fields.get("Poniedziałek", ""),"Wtorek": fields.get("Wtorek", ""),
+        "Środa": fields.get("Środa", ""), "Czwartek": fields.get("Czwartek", ""),"Piątek": fields.get("Piątek", ""),
+        "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", "")
+    })
+
+@app.route('/api/update-tutor-schedule', methods=['POST'])
+def update_tutor_schedule():
+    data = request.json
+    tutor_id = data.get('tutorID')
+    new_schedule = data.get('schedule')
+    if not tutor_id or not new_schedule: abort(400, "Brak wymaganych danych.")
+    tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+    if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
+    fields_to_update = {day: time_range for day, time_range in new_schedule.items() if time_range is not None}
+    tutors_table.update(tutor_record['id'], fields_to_update)
+    return jsonify({"message": "Grafik został pomyślnie zaktualizowany."})
+
+@app.route('/api/block-single-slot', methods=['POST'])
+def block_single_slot():
+    try:
+        data = request.json
+        tutor_id = data.get('tutorID')
+        tutor_name = data.get('tutorName')
+        date = data.get('date')
+        time = data.get('time')
+
+        if not all([tutor_id, tutor_name, date, time]):
+            abort(400, "Brak wymaganych danych.")
+
+        # Weryfikacja korepetytora (bez zmian)
+        tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+        if not tutor_record or tutor_record['fields'].get('Imię i Nazwisko') != tutor_name:
+            abort(403, "Brak uprawnień.")
+        
+        # ### NOWA, ULEPSZONA LOGIKA ###
+        # Sprawdzamy, czy istnieje JAKAKOLWIEK rezerwacja na ten termin (zwykła lub blokada)
+        formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
+        existing_reservation = reservations_table.first(formula=formula)
+
+        if existing_reservation:
+            # Jeśli coś istnieje - usuwamy to (odblokowujemy lub odwołujemy lekcję)
+            # W przyszłości można dodać walidację, czy to nie jest lekcja z uczniem
+            reservations_table.delete(existing_reservation['id'])
+            return jsonify({"message": "Termin został zwolniony."})
+        else:
+            # Jeśli nic nie istnieje - tworzymy blokadę (robimy sobie wolne)
+            new_block = {
+                "Korepetytor": tutor_name,
+                "Data": date,
+                "Godzina": time,
+                "Typ": "Jednorazowa",
+                "Status": "Niedostępny"
+            }
+            reservations_table.create(new_block)
+            return jsonify({"message": "Termin został zablokowany."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas zmiany statusu terminu.")
+        
+# Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)
+
+# Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)
+
+@app.route('/api/get-schedule')
+def get_schedule():
+    global last_fetched_schedule
+    try:
+        start_date_str = request.args.get('startDate')
+        if not start_date_str: abort(400, "Brak parametru startDate")
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = start_date + timedelta(days=7)
+        
+        school_type = request.args.get('schoolType')
+        school_level = request.args.get('schoolLevel')
+        subject = request.args.get('subject')
+        tutor_name_filter = request.args.get('tutorName')
+
+        all_tutors_templates = tutors_table.all()
+        filtered_tutors = []
+
+        # ... (sekcja filtrowania korepetytorów pozostaje bez zmian) ...
+        if tutor_name_filter:
+            found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('Imię i Nazwisko') == tutor_name_filter), None)
+            if found_tutor: filtered_tutors.append(found_tutor)
+        else:
+            if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
+            required_level_tags = []
+            if school_type == 'szkola_podstawowa': required_level_tags = LEVEL_MAPPING.get(school_type, [])
+            elif (school_type in ['liceum', 'technikum']) and school_level:
+                key_podstawa = f"{school_type}_podstawowy"
+                required_level_tags = LEVEL_MAPPING.get(key_podstawa, [])
+                if school_level == 'rozszerzony':
+                    key_rozszerzenie = f"{school_type}_rozszerzony"
+                    required_level_tags.extend(LEVEL_MAPPING.get(key_rozszerzenie, []))
+            if not required_level_tags: return jsonify([])
+            for tutor in all_tutors_templates:
+                fields = tutor.get('fields', {})
+                if all(tag in fields.get('PoziomNauczania', []) for tag in required_level_tags) and subject in fields.get('Przedmioty', []):
+                    filtered_tutors.append(tutor)
+        
+        # ... (sekcja zbierania informacji o zajętych slotach pozostaje bez zmian) ...
+        booked_slots = {}
+        all_clients = {rec['fields'].get('ClientID'): rec['fields'] for rec in clients_table.all() if 'ClientID' in rec.get('fields', {})}
+        formula_reservations = f"AND(IS_AFTER({{Data}}, DATETIME_PARSE('{start_date - timedelta(days=1)}', 'YYYY-MM-DD')), IS_BEFORE({{Data}}, DATETIME_PARSE('{end_date}', 'YYYY-MM-DD')))"
+        reservations = reservations_table.all(formula=formula_reservations)
+        
+        for record in reservations:
+            fields = record.get('fields', {})
+            key = (fields.get('Korepetytor'), fields.get('Data'), fields.get('Godzina'))
+            status = fields.get('Status')
+            if status != 'Dostępny':
+                student_name = all_clients.get(fields.get('Klient'), {}).get('Imię', 'Uczeń')
+                booked_slots[key] = {
+                    "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
+                    "studentName": student_name, "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
+                    "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink')
+                }
+
+        cyclic_reservations = cyclic_reservations_table.all(formula="{Aktywna}=1")
+        for rec in cyclic_reservations:
+            fields = rec.get('fields', {})
+            day_name = fields.get('DzienTygodnia')
+            client_uuid = fields.get('Klient_ID')
+            if not day_name or not client_uuid: continue
+            try:
+                day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+                for day_offset in range(7):
+                    current_date = start_date + timedelta(days=day_offset)
+                    if current_date.weekday() == day_num:
+                        key = (fields.get('Korepetytor'), current_date.strftime('%Y-%m-%d'), fields.get('Godzina'))
+                        if key not in booked_slots:
+                            student_name = all_clients.get(client_uuid, {}).get('Imię', 'Uczeń')
+                            booked_slots[key] = {
+                                "status": "cyclic_reserved", "studentName": f"{student_name} (Cykliczne)",
+                                "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
+                                "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa')
+                            }
+            except ValueError: pass
+        
+        # Stała "główna" siatka godzin dla wszystkich
+        master_start_time = time(8, 0)
+        master_end_time = time(22, 0) # Siatka generowana do tej godziny
+
+        # Generujemy wszystkie możliwe sloty na podstawie szablonów i filtrujemy je
+        available_slots = []
+        for template in filtered_tutors:
+            fields = template.get('fields', {})
+            tutor_name = fields.get('Imię i Nazwisko')
+            if not tutor_name: continue
+            
+            for day_offset in range(7):
+                current_date = start_date + timedelta(days=day_offset)
+                time_range_str = fields.get(WEEKDAY_MAP[current_date.weekday()])
+                if not time_range_str: continue
+                
+                # Godziny pracy korepetytora w tym dniu
+                start_work_time, end_work_time = parse_time_range(time_range_str)
+                if not start_work_time or not end_work_time: continue
+                
+                # Zaczynamy iterację od początku stałej siatki
+                current_slot_datetime = datetime.combine(current_date, master_start_time)
+                end_datetime_limit = datetime.combine(current_date, master_end_time)
+
+                while current_slot_datetime < end_datetime_limit:
+                    current_time_only = current_slot_datetime.time()
+                    
+                    # Sprawdź, czy aktualny slot z "głównej" siatki mieści się w godzinach pracy korepetytora
+                    # Warunek: slot musi się zacząć i skończyć (po 60 min) w ramach godzin pracy
+                    if start_work_time <= current_time_only and \
+                       (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
+                        
+                        slot_time_str = current_slot_datetime.strftime('%H:%M')
+                        current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
+                        key = (tutor_name, current_date_str, slot_time_str)
+
+                        # Sprawdź, czy nie jest zablokowany (dla listy wolnych terminów)
+                        if key not in booked_slots:
+                            available_slots.append({
+                                'tutor': tutor_name,
+                                'date': current_date_str,
+                                'time': slot_time_str,
+                                'status': 'available'
+                            })
+                    
+                    # Zawsze przesuwaj się o 70 minut w ramach "głównej" siatki
+                    current_slot_datetime += timedelta(minutes=70)
+        
+        # Dodaj jednorazowe dostępne terminy (one nie muszą pasować do siatki)
+        for record in reservations:
+            fields = record.get('fields', {})
+            if fields.get('Status') == 'Dostępny':
+                available_slots.append({
+                    "tutor": fields.get('Korepetytor'), "date": fields.get('Data'),
+                    "time": fields.get('Godzina'), "status": "available"
+                })
+            
+        if tutor_name_filter:
+            # ### TUTAJ NASTĄPIŁA KLUCZOWA ZMIANA ###
+            # Dla panelu korepetytora budujemy PEŁNY grafik, używając tej samej logiki "głównej siatki"
+            final_schedule = []
+            # Zakładamy, że w filtered_tutors jest tylko jeden korepetytor
+            for template in filtered_tutors:
+                fields = template.get('fields', {})
+                tutor_name = fields.get('Imię i Nazwisko')
+                if not tutor_name: continue
+                for day_offset in range(7):
+                    current_date = start_date + timedelta(days=day_offset)
+                    time_range_str = fields.get(WEEKDAY_MAP[current_date.weekday()])
+                    if not time_range_str: continue
+                    start_work_time, end_work_time = parse_time_range(time_range_str)
+                    if not start_work_time or not end_work_time: continue
+                    
+                    current_slot_datetime = datetime.combine(current_date, master_start_time)
+                    end_datetime_limit = datetime.combine(current_date, master_end_time)
+                    
+                    while current_slot_datetime < end_datetime_limit:
+                        current_time_only = current_slot_datetime.time()
+
+                        # Sprawdzamy, czy slot z "głównej siatki" mieści się w godzinach pracy
+                        if start_work_time <= current_time_only and \
+                           (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
+
+                            slot_time_str = current_slot_datetime.strftime('%H:%M')
+                            current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
+                            key = (tutor_name, current_date_str, slot_time_str)
+                            
+                            slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
+                            if key in booked_slots:
+                                slot_info.update(booked_slots[key])
+                            else:
+                                slot_info['status'] = 'available'
+                            
+                            final_schedule.append(slot_info)
+
+                        # Zawsze przesuwamy się w ramach tej samej siatki
+                        current_slot_datetime += timedelta(minutes=70)
+            return jsonify(final_schedule)
+        else:
+            # Dla stron rezerwacji zwracamy tylko listę wolnych slotów
+            last_fetched_schedule = available_slots
+            return jsonify(available_slots)
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wewnętrzny błąd serwera.")
+
+@app.route('/api/create-reservation', methods=['POST'])
+def create_reservation():
+    try:
+        data = request.json
+        is_test_lesson = 'isOneTime' not in data
+        is_cyclic = not data.get('isOneTime', False) if not is_test_lesson else False
+        
+        weeks_to_book = 4 if is_cyclic else 1
+        client_uuid = data.get('clientID')
+        if not client_uuid: abort(400, "Brak ClientID w zapytaniu.")
+        
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid.strip()}'")
+        if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
+        
+        client_id_record = client_record['id']
+        first_name = client_record['fields'].get('Imię')
+        
+        tutor_for_reservation = data['tutor']
+        if tutor_for_reservation == 'Dowolny dostępny':
+            found_slot = next((slot for slot in last_fetched_schedule if slot['date'] == data['selectedDate'] and slot['time'] == data['selectedTime']), None)
+            if found_slot:
+                tutor_for_reservation = found_slot['tutor']
+            else:
+                abort(500, "Wybrany termin stał się niedostępny.")
+
+        extra_info = {
+            "TypSzkoły": data.get('schoolType'),
+            "Poziom": data.get('schoolLevel'),
+            "Klasa": data.get('schoolClass')
+        }
+
+        if is_cyclic:
+            lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
+            day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
+            
+            new_cyclic_reservation = {
+                "Klient_ID": client_uuid.strip(),
+                "Korepetytor": tutor_for_reservation,
+                "DzienTygodnia": day_of_week_name,
+                "Godzina": data['selectedTime'],
+                "Przedmiot": data.get('subject'),
+                "Aktywna": True
+            }
+            new_cyclic_reservation.update(extra_info)
+            cyclic_reservations_table.create(new_cyclic_reservation)
+            return jsonify({"message": "Stały termin został pomyślnie zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
+
+        else: # Lekcja jednorazowa lub testowa
+            management_token = str(uuid.uuid4())
+            teams_link = generate_teams_meeting_link(f"Korepetycje: {data['subject']} dla {first_name}")
+            if not teams_link: abort(500, "Nie udało się wygenerować linku Teams.")
+
+            new_one_time_reservation = {
+                "Klient": [client_id_record],
+                "Korepetytor": tutor_for_reservation,
+                "Data": data['selectedDate'],
+                "Godzina": data['selectedTime'],
+                "Przedmiot": data.get('subject'),
+                "ManagementToken": management_token,
+                "Typ": "Jednorazowa",
+                "Status": "Potwierdzona",
+                "TeamsLink": teams_link
+            }
+            new_one_time_reservation.update(extra_info)
+            reservations_table.create(new_one_time_reservation)
+            
+            return jsonify({
+                "teamsUrl": teams_link, "managementToken": management_token,
+                "clientID": client_uuid, "isCyclic": False, "isTest": is_test_lesson
+            })
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Błąd serwera podczas zapisu rezerwacji.")
+
+@app.route('/api/confirm-next-lesson', methods=['POST'])
+def confirm_next_lesson():
+    try:
+        cyclic_reservation_id = request.json.get('cyclicReservationId')
+        if not cyclic_reservation_id: 
+            abort(400, "Brak ID stałej rezerwacji.")
+
+        cyclic_record = cyclic_reservations_table.get(cyclic_reservation_id)
+        if not cyclic_record: 
+            abort(404, "Nie znaleziono stałej rezerwacji.")
+        
+        fields = cyclic_record.get('fields', {})
+        client_uuid = fields.get('Klient_ID', '').strip()
+        tutor = fields.get('Korepetytor')
+        day_name = fields.get('DzienTygodnia')
+        lesson_time = fields.get('Godzina')
+        subject = fields.get('Przedmiot')
+        
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid}'")
+        if not client_record: 
+            abort(404, "Powiązany klient nie istnieje.")
+        first_name = client_record['fields'].get('Imię')
+
+        day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+        today = datetime.now().date()
+        days_ahead = day_num - today.weekday()
+        if days_ahead <= 0: 
+            days_ahead += 7
+        next_lesson_date = today + timedelta(days=days_ahead)
+        next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
+
+        # Sprawdź, czy termin nie jest już zajęty
+        formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{next_lesson_date_str}', {{Godzina}} = '{lesson_time}')"
+        existing_reservation = reservations_table.first(formula=formula_check)
+
+        if existing_reservation:
+            temp_token = str(uuid.uuid4())
+            temp_reservation = {
+                "Klient": client_uuid, "Korepetytor": tutor, "Data": next_lesson_date_str,
+                "Godzina": lesson_time, "Przedmiot": subject, "ManagementToken": temp_token,
+                "Typ": "Cykliczna", "Status": "Przeniesiona"
+            }
+            reservations_table.create(temp_reservation)
+            return jsonify({
+                "error": "CONFLICT",
+                "message": f"Niestety, termin {next_lesson_date_str} o {lesson_time} został w międzyczasie jednorazowo zablokowany przez korepetytora.",
+                "managementToken": temp_token
+            }), 409
+
+        teams_link = generate_teams_meeting_link(f"Korepetycje: {subject} dla {first_name}")
+        if not teams_link: 
+            abort(500, "Nie udało się wygenerować linku Teams.")
+
+        new_confirmed_lesson = {
+            "Klient": client_uuid,
+            "Korepetytor": tutor,
+            "Data": next_lesson_date_str,
+            "Godzina": lesson_time,
+            "Przedmiot": subject,
+            "ManagementToken": str(uuid.uuid4()),
+            "Typ": "Cykliczna",
+            "Status": "Oczekuje na płatność",
+            "TeamsLink": teams_link,
+            "TypSzkoły": fields.get('TypSzkoły'),
+            "Poziom": fields.get('Poziom'),
+            "Klasa": fields.get('Klasa')
+        }
+        
+        new_confirmed_lesson = {k: v for k, v in new_confirmed_lesson.items() if v is not None}
+        
+        # --- KLUCZOWE LOGI TUTAJ ---
+        print("\n--- Rozpoczynam zapis do Airtable ---")
+        print("Dane do zapisu:", json.dumps(new_confirmed_lesson, indent=2))
+        klient_value = new_confirmed_lesson.get("Klient")
+        print(f"Wartość dla pola 'Klient': '{klient_value}'")
+        print(f"Typ wartości dla pola 'Klient': {type(klient_value)}")
+        
+        reservations_table.create(new_confirmed_lesson)
+        print("SUKCES: Zapisano w Airtable.")
+        
+        return jsonify({
+            "message": f"Najbliższa lekcja w dniu {next_lesson_date_str} została potwierdzona.", 
+            "teamsUrl": teams_link
+        })
+    except Exception as e:
+        print("!!! KRYTYCZNY BŁĄD w confirm_next_lesson !!!")
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas potwierdzania lekcji.")
+        
+@app.route('/api/get-client-dashboard')
+def get_client_dashboard():
+    try:
+        client_id = request.args.get('clientID')
+        if not client_id: 
+            abort(400, "Brak identyfikatora klienta.")
+        
+        client_id = client_id.strip()
+        
+        # 1. Znajdź klienta, aby pobrać jego imię
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
+        if not client_record: 
+            abort(404, "Nie znaleziono klienta.")
+        client_name = client_record['fields'].get('Imię', 'Uczniu')
+
+        # Pobierz dane wszystkich korepetytorów, aby mieć mapę linków kontaktowych
+        all_tutors_records = tutors_table.all()
+        tutor_links_map = {
+            tutor['fields'].get('Imię i Nazwisko'): tutor['fields'].get('LINK')
+            for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
+        }
+
+        # 2. Pobierz wszystkie jednorazowe/potwierdzone rezerwacje dla tego klienta
+        all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
+        
+        upcoming = []
+        past = []
+        for record in all_reservations:
+            fields = record.get('fields', {})
+            if 'Data' not in fields or 'Godzina' not in fields: 
+                continue
+            
+            lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
+            
+            tutor_name = fields.get('Korepetytor', 'N/A')
+
+            lesson_data = {
+                "date": fields.get('Data'),
+                "time": fields.get('Godzina'),
+                "tutor": tutor_name,
+                "subject": fields.get('Przedmiot', 'N/A'),
+                "managementToken": fields.get('ManagementToken'),
+                "status": fields.get('Status', 'N/A'),
+                "teamsLink": fields.get('TeamsLink'),
+                "tutorContactLink": tutor_links_map.get(tutor_name) # Dodajemy link kontaktowy
+            }
+            if lesson_datetime > datetime.now():
+                upcoming.append(lesson_data)
+            else:
+                past.append(lesson_data)
+        
+        upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
+        past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
+        
+        # 3. Pobierz stałe rezerwacje (subskrypcje)
+        cyclic_lessons = []
+        cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
+        for record in cyclic_records:
+            fields = record.get('fields', {})
+            day_name_pl = fields.get('DzienTygodnia')
+            lesson_time = fields.get('Godzina')
+            tutor_name = fields.get('Korepetytor')
+            
+            is_next_lesson_confirmed = False
+            if day_name_pl in WEEKDAY_MAP.values():
+                day_num_pl = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name_pl)]
+                is_next_lesson_confirmed = any(
+                    lesson['time'] == lesson_time and 
+                    datetime.strptime(lesson['date'], '%Y-%m-%d').weekday() == day_num_pl
+                    for lesson in upcoming
+                )
+
+            cyclic_lessons.append({
+                "id": record['id'],
+                "dayOfWeek": day_name_pl,
+                "time": lesson_time,
+                "tutor": tutor_name,
+                "subject": fields.get('Przedmiot'),
+                "isNextLessonConfirmed": is_next_lesson_confirmed,
+                "tutorContactLink": tutor_links_map.get(tutor_name) # Dodajemy link kontaktowy
+            })
+
+        return jsonify({
+            "clientName": client_name,
+            "cyclicLessons": cyclic_lessons,
+            "upcomingLessons": upcoming,
+            "pastLessons": past
+        })
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas pobierania danych panelu klienta.")
+
+@app.route('/api/get-reservation-details')
+def get_reservation_details():
+    try:
+        token = request.args.get('token')
+        record = find_reservation_by_token(token)
+        if not record: 
+            abort(404, "Nie znaleziono rezerwacji o podanym identyfikatorze.")
+        
+        fields = record.get('fields', {})
+        
+        client_uuid = fields.get('Klient')
+        student_name = "N/A"
+        
+        if client_uuid:
+            client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid}'")
+            if client_record:
+                student_name = client_record.get('fields', {}).get('Imię', 'N/A')
+
+        tutor_name = fields.get('Korepetytor')
+        tutor_contact_link = None
+        if tutor_name:
+            tutor_record = tutors_table.first(formula=f"{{Imię i Nazwisko}} = '{tutor_name}'")
+            if tutor_record:
+                tutor_contact_link = tutor_record.get('fields', {}).get('LINK')
+
+        return jsonify({
+            "date": fields.get('Data'), 
+            "time": fields.get('Godzina'), 
+            "tutor": tutor_name,
+            "student": student_name, 
+            "isCancellationAllowed": is_cancellation_allowed(record),
+            "clientID": client_uuid,
+            "tutorContactLink": tutor_contact_link # Dodajemy link do odpowiedzi
+        })
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas pobierania szczegółów rezerwacji.")
+
+@app.route('/api/cancel-reservation', methods=['POST'])
+def cancel_reservation():
+    token = request.json.get('token')
+    record = find_reservation_by_token(token)
+    if not record: abort(404, "Nie znaleziono rezerwacji.")
+    if not is_cancellation_allowed(record): abort(403, "Nie można odwołać rezerwacji.")
+    try:
+        reservations_table.delete(record['id'])
+        return jsonify({"message": "Rezerwacja została pomyślnie odwołana."})
+    except Exception as e: abort(500, "Wystąpił błąd podczas odwoływania rezerwacji.")
+
+@app.route('/api/reschedule-reservation', methods=['POST'])
+def reschedule_reservation():
+    try:
+        data = request.json
+        token = data.get('token')
+        new_date = data.get('newDate')
+        new_time = data.get('newTime')
+
+        if not all([token, new_date, new_time]):
+            abort(400, "Brak wymaganych danych.")
+
+        # 1. Znajdź oryginalny rekord rezerwacji (ten ze statusem 'Przeniesiona')
+        original_record = find_reservation_by_token(token)
+        if not original_record:
+            abort(404, "Nie znaleziono oryginalnej rezerwacji do przeniesienia.")
+
+        original_fields = original_record.get('fields', {})
+        
+        # Sprawdź, czy status pozwala na zmianę terminu
+        original_status = original_fields.get('Status')
+        if original_status not in ['Przeniesiona', 'Oczekuje na potwierdzenie']: # Możemy pozwolić na zmianę z różnych statusów
+             if not is_cancellation_allowed(original_record):
+                abort(403, "Nie można zmienić terminu rezerwacji. Pozostało mniej niż 12 godzin.")
+
+        # 2. Sprawdź, czy nowy termin jest na pewno wolny (bardzo ważne!)
+        tutor = original_fields.get('Korepetytor')
+        
+        formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
+        if reservations_table.first(formula=formula_check):
+            abort(409, "Wybrany termin jest już zajęty. Proszę wybrać inny.")
+
+        new_date_obj = datetime.strptime(new_date, '%Y-%m-%d').date()
+        day_of_week_name = WEEKDAY_MAP[new_date_obj.weekday()]
+        cyclic_check_formula = f"AND({{Korepetytor}} = '{tutor}', {{DzienTygodnia}} = '{day_of_week_name}', {{Godzina}} = '{new_time}', {{Aktywna}}=1)"
+        if cyclic_reservations_table.first(formula=cyclic_check_formula):
+            abort(409, "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny.")
+            
+        # 3. Stwórz NOWY rekord rezerwacji, kopiując dane
+        # Status nowej lekcji zależy od statusu starej
+        new_status = original_fields.get('Status')
+        if new_status == 'Przeniesiona':
+            # Jeśli lekcja była przeniesiona, nowy termin jest po prostu do opłacenia
+            new_status = 'Oczekuje na płatność'
+        
+        new_reservation_data = {
+            "Klient": original_fields.get('Klient'),
+            "Korepetytor": tutor,
+            "Data": new_date,
+            "Godzina": new_time,
+            "Przedmiot": original_fields.get('Przedmiot'),
+            "Typ": original_fields.get('Typ', 'Jednorazowa'),
+            "Status": new_status,
+            "ManagementToken": str(uuid.uuid4()),
+            "TypSzkoły": original_fields.get('TypSzkoły'),
+            "Poziom": original_fields.get('Poziom'),
+            "Klasa": original_fields.get('Klasa'),
+            "TeamsLink": original_fields.get('TeamsLink') # Można przenieść stary link lub wygenerować nowy
+        }
+        reservations_table.create(new_reservation_data)
+
+        # 4. Zaktualizuj stary rekord, aby nie był już aktywny
+        # Możemy nadać mu status np. "Przeniesiona (zakończona)"
+        reservations_table.update(original_record['id'], {"Status": "Przeniesiona (zakończona)"})
+        
+        return jsonify({"message": f"Termin został pomyślnie zmieniony na {new_date} o {new_time}."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas zmiany terminu.")
+
+if __name__ == '__main__':
+    app.run(port=5000, debug=True)

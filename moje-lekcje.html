@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje Lekcje - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-container { max-width: 900px; margin: 2.5rem auto; }
+        .actions-container {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+        .btn-primary:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+        .lesson-card {
+            background-color: var(--container-bg-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--primary-color);
+        }
+        .lesson-card.past, .lesson-card.rescheduled-finished { 
+            border-left-color: var(--border-color); 
+            opacity: 0.7; 
+        }
+        .lesson-card.unconfirmed { border-left-color: #FFA726; }
+        .lesson-card.rescheduled { border-left-color: #64B5F6; }
+        .lesson-info div { font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .lesson-info strong { color: var(--text-dark); }
+        .lesson-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .lesson-actions a, .lesson-actions button, .lesson-actions span {
+            background-color: #E0E0E0;
+            color: var(--text-dark);
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            border: none;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .lesson-actions a:hover, .lesson-actions button:hover { background-color: #BDBDBD; }
+        .lesson-actions .btn-confirm { background-color: var(--available-text-color); color: white; }
+        .lesson-actions .btn-confirm:hover { background-color: #2E7D32; }
+        .lesson-actions .confirmed-info { background-color: transparent; cursor: default; }
+        .lesson-actions .btn-pay { background-color: var(--available-color); color: var(--available-text-color); border: 1px solid var(--available-text-color); }
+        .lesson-actions .btn-pay:hover { background-color: var(--available-hover-color); }
+        .lesson-actions .btn-join { background-color: var(--primary-color); color: var(--text-dark); }
+        .lesson-actions .btn-join:hover { background-color: var(--primary-hover-color); }
+        
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
+            align-items: center; z-index: 1000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: white; padding: 2rem; border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-width: 500px;
+            width: 90%; text-align: center; transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-content h3 { margin-top: 0; font-size: 1.5rem; }
+        .modal-content p { color: var(--text-medium); margin-bottom: 2rem; }
+        .modal-buttons { display: flex; justify-content: center; gap: 1rem; }
+        .modal-btn { padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 1rem; text-decoration: none; display: inline-block; }
+        .modal-btn.primary { background-color: var(--primary-color); color: var(--text-dark); }
+        .modal-btn.primary:hover { background-color: var(--primary-hover-color); }
+        .modal-btn.secondary { background-color: #E0E0E0; color: var(--text-dark); }
+        .modal-btn.secondary:hover { background-color: #BDBDBD; }
+        .modal-info { display: none; margin-top: 1.5rem; padding: 1rem; background-color: #FFFBEB; border: 1px solid #FFEEBA; border-radius: 8px; font-size: 0.95rem; color: #856404; }
+        .modal-btn.ok-button { width: 100%; max-width: 200px; }
+    </style>
+</head>
+<body>
+    <header><h1>Panel Klienta</h1></header>
+
+    <main id="dashboard" class="dashboard-container">
+        <h2 id="welcomeMessage">Ładowanie danych...</h2>
+        
+        <div class="actions-container">
+            <a href="#" id="newBookingLink" class="btn-primary">Zarezerwuj stałe zajęcia</a>
+        </div>
+        
+        <h3>Twoje stałe terminy</h3>
+        <div id="cyclicReservations">
+            <p>Brak zarezerwowanych stałych terminów.</p>
+        </div>
+
+        <h3 style="margin-top: 3rem;">Potwierdzone nadchodzące lekcje</h3>
+        <div id="upcomingLessons">
+            <p>Brak potwierdzonych nadchodzących lekcji.</p>
+        </div>
+
+        <h3 style="margin-top: 3rem;">Historia lekcji</h3>
+        <div id="pastLessons">
+            <p>Brak historii lekcji.</p>
+        </div>
+    </main>
+
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle">Potwierdź najbliższą lekcję</h3>
+            <p id="modalText">Czy chcesz potwierdzić najbliższą lekcję z tego cyklu?</p>
+            <div id="modalButtons" class="modal-buttons"></div>
+            <div id="modalInfo" class="modal-info"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const clientID = params.get('clientID');
+
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const cyclicContainer = document.getElementById('cyclicReservations');
+            const upcomingContainer = document.getElementById('upcomingLessons');
+            const pastContainer = document.getElementById('pastLessons');
+            const newBookingLink = document.getElementById('newBookingLink');
+
+            const modalOverlay = document.getElementById('confirmationModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalText = document.getElementById('modalText');
+            const modalButtons = document.getElementById('modalButtons');
+            const modalInfo = document.getElementById('modalInfo');
+            
+            const API_BASE_URL = 'http://127.0.0.1:5000'; // Zmień URL na produkcyjny
+
+            if (!clientID) {
+                welcomeMessage.innerHTML = '<h2>Wystąpił błąd: Brak identyfikatora klienta.</h2>';
+                document.querySelector('.actions-container').style.display = 'none';
+                return;
+            }
+
+            newBookingLink.href = `rezerwacja-cykliczna.html?clientID=${clientID}`;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/get-client-dashboard?clientID=${clientID}`);
+                if (!response.ok) throw new Error("Nie udało się pobrać danych z serwera.");
+                
+                const data = await response.json();
+                console.log("Otrzymano dane dla panelu klienta:", data); // Log do sprawdzenia danych
+                
+                welcomeMessage.textContent = `Witaj, ${data.clientName}! Oto Twoje rezerwacje:`;
+                
+                if (data.cyclicLessons && data.cyclicLessons.length > 0) {
+                    cyclicContainer.innerHTML = '';
+                    data.cyclicLessons.forEach(lesson => {
+                        const card = createCyclicLessonCard(lesson);
+                        cyclicContainer.appendChild(card);
+                    });
+                }
+
+                if (data.upcomingLessons && data.upcomingLessons.length > 0) {
+                    upcomingContainer.innerHTML = '';
+                    data.upcomingLessons.forEach(lesson => {
+                        const card = createLessonCard(lesson, false);
+                        upcomingContainer.appendChild(card);
+                    });
+                }
+
+                if (data.pastLessons && data.pastLessons.length > 0) {
+                    pastContainer.innerHTML = '';
+                    data.pastLessons.forEach(lesson => {
+                        const card = createLessonCard(lesson, true);
+                        pastContainer.appendChild(card);
+                    });
+                }
+
+            } catch (error) {
+                welcomeMessage.innerHTML = `<h2>Wystąpił błąd: ${error.message}</h2>`;
+            }
+
+            function createCyclicLessonCard(lesson) {
+                const card = document.createElement('div');
+                card.className = 'lesson-card';
+                
+                let actionButtonHtml = '';
+                if (lesson.isNextLessonConfirmed) {
+                    actionButtonHtml = `<span class="confirmed-info">Najbliższa lekcja potwierdzona</span>`;
+                } else {
+                    actionButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
+                }
+
+                // Dodajemy link do kontaktu, jeśli istnieje
+                const contactLinkHtml = lesson.tutorContactLink 
+                    ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
+                    : '';
+
+                card.innerHTML = `
+                    <div class="lesson-info">
+                        <div><strong>Stały termin:</strong> ${lesson.dayOfWeek} o ${lesson.time}</div>
+                        <div><strong>Przedmiot:</strong> ${lesson.subject}</div>
+                        <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
+                    </div>
+                    <div class="lesson-actions">${actionButtonHtml}</div>
+                `;
+                
+                const confirmButton = card.querySelector('.btn-confirm');
+                if (confirmButton) {
+                    confirmButton.addEventListener('click', () => {
+                        showConfirmationStep(lesson);
+                    });
+                }
+
+                return card;
+            }
+            
+            function showConfirmationStep(lesson) {
+                modalTitle.textContent = "Potwierdź najbliższą lekcję";
+                modalText.textContent = "Czy na pewno chcesz potwierdzić najbliższą lekcję z tego cyklu? Spowoduje to utworzenie rezerwacji w kalendarzu.";
+                modalInfo.style.display = 'none';
+
+                modalButtons.innerHTML = `
+                    <button id="modalConfirmYes" class="modal-btn primary">Tak, potwierdzam</button>
+                    <button id="modalConfirmNo" class="modal-btn secondary">Anuluj</button>
+                `;
+                modalButtons.style.display = 'flex';
+                modalOverlay.classList.add('active');
+
+                document.getElementById('modalConfirmYes').onclick = () => {
+                    showPaymentStep(lesson);
+                };
+                document.getElementById('modalConfirmNo').onclick = () => {
+                    modalOverlay.classList.remove('active');
+                };
+            }
+
+            function showPaymentStep(lesson) {
+                modalTitle.textContent = "Wybierz metodę płatności";
+                
+                // --- ZMIANA ZNAJDUJE SIĘ TUTAJ ---
+                // Zmieniamy textContent na innerHTML, aby dodać formatowanie (przerwę i mniejszy tekst)
+                modalText.innerHTML = `Lekcja została potwierdzona. Jak chcesz za nią zapłacić?
+                                     <br><br>
+                                     <small>Pamiętaj, że aby lekcja się odbyła, należy ją opłacić najpóźniej 12 godzin przed jej rozpoczęciem. W przeciwnym razie zostanie automatycznie anulowana.</small>`;
+                // --- KONIEC ZMIANY ---
+            
+                modalInfo.style.display = 'none';
+            
+                modalButtons.innerHTML = `
+                    <button id="modalPayNowBtn" class="modal-btn primary">Opłać teraz (wkrótce)</button>
+                    <button id="modalPayLaterBtn" class="modal-btn secondary">Opłacę później</button>
+                `;
+                
+                document.getElementById('modalPayNowBtn').onclick = () => {
+                    modalInfo.textContent = "Funkcjonalność płatności online zostanie dodana wkrótce. Na razie, lekcja została potwierdzona. Możesz ją opłacić później.";
+                    modalInfo.style.display = 'block';
+                    modalButtons.style.display = 'none';
+                    confirmLessonInBackend(lesson.id);
+                    setTimeout(() => modalOverlay.classList.remove('active'), 4000);
+                };
+            
+                document.getElementById('modalPayLaterBtn').onclick = () => {
+                    // Ta informacja nie jest już tak kluczowa, bo wyświetlamy ją od razu, ale zostawiamy ją dla spójności
+                    modalInfo.textContent = "Lekcja została potwierdzona. Informacje o płatności znajdziesz w swoim panelu klienta.";
+                    modalInfo.style.display = 'block';
+                    modalButtons.style.display = 'none';
+                    confirmLessonInBackend(lesson.id);
+                    setTimeout(() => modalOverlay.classList.remove('active'), 4000);
+                };
+            }
+
+            function showJoinModal(teamsLink) {
+                modalTitle.textContent = "Dołączanie do lekcji";
+                modalText.textContent = "Możesz już teraz wejść do pokoju spotkania w ramach testów. Korepetytor dołączy o umówionej godzinie. Powodzenia!";
+                modalInfo.style.display = 'none';
+                let buttonsHtml = '';
+                if (teamsLink && teamsLink !== 'null' && teamsLink !== 'undefined') {
+                    buttonsHtml = `<a href="${teamsLink}" target="_blank" class="modal-btn primary ok-button">Przejdź do spotkania</a>`;
+                } else {
+                    buttonsHtml = `<button id="modalOkBtn" class="modal-btn secondary ok-button">Zrozumiałem</button>`;
+                    modalText.textContent = "Link do spotkania nie został jeszcze wygenerowany. Pojawi się po opłaceniu lekcji.";
+                }
+                modalButtons.innerHTML = buttonsHtml;
+                modalButtons.style.display = 'flex';
+                modalOverlay.classList.add('active');
+                const okButton = document.getElementById('modalOkBtn');
+                if (okButton) {
+                    okButton.onclick = () => {
+                        modalOverlay.classList.remove('active');
+                    };
+                }
+            }
+            
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                }
+            };
+
+            async function confirmLessonInBackend(lessonId) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/confirm-next-lesson`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ cyclicReservationId: lessonId })
+                    });
+                    
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        if (response.status === 409 && result.error === 'CONFLICT') {
+                            showConflictModal(result.message, result.managementToken);
+                        } else {
+                            throw new Error(result.message || "Nie udało się potwierdzić lekcji w systemie.");
+                        }
+                    } else {
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
+                } catch (error) {
+                    modalOverlay.classList.remove('active');
+                    alert(`Wystąpił błąd: ${error.message}`);
+                }
+            }
+
+            function showConflictModal(message, token) {
+                modalTitle.textContent = "Termin niedostępny!";
+                modalText.textContent = message;
+                modalInfo.style.display = 'none';
+                const editUrl = token ? `edit.html?token=${token}` : '#';
+                
+                modalButtons.innerHTML = `
+                    ${token ? `<a href="${editUrl}" class="modal-btn primary">Wybierz inny termin</a>` : ''}
+                    <button id="modalConflictOkBtn" class="modal-btn secondary">OK</button>
+                `;
+                modalButtons.style.display = 'flex';
+                modalOverlay.classList.add('active');
+
+                document.getElementById('modalConflictOkBtn').onclick = () => {
+                    modalOverlay.classList.remove('active');
+                    window.location.reload();
+                };
+            }
+
+            function createLessonCard(lesson, isPast) {
+                console.log("Tworzę kartę dla lekcji:", lesson);
+                const card = document.createElement('div');
+                let cardClass = 'lesson-card';
+                if (isPast) {
+                    cardClass += ' past';
+                }
+                if (lesson.status === 'Przeniesiona (zakończona)') {
+                    cardClass += ' rescheduled-finished';
+                } else if (lesson.status === 'Przeniesiona') {
+                    cardClass += ' rescheduled';
+                }
+                card.className = cardClass;
+                
+                const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
+                let actionsHtml = '<span>Zakończona</span>';
+                
+                if (!isPast) {
+                    if (lesson.status === 'Przeniesiona (zakończona)') {
+                        actionsHtml = '<span>-</span>';
+                    } else if (lesson.status === 'Przeniesiona') {
+                        actionsHtml = `<a href="${editUrl}">Wybierz nowy termin</a>`;
+                    } else {
+                        let payButtonHtml = '';
+                        if (lesson.status === 'Oczekuje na płatność') {
+                            payButtonHtml = `<button class="btn-pay">Opłać</button>`;
+                        } else if (lesson.status === 'Opłacona') {
+                            payButtonHtml = `<span>Opłacona</span>`;
+                        }
+                        actionsHtml = `
+                            <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
+                            ${payButtonHtml}
+                            <a href="${editUrl}">Zarządzaj</a>
+                        `;
+                    }
+                }
+                
+                // Dodajemy link do kontaktu, jeśli istnieje
+                const contactLinkHtml = lesson.tutorContactLink 
+                    ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
+                    : '';
+
+                card.innerHTML = `
+                    <div class="lesson-info">
+                        <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
+                        <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
+                        <div><strong>Status:</strong> ${lesson.status || 'Potwierdzona'}</div>
+                    </div>
+                    <div class="lesson-actions">${actionsHtml}</div>
+                `;
+
+                const payButton = card.querySelector('.btn-pay');
+                if (payButton) {
+                    payButton.addEventListener('click', () => {
+                        alert('Funkcjonalność płatności zostanie dodana wkrótce.');
+                    });
+                }
+
+                const joinButton = card.querySelector('.btn-join');
+                if (joinButton) {
+                    joinButton.addEventListener('click', () => {
+                        const teamsLink = joinButton.dataset.teamsLink;
+                        showJoinModal(teamsLink);
+                    });
+                }
+                
+                return card;
+            }
+        });
+    </script>
+</body>
+</html>

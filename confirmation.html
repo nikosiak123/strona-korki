@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potwierdzenie Rezerwacji - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .confirmation-container { max-width: 600px; margin: 4rem auto; padding: 2.5rem; background-color: var(--container-bg-color); border-radius: 16px; box-shadow: 0 8px 24px var(--shadow-color); text-align: center; }
+        .confirmation-container h1 { font-size: 2rem; color: var(--text-dark); margin-bottom: 1rem; }
+        .confirmation-container p { font-size: 1.1rem; color: var(--text-medium); line-height: 1.8; }
+        .details { margin: 2rem 0; font-size: 1.2rem; font-weight: 600; }
+        .teams-link-container { margin-bottom: 1.5rem; }
+        .teams-link-container p { margin-bottom: 0.5rem; font-size: 1rem; color: var(--text-light); }
+        .teams-link-container a { font-weight: 600; color: #2B579A; word-break: break-all; }
+        .management-link-container { margin-top: 2rem; padding: 1rem; background-color: #f0f0f0; border-radius: 8px; }
+        .management-link-container p { font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .management-link-container a { font-size: 0.9rem; word-break: break-all; }
+        .payment-buttons { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; }
+        .payment-btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 700; text-decoration: none; transition: all 0.3s ease; cursor: pointer; border: none; }
+        .pay-now { background-color: var(--primary-color); color: var(--text-dark); }
+        .pay-later { background-color: #E0E0E0; color: var(--text-dark); }
+        .payment-info { display: none; margin-top: 2rem; padding: 1rem; background-color: #FFFBEB; border: 1px solid #FFEEBA; border-radius: 8px; font-size: 0.95rem; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="confirmation-container">
+        <h1 id="confirmationTitle">Rezerwacja potwierdzona!</h1>
+        <p id="confirmationSubtitle">Twoje zajęcia zostały automatycznie potwierdzone.</p>
+        <div class="details"><span id="reservationDetails">...</span></div>
+        <div class="teams-link-container" style="display: none;">
+            <p>Link do Twojego spotkania:</p>
+            <a id="teamsLink" href="#" target="_blank">...</a>
+        </div>
+        
+        <div id="managementLinkContainer" class="management-link-container" style="display:none;">
+            <p><strong>Ważne:</strong> Zapisz poniższy link. Umożliwi Ci on zarządzanie wszystkimi Twoimi lekcjami w przyszłości:</p>
+            <a id="dashboardLink" href="#">...</a>
+        </div>
+
+        <!-- Blok płatności dla lekcji testowej/jednorazowej -->
+        <div id="paymentBlock" style="display: none;">
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
+            <h2>Wybierz metodę płatności</h2>
+            <div class="payment-buttons">
+                <button id="payNowBtn" class="payment-btn pay-now">Opłać teraz (BLIK)</button>
+                <button id="payLaterBtn" class="payment-btn pay-later">Opłacę później</button>
+            </div>
+            <div id="paymentInfo" class="payment-info"></div>
+        </div>
+        
+        <!-- Blok informacyjny dla rezerwacji cyklicznej -->
+        <div id="cyclicInfoBlock" style="display: none;">
+            <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
+            <h2>Co dalej?</h2>
+            <p>Twój stały termin został zapisany. Możesz teraz zarządzać swoimi lekcjami, potwierdzać nadchodzące terminy i dokonywać płatności w swoim panelu klienta.</p>
+        </div>
+
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const date = params.get('date');
+            const time = params.get('time');
+            const teamsUrl = decodeURIComponent(params.get('teamsUrl'));
+            const clientID = params.get('clientID');
+            const isCyclic = params.get('isCyclic') === 'true';
+            const isTest = params.get('isTest') === 'true';
+            
+            // Odwołania do elementów
+            const detailsElement = document.getElementById('reservationDetails');
+            const teamsLinkContainer = document.getElementById('teamsLinkContainer');
+            const teamsLinkElement = document.getElementById('teamsLink');
+            const dashboardLinkContainer = document.getElementById('managementLinkContainer');
+            const dashboardLink = document.getElementById('dashboardLink');
+            
+            const paymentBlock = document.getElementById('paymentBlock');
+            const cyclicBlock = document.getElementById('cyclicInfoBlock');
+            const title = document.getElementById('confirmationTitle');
+            const subtitle = document.getElementById('confirmationSubtitle');
+
+            if (date && time && clientID) {
+                // Wyświetl podstawowe informacje o terminie
+                detailsElement.textContent = `Termin: ${date} o godzinie ${time}`;
+                
+                // Wygeneruj i wyświetl link do panelu klienta
+                const dashboardUrl = `${window.location.origin}${window.location.pathname.replace('confirmation.html', 'moje-lekcje.html')}?clientID=${clientID}`;
+                dashboardLink.href = dashboardUrl;
+                dashboardLink.textContent = dashboardUrl;
+                dashboardLinkContainer.style.display = 'block';
+                
+                if (isCyclic) {
+                    // Logika dla rezerwacji cyklicznej
+                    title.textContent = "Stały termin zarezerwowany!";
+                    subtitle.textContent = "Twoje cotygodniowe lekcje zostały dodane do grafiku. Zarządzaj nimi w panelu klienta.";
+                    cyclicBlock.style.display = 'block';
+                } else {
+                    // Logika dla rezerwacji jednorazowej/testowej
+                    if (teamsUrl && teamsUrl !== 'undefined') {
+                        teamsLinkContainer.style.display = 'block';
+                        teamsLinkElement.href = teamsUrl;
+                        teamsLinkElement.textContent = "Kliknij, aby dołączyć do spotkania";
+                    }
+                    paymentBlock.style.display = 'block';
+                }
+
+                // Logika przycisków płatności
+                document.getElementById('payLaterBtn').addEventListener('click', () => {
+                    const infoText = isTest 
+                        ? "Standardowo, płatności należy dokonać minimum 12 godzin przed rozpoczęciem zajęć. Jednakże, ponieważ jest to Twoja lekcja testowa, możesz opłacić ją bezpośrednio po połączeniu się z korepetytorem. Dziękujemy!"
+                        : "Pamiętaj, aby opłacić lekcję do 12 godzin przed jej rozpoczęciem. Link do płatności znajdziesz w panelu klienta.";
+                    document.getElementById('paymentInfo').innerHTML = infoText;
+                    document.getElementById('paymentInfo').style.display = 'block';
+                });
+                document.getElementById('payNowBtn').addEventListener('click', () => {
+                    document.getElementById('paymentInfo').innerHTML = "Funkcjonalność płatności online zostanie dodana wkrótce.";
+                    document.getElementById('paymentInfo').style.display = 'block';
+                });
+
+            } else {
+                detailsElement.textContent = 'Wystąpił błąd. Nie udało się załadować danych rezerwacji.';
+            }
+        });
+    </script>
+</body>
+</html>
