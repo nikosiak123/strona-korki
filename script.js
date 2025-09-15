@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
-    const API_BASE_URL = 'http://127.0.0.1:5000'; // Zmień na adres z Cloud Run przy wdrożeniu
+    const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na adres z Cloud Run przy wdrożeniu
 
     // --- GŁÓWNA LOGIKA INICJALIZACJI APLIKACJI ---
     async function initializeApp() {
