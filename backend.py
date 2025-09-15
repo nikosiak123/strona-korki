@@ -508,11 +508,32 @@ def create_reservation():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid.strip()}'")
         if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
         
-        first_name = client_record['fields'].get('Imię')
+        # --- NOWA, KLUCZOWA LOGIKA JEST TUTAJ ---
+
+        # 1. Pobierz imię i nazwisko z formularza
+        first_name_from_form = data.get('firstName')
+        last_name_from_form = data.get('lastName')
+        
+        # 2. Przygotuj dane do aktualizacji w tabeli 'Klienci'
+        client_update_data = {}
+        if first_name_from_form:
+            client_update_data['Imię'] = first_name_from_form
+        if last_name_from_form:
+            client_update_data['Nazwisko'] = last_name_from_form
+
+        # 3. Jeśli mamy jakieś nowe dane, zaktualizuj rekord klienta
+        if client_update_data:
+            print(f"Aktualizowanie danych klienta {client_uuid}: {client_update_data}")
+            clients_table.update(client_record['id'], client_update_data)
+        
+        # Użyj imienia z formularza do dalszych operacji (np. tworzenia linku Teams)
+        first_name = first_name_from_form or client_record['fields'].get('Imię')
+
+        # --- KONIEC NOWEJ LOGIKI ---
         
         tutor_for_reservation = data['tutor']
         if tutor_for_reservation == 'Dowolny dostępny':
-            # ... (ta logika pozostaje bez zmian)
+            # ... (logika znajdowania korepetytora pozostaje bez zmian) ...
             start_date_for_search = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             school_type_for_search = data.get('schoolType')
             school_level_for_search = data.get('schoolLevel')
@@ -552,16 +573,13 @@ def create_reservation():
         }
 
         if is_cyclic:
+            # ... (reszta logiki bez zmian)
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
-            
             new_cyclic_reservation = {
-                "Klient_ID": client_uuid.strip(),
-                "Korepetytor": tutor_for_reservation,
-                "DzienTygodnia": day_of_week_name,
-                "Godzina": data['selectedTime'],
-                "Przedmiot": data.get('subject'),
-                "Aktywna": True
+                "Klient_ID": client_uuid.strip(), "Korepetytor": tutor_for_reservation,
+                "DzienTygodnia": day_of_week_name, "Godzina": data['selectedTime'],
+                "Przedmiot": data.get('subject'), "Aktywna": True
             }
             new_cyclic_reservation.update(extra_info)
             cyclic_reservations_table.create(new_cyclic_reservation)
@@ -573,23 +591,12 @@ def create_reservation():
             if not teams_link: abort(500, "Nie udało się wygenerować linku Teams.")
 
             new_one_time_reservation = {
-                # === OSTATECZNA POPRAWKA JEST TUTAJ ===
-                "Klient": client_uuid.strip(), # <-- Wysyłamy ClientID jako zwykły tekst
-                
-                "Korepetytor": tutor_for_reservation,
-                "Data": data['selectedDate'],
-                "Godzina": data['selectedTime'],
-                "Przedmiot": data.get('subject'),
-                "ManagementToken": management_token,
-                "Typ": "Jednorazowa",
-                "Status": "Potwierdzona",
-                "TeamsLink": teams_link
+                "Klient": client_uuid.strip(), "Korepetytor": tutor_for_reservation,
+                "Data": data['selectedDate'], "Godzina": data['selectedTime'],
+                "Przedmiot": data.get('subject'), "ManagementToken": management_token,
+                "Typ": "Jednorazowa", "Status": "Potwierdzona", "TeamsLink": teams_link
             }
             new_one_time_reservation.update(extra_info)
-
-            print("\n--- Rozpoczynam zapis rezerwacji jednorazowej do Airtable ---")
-            print("Dane do zapisu:", json.dumps(new_one_time_reservation, indent=2))
-            
             reservations_table.create(new_one_time_reservation)
             
             return jsonify({
