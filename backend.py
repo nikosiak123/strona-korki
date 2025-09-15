@@ -508,33 +508,20 @@ def create_reservation():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid.strip()}'")
         if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
         
-        client_id_record = client_record['id']
         first_name = client_record['fields'].get('Imię')
         
         tutor_for_reservation = data['tutor']
-        
-        # === KLUCZOWA POPRAWKA ZNAJDUJE SIĘ TUTAJ ===
         if tutor_for_reservation == 'Dowolny dostępny':
-            # Jeśli klient wybrał "Dowolny", musimy znaleźć korepetytora, który jest wtedy dostępny.
-            # Zamiast polegać na pamięci serwera, ponownie pytamy bazę danych.
-            
-            # 1. Zbierz wszystkie dane potrzebne do wyszukania
+            # ... (ta logika pozostaje bez zmian)
             start_date_for_search = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             school_type_for_search = data.get('schoolType')
             school_level_for_search = data.get('schoolLevel')
             subject_for_search = data.get('subject')
-
-            # 2. Skopiuj logikę wyszukiwania wolnych terminów z funkcji get_schedule
-            # (To jest uproszczona wersja, ale wystarczająca do znalezienia korepetytora)
-            
             all_tutors_templates = tutors_table.all()
             available_tutors_for_slot = []
-
             for tutor_template in all_tutors_templates:
                 fields = tutor_template.get('fields', {})
                 tutor_name = fields.get('Imię i Nazwisko')
-                
-                # Sprawdź, czy korepetytor uczy danego przedmiotu i poziomu (logika skopiowana)
                 required_level_tags = []
                 if school_type_for_search == 'szkola_podstawowa': required_level_tags = LEVEL_MAPPING.get(school_type_for_search, [])
                 elif (school_type_for_search in ['liceum', 'technikum']) and school_level_for_search:
@@ -543,12 +530,9 @@ def create_reservation():
                     if school_level_for_search == 'rozszerzony':
                         key_rozszerzenie = f"{school_type_for_search}_rozszerzony"
                         required_level_tags.extend(LEVEL_MAPPING.get(key_rozszerzenie, []))
-                
                 teaches_this_level = all(tag in fields.get('PoziomNauczania', []) for tag in required_level_tags)
                 teaches_this_subject = subject_for_search in fields.get('Przedmioty', [])
-
                 if teaches_this_level and teaches_this_subject:
-                    # Sprawdź, czy ten korepetytor pracuje w danym dniu i godzinie
                     day_of_week_name = WEEKDAY_MAP[start_date_for_search.weekday()]
                     time_range_str = fields.get(day_of_week_name)
                     if time_range_str:
@@ -556,15 +540,10 @@ def create_reservation():
                         selected_time_obj = datetime.strptime(data['selectedTime'], '%H:%M').time()
                         if start_work and end_work and start_work <= selected_time_obj < end_work:
                             available_tutors_for_slot.append(tutor_name)
-
             if not available_tutors_for_slot:
                 abort(500, "Niestety, żaden korepetytor nie jest dostępny w tym terminie dla wybranych kryteriów.")
-            
-            # Jeśli znaleziono, wybierz pierwszego z listy
             tutor_for_reservation = available_tutors_for_slot[0]
             print(f"Automatycznie przypisano korepetytora: {tutor_for_reservation}")
-
-        # === KONIEC POPRAWKI ===
 
         extra_info = {
             "TypSzkoły": data.get('schoolType'),
@@ -573,9 +552,9 @@ def create_reservation():
         }
 
         if is_cyclic:
-            # ... (reszta funkcji bez zmian) ...
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
+            
             new_cyclic_reservation = {
                 "Klient_ID": client_uuid.strip(),
                 "Korepetytor": tutor_for_reservation,
@@ -594,7 +573,9 @@ def create_reservation():
             if not teams_link: abort(500, "Nie udało się wygenerować linku Teams.")
 
             new_one_time_reservation = {
-                "Klient": [client_id_record],
+                # === OSTATECZNA POPRAWKA JEST TUTAJ ===
+                "Klient": client_uuid.strip(), # <-- Wysyłamy ClientID jako zwykły tekst
+                
                 "Korepetytor": tutor_for_reservation,
                 "Data": data['selectedDate'],
                 "Godzina": data['selectedTime'],
@@ -605,6 +586,10 @@ def create_reservation():
                 "TeamsLink": teams_link
             }
             new_one_time_reservation.update(extra_info)
+
+            print("\n--- Rozpoczynam zapis rezerwacji jednorazowej do Airtable ---")
+            print("Dane do zapisu:", json.dumps(new_one_time_reservation, indent=2))
+            
             reservations_table.create(new_one_time_reservation)
             
             return jsonify({
