@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const actionModalText = document.getElementById('actionModalText');
     const actionModalButtons = document.getElementById('actionModalButtons');
 
-    const API_BASE_URL = 'http://127.0.0.1:5000'; // Zmień na URL produkcyjny
+    const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
     const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
