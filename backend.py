@@ -502,7 +502,6 @@ def create_reservation():
         is_test_lesson = 'isOneTime' not in data
         is_cyclic = not data.get('isOneTime', False) if not is_test_lesson else False
         
-        weeks_to_book = 4 if is_cyclic else 1
         client_uuid = data.get('clientID')
         if not client_uuid: abort(400, "Brak ClientID w zapytaniu.")
         
@@ -513,12 +512,59 @@ def create_reservation():
         first_name = client_record['fields'].get('Imię')
         
         tutor_for_reservation = data['tutor']
+        
+        # === KLUCZOWA POPRAWKA ZNAJDUJE SIĘ TUTAJ ===
         if tutor_for_reservation == 'Dowolny dostępny':
-            found_slot = next((slot for slot in last_fetched_schedule if slot['date'] == data['selectedDate'] and slot['time'] == data['selectedTime']), None)
-            if found_slot:
-                tutor_for_reservation = found_slot['tutor']
-            else:
-                abort(500, "Wybrany termin stał się niedostępny.")
+            # Jeśli klient wybrał "Dowolny", musimy znaleźć korepetytora, który jest wtedy dostępny.
+            # Zamiast polegać na pamięci serwera, ponownie pytamy bazę danych.
+            
+            # 1. Zbierz wszystkie dane potrzebne do wyszukania
+            start_date_for_search = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
+            school_type_for_search = data.get('schoolType')
+            school_level_for_search = data.get('schoolLevel')
+            subject_for_search = data.get('subject')
+
+            # 2. Skopiuj logikę wyszukiwania wolnych terminów z funkcji get_schedule
+            # (To jest uproszczona wersja, ale wystarczająca do znalezienia korepetytora)
+            
+            all_tutors_templates = tutors_table.all()
+            available_tutors_for_slot = []
+
+            for tutor_template in all_tutors_templates:
+                fields = tutor_template.get('fields', {})
+                tutor_name = fields.get('Imię i Nazwisko')
+                
+                # Sprawdź, czy korepetytor uczy danego przedmiotu i poziomu (logika skopiowana)
+                required_level_tags = []
+                if school_type_for_search == 'szkola_podstawowa': required_level_tags = LEVEL_MAPPING.get(school_type_for_search, [])
+                elif (school_type_for_search in ['liceum', 'technikum']) and school_level_for_search:
+                    key_podstawa = f"{school_type_for_search}_podstawowy"
+                    required_level_tags = LEVEL_MAPPING.get(key_podstawa, [])
+                    if school_level_for_search == 'rozszerzony':
+                        key_rozszerzenie = f"{school_type_for_search}_rozszerzony"
+                        required_level_tags.extend(LEVEL_MAPPING.get(key_rozszerzenie, []))
+                
+                teaches_this_level = all(tag in fields.get('PoziomNauczania', []) for tag in required_level_tags)
+                teaches_this_subject = subject_for_search in fields.get('Przedmioty', [])
+
+                if teaches_this_level and teaches_this_subject:
+                    # Sprawdź, czy ten korepetytor pracuje w danym dniu i godzinie
+                    day_of_week_name = WEEKDAY_MAP[start_date_for_search.weekday()]
+                    time_range_str = fields.get(day_of_week_name)
+                    if time_range_str:
+                        start_work, end_work = parse_time_range(time_range_str)
+                        selected_time_obj = datetime.strptime(data['selectedTime'], '%H:%M').time()
+                        if start_work and end_work and start_work <= selected_time_obj < end_work:
+                            available_tutors_for_slot.append(tutor_name)
+
+            if not available_tutors_for_slot:
+                abort(500, "Niestety, żaden korepetytor nie jest dostępny w tym terminie dla wybranych kryteriów.")
+            
+            # Jeśli znaleziono, wybierz pierwszego z listy
+            tutor_for_reservation = available_tutors_for_slot[0]
+            print(f"Automatycznie przypisano korepetytora: {tutor_for_reservation}")
+
+        # === KONIEC POPRAWKI ===
 
         extra_info = {
             "TypSzkoły": data.get('schoolType'),
@@ -527,9 +573,9 @@ def create_reservation():
         }
 
         if is_cyclic:
+            # ... (reszta funkcji bez zmian) ...
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
-            
             new_cyclic_reservation = {
                 "Klient_ID": client_uuid.strip(),
                 "Korepetytor": tutor_for_reservation,
