@@ -152,20 +152,26 @@ def mark_lesson_as_paid():
     """Endpoint do symulacji płatności - zaznacza checkbox 'Opłacona' w Airtable."""
     try:
         token = request.json.get('managementToken')
-        if not token:
-            abort(400, "Brak tokena zarządzającego w zapytaniu.")
+        if not token: abort(400, "Brak tokena.")
 
-        # Znajdź rezerwację na podstawie unikalnego tokena
         record_to_update = reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
-        
-        if not record_to_update:
-            abort(404, "Nie znaleziono rezerwacji o podanym tokenie.")
+        if not record_to_update: abort(404, "Nie znaleziono rezerwacji.")
 
-        # Zaktualizuj pole 'Opłacona' na True (zaznacz checkbox)
         reservations_table.update(record_to_update['id'], {"Opłacona": True})
         
+        # --- DODANO POWIADOMIENIE ---
+        if MESSENGER_PAGE_TOKEN:
+            fields = record_to_update.get('fields', {})
+            psid = fields.get('Klient')
+            if psid:
+                message_to_send = (
+                    f"Dziękujemy za płatność! Twoja lekcja z przedmiotu '{fields.get('Przedmiot')}' w dniu {fields.get('Data')} o {fields.get('Godzina')} "
+                    f"jest już w pełni potwierdzona i opłacona. Do zobaczenia!"
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+        # --- KONIEC DODAWANIA ---
+            
         print(f"Oznaczono lekcję (ID: {record_to_update['id']}) jako OPŁACONĄ.")
-        
         return jsonify({"message": "Lekcja została oznaczona jako opłacona."})
 
     except Exception as e:
@@ -266,30 +272,36 @@ def get_master_schedule():
 def tutor_reschedule():
     try:
         data = request.json
-        tutor_name = data.get('tutorName')
-        date = data.get('date')
-        time = data.get('time')
+        tutor_name, date, time = data.get('tutorName'), data.get('date'), data.get('time')
 
-        # Znajdź rezerwację na podstawie danych
         formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
         record_to_reschedule = reservations_table.first(formula=formula)
 
         if record_to_reschedule:
-            # Scenariusz 1: To jest już potwierdzona lekcja w tabeli Rezerwacje
+            fields = record_to_reschedule.get('fields', {})
+            psid = fields.get('Klient')
+            
             reservations_table.update(record_to_reschedule['id'], {"Status": "Przeniesiona"})
+            
+            # --- DODANO POWIADOMIENIE ---
+            if MESSENGER_PAGE_TOKEN and psid:
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                message_to_send = (
+                    f"Ważna informacja! Twój korepetytor musiał przenieść lekcję zaplanowaną na {date} o {time}.\n\n"
+                    f"Prosimy o wejście do panelu klienta i wybranie nowego, dogodnego terminu:\n{dashboard_link}"
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+            # --- KONIEC DODAWANIA ---
+            
             return jsonify({"message": "Status lekcji został zmieniony na 'Przeniesiona'. Uczeń został poinformowany."})
         else:
-            # Scenariusz 2: To jest stały termin z tabeli StaleRezerwacje
-            # Tworzymy "negatywny" wpis w Rezerwacje, aby zablokować ten jeden termin
+            # Tutaj obsługujemy stały termin - jest trudniej znaleźć klienta, na razie pomijamy powiadomienie.
             new_exception = {
-                "Korepetytor": tutor_name,
-                "Data": date,
-                "Godzina": time,
-                "Status": "Przeniesiona",
-                "Typ": "Cykliczna Wyjątek" # Specjalny typ
+                "Korepetytor": tutor_name, "Data": date, "Godzina": time,
+                "Status": "Przeniesiona", "Typ": "Cykliczna Wyjątek"
             }
             reservations_table.create(new_exception)
-            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiony'. Uczeń zostanie poinformowany."})
+            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiony'."})
 
     except Exception as e:
         traceback.print_exc()
@@ -654,7 +666,6 @@ def create_reservation():
         }
 
         if is_cyclic:
-            # ... (logika cykliczna bez zmian) ...
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
             new_cyclic_reservation = {
@@ -664,7 +675,19 @@ def create_reservation():
             }
             new_cyclic_reservation.update(extra_info)
             cyclic_reservations_table.create(new_cyclic_reservation)
-            return jsonify({"message": "Stały termin zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
+
+            # --- DODANO POWIADOMIENIE ---
+            if MESSENGER_PAGE_TOKEN:
+                psid = client_uuid.strip()
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                message_to_send = (
+                    f"Dziękujemy! Twój stały termin na {data['subject']} w każdy {day_of_week_name} o {data['selectedTime']} został pomyślnie zarezerwowany.\n\n"
+                    f"Pamiętaj, aby potwierdzać każdą nadchodzącą lekcję w swoim panelu klienta:\n{dashboard_link}"
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+            # --- KONIEC DODAWANIA ---
+
+            return jsonify({"message": "Stały termin został pomyślnie zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
 
         else: # Lekcja jednorazowa lub testowa
             management_token = str(uuid.uuid4())
@@ -784,6 +807,17 @@ def confirm_next_lesson():
         
         reservations_table.create(new_confirmed_lesson)
         print("SUKCES: Zapisano w Airtable.")
+
+        # --- DODANO POWIADOMIENIE ---
+        if MESSENGER_PAGE_TOKEN:
+            psid = client_uuid.strip()
+            dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+            message_to_send = (
+                f"Potwierdzono! Twoja nadchodząca lekcja z przedmiotu '{subject}' została potwierdzona na dzień {next_lesson_date_str} o {lesson_time}.\n\n"
+                f"Prosimy o opłacenie jej najpóźniej 12 godzin przed rozpoczęciem. Możesz zarządzać swoimi lekcjami tutaj:\n{dashboard_link}"
+            )
+            send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+        # --- KONIEC DODAWANIA ---
         
         return jsonify({
             "message": f"Najbliższa lekcja w dniu {next_lesson_date_str} została potwierdzona.", 
@@ -933,6 +967,18 @@ def cancel_reservation():
     if not record: abort(404, "Nie znaleziono rezerwacji.")
     if not is_cancellation_allowed(record): abort(403, "Nie można odwołać rezerwacji.")
     try:
+        # --- DODANO POWIADOMIENIE ---
+        if MESSENGER_PAGE_TOKEN:
+            fields = record.get('fields', {})
+            psid = fields.get('Klient')
+            if psid:
+                message_to_send = (
+                    f"Twoja rezerwacja na lekcję z przedmiotu '{fields.get('Przedmiot')}' w dniu {fields.get('Data')} o {fields.get('Godzina')} "
+                    f"została pomyślnie odwołana."
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+        # --- KONIEC DODAWANIA ---
+        
         reservations_table.delete(record['id'])
         return jsonify({"message": "Rezerwacja została pomyślnie odwołana."})
     except Exception as e: abort(500, "Wystąpił błąd podczas odwoływania rezerwacji.")
@@ -1000,6 +1046,17 @@ def reschedule_reservation():
         # 4. Zaktualizuj stary rekord, aby nie był już aktywny
         # Możemy nadać mu status np. "Przeniesiona (zakończona)"
         reservations_table.update(original_record['id'], {"Status": "Przeniesiona (zakończona)"})
+        # --- DODANO POWIADOMIENIE ---
+        if MESSENGER_PAGE_TOKEN:
+            fields = original_record.get('fields', {})
+            psid = fields.get('Klient')
+            if psid:
+                message_to_send = (
+                    f"Termin Twojej lekcji został pomyślnie zmieniony.\n\n"
+                    f"Nowy termin to: {new_date} o godzinie {new_time}."
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+        # --- KONIEC DODAWANIA ---
         
         return jsonify({"message": f"Termin został pomyślnie zmieniony na {new_date} o {new_time}."})
 
