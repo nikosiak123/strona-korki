@@ -40,6 +40,7 @@
             justify-content: space-between;
             align-items: center;
             border-left: 5px solid var(--primary-color);
+            /* ZMIANA: usunięcie overflow: hidden, aby pasek na dole był widoczny */
         }
         .lesson-card.past, .lesson-card.rescheduled-finished { 
             border-left-color: var(--border-color); 
@@ -77,20 +78,24 @@
         .lesson-actions .btn-join { background-color: var(--primary-color); color: var(--text-dark); }
         .lesson-actions .btn-join:hover { background-color: var(--primary-hover-color); }
         
-        /* --- NOWE STYLE DLA LICZNIKA --- */
-        .payment-reminder {
-            background-color: #FFF3E0; /* Jasny pomarańczowy */
-            color: #E65100; /* Ciemny pomarańczowy tekst */
-            padding: 10px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            border: 1px solid #FFCC80;
-            margin-left: 0.75rem;
+        /* --- NOWE STYLE DLA PRZYPOMNIENIA O PŁATNOŚCI --- */
+        .lesson-payment-info {
+            background-color: #FFF8E1; /* Bardzo jasny żółty */
+            color: #6D4C41; /* Ciemny brąz */
+            padding: 0.75rem 1.5rem;
+            margin-top: 1.25rem;
+            border-radius: 0 0 12px 12px; /* Zaokrąglenie tylko na dole */
+            margin-left: -1.5rem; /* Rozciągnięcie na całą szerokość karty */
+            margin-right: -1.5rem;
+            margin-bottom: -1.5rem;
             font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
         }
         .countdown-timer {
             font-weight: 700;
-            margin-left: 5px;
+            color: #D32F2F; /* Czerwony kolor dla licznika */
         }
         /* --- KONIEC NOWYCH STYLÓW --- */
 
@@ -214,7 +219,6 @@
                     });
                 }
 
-                // --- URUCHOMIENIE LICZNIKÓW PO WYRENDEROWANIU STRONY ---
                 initializeCountdowns();
 
             } catch (error) {
@@ -387,7 +391,7 @@
                 const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
                 let paymentInfoHtml = ''; // Nowa zmienna na informację o płatności
-            
+
                 if (!isPast) {
                     let payButtonHtml = '';
                     
@@ -404,7 +408,7 @@
                     } else if (lesson.status === 'Anulowana (brak płatności)') {
                         payButtonHtml = `<span>Anulowana</span>`;
                     }
-            
+
                     actionsHtml = `
                         <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
                         ${payButtonHtml}
@@ -415,10 +419,10 @@
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
-            
+
                 // Zmieniamy strukturę innerHTML, aby dodać nowy blok
                 card.innerHTML = `
-                    <div style="width: 100%;"> 
+                    <div style="width: 100%; position: relative;"> 
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div class="lesson-info">
                                 <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
@@ -430,7 +434,7 @@
                         ${paymentInfoHtml} 
                     </div>
                 `;
-            
+
                 const payButton = card.querySelector('.btn-pay');
                 if (payButton) {
                     payButton.addEventListener('click', async (e) => {
@@ -439,14 +443,14 @@
                         
                         button.textContent = 'Przetwarzanie...';
                         button.disabled = true;
-            
+
                         try {
                             const response = await fetch(`${API_BASE_URL}/api/mark-lesson-as-paid`, {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({ managementToken: token })
                             });
-            
+
                             if (!response.ok) {
                                 const errorData = await response.json();
                                 throw new Error(errorData.message || "Błąd serwera.");
@@ -454,7 +458,7 @@
                             
                             alert('Lekcja została opłacona!');
                             setTimeout(() => window.location.reload(), 1500);
-            
+
                         } catch (error) {
                             alert(`Wystąpił błąd: ${error.message}`);
                             button.textContent = 'Opłać';
@@ -462,7 +466,7 @@
                         }
                     });
                 }
-            
+
                 const joinButton = card.querySelector('.btn-join');
                 if (joinButton) {
                     joinButton.addEventListener('click', () => {
@@ -506,13 +510,13 @@
                     // Sprawdź, czy czas już minął
                     if (now > deadline12h) {
                         element.parentElement.innerHTML = "Termin płatności minął";
-                        element.parentElement.style.display = 'inline-block';
+                        element.parentElement.style.display = 'block';
                         clearInterval(timer);
                         return;
                     }
 
                     // Jesteśmy w oknie płatności, pokazujemy licznik
-                    element.parentElement.style.display = 'inline-block';
+                    element.parentElement.style.display = 'block';
                     const timeLeft = deadline12h - now;
 
                     const hours = Math.floor(timeLeft / (1000 * 60 * 60));
