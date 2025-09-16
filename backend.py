@@ -800,10 +800,10 @@ def get_client_dashboard():
                 "tutorContactLink": tutor_links_map.get(tutor_name),
                 "isPaid": fields.get('Opłacona', False) # <-- DODAJ TĘ LINIĘ
             }
-            if lesson_datetime > datetime.now():
-                upcoming.append(lesson_data)
-            else:
+            if lesson_datetime < datetime.now() or status == 'Anulowana (brak płatności)':
                 past.append(lesson_data)
+            else:
+                upcoming.append(lesson_data)
         
         upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
         past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
