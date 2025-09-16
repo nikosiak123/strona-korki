@@ -109,6 +109,31 @@ def is_cancellation_allowed(record):
     return (lesson_datetime - datetime.now()) > timedelta(hours=12)
 
 # --- Endpointy API ---
+@app.route('/api/mark-lesson-as-paid', methods=['POST'])
+def mark_lesson_as_paid():
+    """Endpoint do symulacji płatności - zaznacza checkbox 'Opłacona' w Airtable."""
+    try:
+        token = request.json.get('managementToken')
+        if not token:
+            abort(400, "Brak tokena zarządzającego w zapytaniu.")
+
+        # Znajdź rezerwację na podstawie unikalnego tokena
+        record_to_update = reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
+        
+        if not record_to_update:
+            abort(404, "Nie znaleziono rezerwacji o podanym tokenie.")
+
+        # Zaktualizuj pole 'Opłacona' na True (zaznacz checkbox)
+        reservations_table.update(record_to_update['id'], {"Opłacona": True})
+        
+        print(f"Oznaczono lekcję (ID: {record_to_update['id']}) jako OPŁACONĄ.")
+        
+        return jsonify({"message": "Lekcja została oznaczona jako opłacona."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas oznaczania lekcji jako opłaconej.")
+
 @app.route('/api/get-tutor-lessons')
 def get_tutor_lessons():
     try:
