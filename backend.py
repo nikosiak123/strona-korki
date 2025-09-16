@@ -29,6 +29,21 @@ reservations_table = api.table(AIRTABLE_BASE_ID, RESERVATIONS_TABLE_NAME)
 clients_table = api.table(AIRTABLE_BASE_ID, CLIENTS_TABLE_NAME)
 cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABLE_NAME)
 
+MESSENGER_PAGE_TOKEN = None
+MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
+
+try:
+    # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
+    with open('/home/nikodnaj3/strona/config.json', 'r', encoding='utf-8') as f:
+        bot_config = json.load(f)
+        MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
+    if MESSENGER_PAGE_TOKEN:
+        print("--- MESSENGER: Pomyślnie załadowano token dostępu do strony.")
+    else:
+        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w config.json.")
+except Exception as e:
+    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
+
 app = Flask(__name__)
 CORS(app)
 
@@ -41,6 +56,29 @@ LEVEL_MAPPING = {
 last_fetched_schedule = {}
 
 # --- Funkcje pomocnicze ---
+def send_messenger_confirmation(psid, message_text, page_access_token):
+    """Wysyła wiadomość potwierdzającą na Messengerze."""
+    if not all([psid, message_text, page_access_token]):
+        print("!!! MESSENGER: Błąd wysyłania - brak PSID, treści lub tokenu.")
+        return
+
+    params = {"access_token": page_access_token}
+    payload = {
+        "recipient": {"id": psid},
+        "message": {"text": message_text},
+        "messaging_type": "MESSAGE_TAG",
+        "tag": "POST_PURCHASE_UPDATE"
+    }
+    
+    try:
+        print(f"--- MESSENGER: Próba wysłania potwierdzenia do PSID {psid}...")
+        r = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
+        r.raise_for_status()
+        print(f"--- MESSENGER: Pomyślnie wysłano potwierdzenie do {psid}.")
+    except requests.exceptions.RequestException as e:
+        print(f"!!! MESSENGER: Błąd podczas wysyłania wiadomości do {psid}: {e}")
+        print(f"    Odpowiedź serwera: {e.response.text if e.response else 'Brak'}")
+
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby anulować nieopłacone lekcje."""
     print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
@@ -555,42 +593,31 @@ def get_schedule():
 @app.route('/api/create-reservation', methods=['POST'])
 def create_reservation():
     try:
+        # ... (cały początek funkcji aż do `reservations_table.create` jest bez zmian) ...
         data = request.json
         is_test_lesson = 'isOneTime' not in data
         is_cyclic = not data.get('isOneTime', False) if not is_test_lesson else False
         
-        client_uuid = data.get('clientID')
-        if not client_uuid: abort(400, "Brak ClientID w zapytaniu.")
+        client_uuid = data.get('clientID') # To jest PSID
+        if not client_uuid: abort(400, "Brak ClientID.")
         
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid.strip()}'")
-        if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
+        if not client_record: abort(404, "Klient nie istnieje.")
         
-        # --- NOWA, KLUCZOWA LOGIKA JEST TUTAJ ---
-
-        # 1. Pobierz imię i nazwisko z formularza
         first_name_from_form = data.get('firstName')
         last_name_from_form = data.get('lastName')
         
-        # 2. Przygotuj dane do aktualizacji w tabeli 'Klienci'
         client_update_data = {}
-        if first_name_from_form:
-            client_update_data['Imię'] = first_name_from_form
-        if last_name_from_form:
-            client_update_data['Nazwisko'] = last_name_from_form
+        if first_name_from_form: client_update_data['Imię'] = first_name_from_form
+        if last_name_from_form: client_update_data['Nazwisko'] = last_name_from_form
 
-        # 3. Jeśli mamy jakieś nowe dane, zaktualizuj rekord klienta
         if client_update_data:
-            print(f"Aktualizowanie danych klienta {client_uuid}: {client_update_data}")
             clients_table.update(client_record['id'], client_update_data)
         
-        # Użyj imienia z formularza do dalszych operacji (np. tworzenia linku Teams)
         first_name = first_name_from_form or client_record['fields'].get('Imię')
-
-        # --- KONIEC NOWEJ LOGIKI ---
         
         tutor_for_reservation = data['tutor']
         if tutor_for_reservation == 'Dowolny dostępny':
-            # ... (logika znajdowania korepetytora pozostaje bez zmian) ...
             start_date_for_search = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             school_type_for_search = data.get('schoolType')
             school_level_for_search = data.get('schoolLevel')
@@ -619,18 +646,15 @@ def create_reservation():
                         if start_work and end_work and start_work <= selected_time_obj < end_work:
                             available_tutors_for_slot.append(tutor_name)
             if not available_tutors_for_slot:
-                abort(500, "Niestety, żaden korepetytor nie jest dostępny w tym terminie dla wybranych kryteriów.")
+                abort(500, "Brak dostępnych korepetytorów.")
             tutor_for_reservation = available_tutors_for_slot[0]
-            print(f"Automatycznie przypisano korepetytora: {tutor_for_reservation}")
 
         extra_info = {
-            "TypSzkoły": data.get('schoolType'),
-            "Poziom": data.get('schoolLevel'),
-            "Klasa": data.get('schoolClass')
+            "TypSzkoły": data.get('schoolType'), "Poziom": data.get('schoolLevel'), "Klasa": data.get('schoolClass')
         }
 
         if is_cyclic:
-            # ... (reszta logiki bez zmian)
+            # ... (logika cykliczna bez zmian) ...
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
             day_of_week_name = WEEKDAY_MAP[lesson_date.weekday()]
             new_cyclic_reservation = {
@@ -640,7 +664,7 @@ def create_reservation():
             }
             new_cyclic_reservation.update(extra_info)
             cyclic_reservations_table.create(new_cyclic_reservation)
-            return jsonify({"message": "Stały termin został pomyślnie zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
+            return jsonify({"message": "Stały termin zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
 
         else: # Lekcja jednorazowa lub testowa
             management_token = str(uuid.uuid4())
@@ -655,6 +679,22 @@ def create_reservation():
             }
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
+            
+            # --- NOWA, UPROSZCZONA LOGIKA WYSYŁANIA POWIADOMIEŃ ---
+            if MESSENGER_PAGE_TOKEN:
+                psid = client_uuid.strip()
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                
+                message_to_send = (
+                    f"Dziękujemy za rezerwację!\n\n"
+                    f"Twoja lekcja testowa z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
+                    f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
+                    f"Możesz zarządzać wszystkimi swoimi lekcjami w osobistym panelu klienta pod adresem:\n{dashboard_link}"
+                )
+                send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+            else:
+                print("!!! OSTRZEŻENIE: Nie wysłano wiadomości na Messengerze - brak tokena.")
+            # --- KONIEC NOWEJ LOGIKI ---
             
             return jsonify({
                 "teamsUrl": teams_link, "managementToken": management_token,
