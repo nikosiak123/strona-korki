@@ -77,6 +77,23 @@
         .lesson-actions .btn-join { background-color: var(--primary-color); color: var(--text-dark); }
         .lesson-actions .btn-join:hover { background-color: var(--primary-hover-color); }
         
+        /* --- NOWE STYLE DLA LICZNIKA --- */
+        .payment-reminder {
+            background-color: #FFF3E0; /* Jasny pomarańczowy */
+            color: #E65100; /* Ciemny pomarańczowy tekst */
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: 1px solid #FFCC80;
+            margin-left: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .countdown-timer {
+            font-weight: 700;
+            margin-left: 5px;
+        }
+        /* --- KONIEC NOWYCH STYLÓW --- */
+
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
@@ -155,7 +172,7 @@
             const modalButtons = document.getElementById('modalButtons');
             const modalInfo = document.getElementById('modalInfo');
             
-            const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień URL na produkcyjny
+            const API_BASE_URL = ''; // Adres API jest względny
 
             if (!clientID) {
                 welcomeMessage.innerHTML = '<h2>Wystąpił błąd: Brak identyfikatora klienta.</h2>';
@@ -170,7 +187,6 @@
                 if (!response.ok) throw new Error("Nie udało się pobrać danych z serwera.");
                 
                 const data = await response.json();
-                console.log("Otrzymano dane dla panelu klienta:", data); // Log do sprawdzenia danych
                 
                 welcomeMessage.textContent = `Witaj, ${data.clientName}! Oto Twoje rezerwacje:`;
                 
@@ -198,6 +214,9 @@
                     });
                 }
 
+                // --- URUCHOMIENIE LICZNIKÓW PO WYRENDEROWANIU STRONY ---
+                initializeCountdowns();
+
             } catch (error) {
                 welcomeMessage.innerHTML = `<h2>Wystąpił błąd: ${error.message}</h2>`;
             }
@@ -213,7 +232,6 @@
                     actionButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
                 }
 
-                // Dodajemy link do kontaktu, jeśli istnieje
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
@@ -259,14 +277,9 @@
 
             function showPaymentStep(lesson) {
                 modalTitle.textContent = "Wybierz metodę płatności";
-                
-                // --- ZMIANA ZNAJDUJE SIĘ TUTAJ ---
-                // Zmieniamy textContent na innerHTML, aby dodać formatowanie (przerwę i mniejszy tekst)
                 modalText.innerHTML = `Lekcja została potwierdzona. Jak chcesz za nią zapłacić?
                                      <br><br>
                                      <small>Pamiętaj, że aby lekcja się odbyła, należy ją opłacić najpóźniej 12 godzin przed jej rozpoczęciem. W przeciwnym razie zostanie automatycznie anulowana.</small>`;
-                // --- KONIEC ZMIANY ---
-            
                 modalInfo.style.display = 'none';
             
                 modalButtons.innerHTML = `
@@ -283,7 +296,6 @@
                 };
             
                 document.getElementById('modalPayLaterBtn').onclick = () => {
-                    // Ta informacja nie jest już tak kluczowa, bo wyświetlamy ją od razu, ale zostawiamy ją dla spójności
                     modalInfo.textContent = "Lekcja została potwierdzona. Informacje o płatności znajdziesz w swoim panelu klienta.";
                     modalInfo.style.display = 'block';
                     modalButtons.style.display = 'none';
@@ -365,43 +377,36 @@
             }
 
             function createLessonCard(lesson, isPast) {
-                console.log("Tworzę kartę dla lekcji:", lesson);
                 const card = document.createElement('div');
                 let cardClass = 'lesson-card';
-                if (isPast) {
-                    cardClass += ' past';
-                }
-                if (lesson.status === 'Przeniesiona (zakończona)') {
-                    cardClass += ' rescheduled-finished';
-                } else if (lesson.status === 'Przeniesiona') {
-                    cardClass += ' rescheduled';
-                }
+                if (isPast) cardClass += ' past';
+                if (lesson.status === 'Przeniesiona (zakończona)') cardClass += ' rescheduled-finished';
+                else if (lesson.status === 'Przeniesiona') cardClass += ' rescheduled';
                 card.className = cardClass;
                 
                 const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
                 
                 if (!isPast) {
-                    if (lesson.status === 'Przeniesiona (zakończona)') {
-                        actionsHtml = '<span>-</span>';
-                    } else if (lesson.status === 'Przeniesiona') {
-                        actionsHtml = `<a href="${editUrl}">Wybierz nowy termin</a>`;
-                    } else {
-                        let payButtonHtml = '';
-                        if (lesson.status === 'Oczekuje na płatność') {
-                            payButtonHtml = `<button class="btn-pay">Opłać</button>`;
-                        } else if (lesson.status === 'Opłacona') {
-                            payButtonHtml = `<span>Opłacona</span>`;
-                        }
-                        actionsHtml = `
-                            <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
-                            ${payButtonHtml}
-                            <a href="${editUrl}">Zarządzaj</a>
-                        `;
+                    let payButtonHtml = '';
+                    
+                    // --- GŁÓWNA ZMIANA LOGIKI JEST TUTAJ ---
+                    if (lesson.isPaid) {
+                        payButtonHtml = `<span>Opłacona</span>`;
+                    } else if (lesson.status === 'Oczekuje na płatność') {
+                        // Dodajemy placeholder dla licznika z datą i godziną lekcji
+                        payButtonHtml = `<div class="payment-reminder">Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span></div>
+                                         <button class="btn-pay">Opłać</button>`;
                     }
+                    // --- KONIEC ZMIANY ---
+
+                    actionsHtml = `
+                        <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
+                        ${payButtonHtml}
+                        <a href="${editUrl}">Zarządzaj</a>
+                    `;
                 }
                 
-                // Dodajemy link do kontaktu, jeśli istnieje
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
@@ -431,6 +436,55 @@
                 }
                 
                 return card;
+            }
+
+            // --- NOWA FUNKCJA DO URUCHAMIANIA WSZYSTKICH LICZNIKÓW ---
+            function initializeCountdowns() {
+                const countdownElements = document.querySelectorAll('.countdown-timer');
+                countdownElements.forEach(el => {
+                    const lessonDateTimeStr = el.dataset.datetime;
+                    if (lessonDateTimeStr) {
+                        startCountdown(el, lessonDateTimeStr);
+                    }
+                });
+            }
+
+            // --- NOWA FUNKCJA OBSŁUGUJĄCA POJEDYNCZY LICZNIK ---
+            function startCountdown(element, lessonDateTimeStr) {
+                const lessonDateTime = new Date(lessonDateTimeStr);
+                // Termin płatności to 12 godzin przed lekcją
+                const deadline12h = new Date(lessonDateTime.getTime() - 12 * 60 * 60 * 1000);
+                // Przypomnienie pokazujemy na 24 godziny przed lekcją
+                const deadline24h = new Date(lessonDateTime.getTime() - 24 * 60 * 60 * 1000);
+
+                const timer = setInterval(() => {
+                    const now = new Date();
+
+                    // Sprawdź, czy w ogóle powinniśmy pokazywać przypomnienie
+                    if (now < deadline24h) {
+                        element.parentElement.style.display = 'none'; // Ukryj przypomnienie, jeśli jest za wcześnie
+                        clearInterval(timer); // Nie ma sensu dalej sprawdzać
+                        return;
+                    }
+
+                    // Sprawdź, czy czas już minął
+                    if (now > deadline12h) {
+                        element.parentElement.innerHTML = "Termin płatności minął";
+                        element.parentElement.style.display = 'inline-block';
+                        clearInterval(timer);
+                        return;
+                    }
+
+                    // Jesteśmy w oknie płatności, pokazujemy licznik
+                    element.parentElement.style.display = 'inline-block';
+                    const timeLeft = deadline12h - now;
+
+                    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                    element.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }, 1000);
             }
         });
     </script>
