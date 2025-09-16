@@ -788,17 +788,20 @@ def get_client_dashboard():
             
             lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
             tutor_name = fields.get('Korepetytor', 'N/A')
-        
+            status = fields.get('Status', 'N/A')
+
             lesson_data = {
                 "date": fields.get('Data'),
                 "time": fields.get('Godzina'),
                 "tutor": tutor_name,
                 "subject": fields.get('Przedmiot', 'N/A'),
                 "managementToken": fields.get('ManagementToken'),
-                "status": fields.get('Status', 'N/A'),
+                "status": status,
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(tutor_name),
-                "isPaid": fields.get('Opłacona', False) # <-- DODAJ TĘ LINIĘ
+                "isPaid": fields.get('Opłacona', False)
+            }
+
             }
             if lesson_datetime < datetime.now() or status == 'Anulowana (brak płatności)':
                 past.append(lesson_data)
