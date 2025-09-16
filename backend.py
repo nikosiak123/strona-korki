@@ -800,7 +800,6 @@ def get_client_dashboard():
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(tutor_name),
                 "isPaid": fields.get('Opłacona', False)
-            }
 
             }
             if lesson_datetime < datetime.now() or status == 'Anulowana (brak płatności)':
