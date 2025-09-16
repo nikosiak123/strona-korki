@@ -390,16 +390,15 @@
                 if (!isPast) {
                     let payButtonHtml = '';
                     
-                    // --- GŁÓWNA ZMIANA LOGIKI JEST TUTAJ ---
                     if (lesson.isPaid) {
                         payButtonHtml = `<span>Opłacona</span>`;
                     } else if (lesson.status === 'Oczekuje na płatność') {
-                        // Dodajemy placeholder dla licznika z datą i godziną lekcji
                         payButtonHtml = `<div class="payment-reminder">Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span></div>
-                                         <button class="btn-pay">Opłać</button>`;
+                                         <button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                    } else if (lesson.status === 'Anulowana (brak płatności)') {
+                        payButtonHtml = `<span>Anulowana</span>`;
                     }
-                    // --- KONIEC ZMIANY ---
-
+            
                     actionsHtml = `
                         <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
                         ${payButtonHtml}
@@ -410,7 +409,7 @@
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
-
+            
                 card.innerHTML = `
                     <div class="lesson-info">
                         <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
@@ -419,14 +418,43 @@
                     </div>
                     <div class="lesson-actions">${actionsHtml}</div>
                 `;
-
+            
+                // --- NOWA LOGIKA PRZYCISKU "OPŁAĆ" ---
                 const payButton = card.querySelector('.btn-pay');
                 if (payButton) {
-                    payButton.addEventListener('click', () => {
-                        alert('Funkcjonalność płatności zostanie dodana wkrótce.');
+                    payButton.addEventListener('click', async (e) => {
+                        const button = e.target;
+                        const token = button.dataset.token;
+                        
+                        button.textContent = 'Przetwarzanie...';
+                        button.disabled = true;
+            
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/api/mark-lesson-as-paid`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ managementToken: token })
+                            });
+            
+                            if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.message || "Błąd serwera.");
+                            }
+                            
+                            // Zmień wygląd przycisku na "Opłacona" i odśwież stronę po chwili
+                            button.parentElement.innerHTML = '<span>Opłacona</span>';
+                            alert('Lekcja została opłacona!');
+                            setTimeout(() => window.location.reload(), 1500);
+            
+                        } catch (error) {
+                            alert(`Wystąpił błąd: ${error.message}`);
+                            button.textContent = 'Opłać';
+                            button.disabled = false;
+                        }
                     });
                 }
-
+                // --- KONIEC NOWEJ LOGIKI ---
+            
                 const joinButton = card.querySelector('.btn-join');
                 if (joinButton) {
                     joinButton.addEventListener('click', () => {
