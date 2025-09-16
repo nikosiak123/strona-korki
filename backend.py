@@ -7,6 +7,8 @@ from flask_cors import CORS
 from pyairtable import Api
 from datetime import datetime, timedelta, time
 import requests
+from apscheduler.schedulers.background import BackgroundScheduler # <-- DODAJ TO
+import atexit # <-- DODAJ TO
 
 # --- Konfiguracja ---
 AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
@@ -39,6 +41,36 @@ LEVEL_MAPPING = {
 last_fetched_schedule = {}
 
 # --- Funkcje pomocnicze ---
+def check_and_cancel_unpaid_lessons():
+    """To zadanie jest uruchamiane w tle, aby anulować nieopłacone lekcje."""
+    print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
+    
+    # Znajdź lekcje, które:
+    # 1. Są nieopłacone
+    # 2. Ich termin jest za mniej niż 12 godzin
+    # 3. Ich status to 'Oczekuje na płatność'
+    
+    deadline = datetime.now() + timedelta(hours=12)
+    # Formatowanie daty dla Airtable: 'YYYY-MM-DDTHH:mm:ss.sssZ'
+    deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
+    
+    try:
+        lessons_to_cancel = reservations_table.all(formula=formula)
+        
+        if not lessons_to_cancel:
+            print("Nie znaleziono lekcji do anulowania.")
+            return
+
+        print(f"Znaleziono {len(lessons_to_cancel)} lekcji do anulowania...")
+        for lesson in lessons_to_cancel:
+            reservations_table.update(lesson['id'], {"Status": "Anulowana (brak płatności)"})
+            print(f"Anulowano lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')} o {lesson['fields'].get('Godzina')}")
+
+    except Exception as e:
+        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
+
 def parse_time_range(time_range_str):
     try:
         if not time_range_str or '-' not in time_range_str: return None, None
@@ -730,9 +762,8 @@ def get_client_dashboard():
                 continue
             
             lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
-            
             tutor_name = fields.get('Korepetytor', 'N/A')
-
+        
             lesson_data = {
                 "date": fields.get('Data'),
                 "time": fields.get('Godzina'),
@@ -741,7 +772,8 @@ def get_client_dashboard():
                 "managementToken": fields.get('ManagementToken'),
                 "status": fields.get('Status', 'N/A'),
                 "teamsLink": fields.get('TeamsLink'),
-                "tutorContactLink": tutor_links_map.get(tutor_name) # Dodajemy link kontaktowy
+                "tutorContactLink": tutor_links_map.get(tutor_name),
+                "isPaid": fields.get('Opłacona', False) # <-- DODAJ TĘ LINIĘ
             }
             if lesson_datetime > datetime.now():
                 upcoming.append(lesson_data)
@@ -909,4 +941,9 @@ def reschedule_reservation():
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
 
 if __name__ == '__main__':
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", hours=1)
+    scheduler.start()
+    # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
+    atexit.register(lambda: scheduler.shutdown())
     app.run(port=5000, debug=True)
