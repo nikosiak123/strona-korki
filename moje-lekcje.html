@@ -386,15 +386,21 @@
                 
                 const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
-                
+                let paymentInfoHtml = ''; // Nowa zmienna na informację o płatności
+            
                 if (!isPast) {
                     let payButtonHtml = '';
                     
                     if (lesson.isPaid) {
                         payButtonHtml = `<span>Opłacona</span>`;
                     } else if (lesson.status === 'Oczekuje na płatność') {
-                        payButtonHtml = `<div class="payment-reminder">Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span></div>
-                                         <button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                        payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                        // Tworzymy osobny blok z przypomnieniem i licznikiem
+                        paymentInfoHtml = `
+                            <div class="lesson-payment-info">
+                                Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span>, inaczej lekcja zostanie odwołana.
+                            </div>
+                        `;
                     } else if (lesson.status === 'Anulowana (brak płatności)') {
                         payButtonHtml = `<span>Anulowana</span>`;
                     }
@@ -410,16 +416,21 @@
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
             
+                // Zmieniamy strukturę innerHTML, aby dodać nowy blok
                 card.innerHTML = `
-                    <div class="lesson-info">
-                        <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
-                        <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
-                        <div><strong>Status:</strong> ${lesson.status || 'Potwierdzona'}</div>
+                    <div style="width: 100%;"> 
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="lesson-info">
+                                <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
+                                <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
+                                <div><strong>Status:</strong> ${lesson.status || 'Potwierdzona'}</div>
+                            </div>
+                            <div class="lesson-actions">${actionsHtml}</div>
+                        </div>
+                        ${paymentInfoHtml} 
                     </div>
-                    <div class="lesson-actions">${actionsHtml}</div>
                 `;
             
-                // --- NOWA LOGIKA PRZYCISKU "OPŁAĆ" ---
                 const payButton = card.querySelector('.btn-pay');
                 if (payButton) {
                     payButton.addEventListener('click', async (e) => {
@@ -441,8 +452,6 @@
                                 throw new Error(errorData.message || "Błąd serwera.");
                             }
                             
-                            // Zmień wygląd przycisku na "Opłacona" i odśwież stronę po chwili
-                            button.parentElement.innerHTML = '<span>Opłacona</span>';
                             alert('Lekcja została opłacona!');
                             setTimeout(() => window.location.reload(), 1500);
             
@@ -453,7 +462,6 @@
                         }
                     });
                 }
-                // --- KONIEC NOWEJ LOGIKI ---
             
                 const joinButton = card.querySelector('.btn-join');
                 if (joinButton) {
