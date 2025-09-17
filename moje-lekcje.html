@@ -40,7 +40,6 @@
             justify-content: space-between;
             align-items: center;
             border-left: 5px solid var(--primary-color);
-            /* ZMIANA: usunięcie overflow: hidden, aby pasek na dole był widoczny */
         }
         .lesson-card.past, .lesson-card.rescheduled-finished { 
             border-left-color: var(--border-color); 
@@ -78,14 +77,23 @@
         .lesson-actions .btn-join { background-color: var(--primary-color); color: var(--text-dark); }
         .lesson-actions .btn-join:hover { background-color: var(--primary-hover-color); }
         
-        /* --- NOWE STYLE DLA PRZYPOMNIENIA O PŁATNOŚCI --- */
+        /* --- NOWY STYL DLA PRZYCISKU "PRZENIEŚ" --- */
+        .lesson-actions .btn-reschedule {
+            background-color: #2196F3; /* Żywy niebieski */
+            color: white;
+        }
+        .lesson-actions .btn-reschedule:hover {
+            background-color: #1976D2; /* Ciemniejszy niebieski */
+        }
+
+        /* --- STYLE DLA PRZYPOMNIENIA O PŁATNOŚCI --- */
         .lesson-payment-info {
-            background-color: #FFF8E1; /* Bardzo jasny żółty */
-            color: #6D4C41; /* Ciemny brąz */
+            background-color: #FFF8E1;
+            color: #6D4C41;
             padding: 0.75rem 1.5rem;
             margin-top: 1.25rem;
-            border-radius: 0 0 12px 12px; /* Zaokrąglenie tylko na dole */
-            margin-left: -1.5rem; /* Rozciągnięcie na całą szerokość karty */
+            border-radius: 0 0 12px 12px;
+            margin-left: -1.5rem;
             margin-right: -1.5rem;
             margin-bottom: -1.5rem;
             font-size: 0.9rem;
@@ -95,9 +103,8 @@
         }
         .countdown-timer {
             font-weight: 700;
-            color: #D32F2F; /* Czerwony kolor dla licznika */
+            color: #D32F2F;
         }
-        /* --- KONIEC NOWYCH STYLÓW --- */
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -384,50 +391,57 @@
                 const card = document.createElement('div');
                 let cardClass = 'lesson-card';
                 if (isPast) cardClass += ' past';
-                if (lesson.status === 'Przeniesiona (zakończona)') cardClass += ' rescheduled-finished';
-                else if (lesson.status === 'Przeniesiona') cardClass += ' rescheduled';
+                if (lesson.status === 'Przeniesiona (zakończona)' || lesson.status === 'Przeniesiona') {
+                    cardClass += ' rescheduled';
+                }
                 card.className = cardClass;
                 
                 const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
-                let paymentInfoHtml = ''; // Nowa zmienna na informację o płatności
+                let paymentInfoHtml = '';
 
                 if (!isPast) {
-                    let payButtonHtml = '';
-                    
-                    if (lesson.isPaid) {
-                        payButtonHtml = `<span>Opłacona</span>`;
-                    } else if (lesson.status === 'Oczekuje na płatność') {
-                        payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
-                        // Tworzymy osobny blok z przypomnieniem i licznikiem
-                        paymentInfoHtml = `
-                            <div class="lesson-payment-info">
-                                Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span>, inaczej lekcja zostanie odwołana.
-                            </div>
-                        `;
-                    } else if (lesson.status === 'Anulowana (brak płatności)') {
-                        payButtonHtml = `<span>Anulowana</span>`;
+                    if (lesson.status === 'Przeniesiona') {
+                        actionsHtml = `<a href="${editUrl}" class="btn-reschedule">Przenieś</a>`;
+                    } 
+                    else if (lesson.status === 'Przeniesiona (zakończona)') {
+                        actionsHtml = '<span>-</span>';
                     }
+                    else {
+                        let payButtonHtml = '';
+                        
+                        if (lesson.isPaid) {
+                            payButtonHtml = `<span>Opłacona</span>`;
+                        } else if (lesson.status === 'Oczekuje na płatność') {
+                            payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                            paymentInfoHtml = `
+                                <div class="lesson-payment-info">
+                                    Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span>, inaczej lekcja zostanie odwołana.
+                                </div>
+                            `;
+                        } else if (lesson.status === 'Anulowana (brak płatności)') {
+                            payButtonHtml = `<span>Anulowana</span>`;
+                        }
 
-                    actionsHtml = `
-                        <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
-                        ${payButtonHtml}
-                        <a href="${editUrl}">Zarządzaj</a>
-                    `;
+                        actionsHtml = `
+                            <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
+                            ${payButtonHtml}
+                            <a href="${editUrl}">Zarządzaj</a>
+                        `;
+                    }
                 }
                 
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
 
-                // Zmieniamy strukturę innerHTML, aby dodać nowy blok
                 card.innerHTML = `
                     <div style="width: 100%; position: relative;"> 
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div class="lesson-info">
                                 <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
                                 <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
-                                <div><strong>Status:</strong> ${lesson.status || 'Potwierdzona'}</div>
+                                <div><strong>Status:</strong> ${lesson.status}</div>
                             </div>
                             <div class="lesson-actions">${actionsHtml}</div>
                         </div>
@@ -478,7 +492,6 @@
                 return card;
             }
 
-            // --- NOWA FUNKCJA DO URUCHAMIANIA WSZYSTKICH LICZNIKÓW ---
             function initializeCountdowns() {
                 const countdownElements = document.querySelectorAll('.countdown-timer');
                 countdownElements.forEach(el => {
@@ -489,25 +502,20 @@
                 });
             }
 
-            // --- NOWA FUNKCJA OBSŁUGUJĄCA POJEDYNCZY LICZNIK ---
             function startCountdown(element, lessonDateTimeStr) {
                 const lessonDateTime = new Date(lessonDateTimeStr);
-                // Termin płatności to 12 godzin przed lekcją
                 const deadline12h = new Date(lessonDateTime.getTime() - 12 * 60 * 60 * 1000);
-                // Przypomnienie pokazujemy na 24 godziny przed lekcją
                 const deadline24h = new Date(lessonDateTime.getTime() - 24 * 60 * 60 * 1000);
 
                 const timer = setInterval(() => {
                     const now = new Date();
 
-                    // Sprawdź, czy w ogóle powinniśmy pokazywać przypomnienie
                     if (now < deadline24h) {
-                        element.parentElement.style.display = 'none'; // Ukryj przypomnienie, jeśli jest za wcześnie
-                        clearInterval(timer); // Nie ma sensu dalej sprawdzać
+                        element.parentElement.style.display = 'none';
+                        clearInterval(timer);
                         return;
                     }
 
-                    // Sprawdź, czy czas już minął
                     if (now > deadline12h) {
                         element.parentElement.innerHTML = "Termin płatności minął";
                         element.parentElement.style.display = 'block';
@@ -515,7 +523,6 @@
                         return;
                     }
 
-                    // Jesteśmy w oknie płatności, pokazujemy licznik
                     element.parentElement.style.display = 'block';
                     const timeLeft = deadline12h - now;
 
