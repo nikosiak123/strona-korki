@@ -876,7 +876,8 @@ def get_client_dashboard():
                 "isPaid": fields.get('Opłacona', False)
 
             }
-            if lesson_datetime < datetime.now() or status == 'Anulowana (brak płatności)':
+            inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
+            if lesson_datetime < datetime.now() or status in inactive_statuses:
                 past.append(lesson_data)
             else:
                 upcoming.append(lesson_data)
