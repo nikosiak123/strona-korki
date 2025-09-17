@@ -268,86 +268,44 @@ def get_master_schedule():
         traceback.print_exc()
         abort(500, "Błąd serwera podczas generowania głównego grafiku.")
 
-@app.route('/api/reschedule-reservation', methods=['POST'])
-def reschedule_reservation():
+@app.route('/api/tutor-reschedule', methods=['POST'])
+def tutor_reschedule():
     try:
         data = request.json
-        token = data.get('token')
-        new_date = data.get('newDate')
-        new_time = data.get('newTime')
+        tutor_name, date, time = data.get('tutorName'), data.get('date'), data.get('time')
 
-        if not all([token, new_date, new_time]):
-            abort(400, "Brak wymaganych danych.")
+        formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
+        record_to_reschedule = reservations_table.first(formula=formula)
 
-        original_record = find_reservation_by_token(token)
-        if not original_record:
-            abort(404, "Nie znaleziono oryginalnej rezerwacji do przeniesienia.")
-
-        original_fields = original_record.get('fields', {})
-        
-        # Sprawdź, czy można przenieść termin
-        if not is_cancellation_allowed(original_record) and original_fields.get('Status') != 'Przeniesiona':
-            abort(403, "Nie można zmienić terminu rezerwacji. Pozostało mniej niż 12 godzin.")
-
-        # Sprawdź, czy nowy termin jest wolny (logika bez zmian)
-        tutor = original_fields.get('Korepetytor')
-        formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
-        if reservations_table.first(formula=formula_check):
-            abort(409, "Wybrany termin jest już zajęty. Proszę wybrać inny.")
-        new_date_obj = datetime.strptime(new_date, '%Y-m-%d').date()
-        day_of_week_name = WEEKDAY_MAP[new_date_obj.weekday()]
-        cyclic_check_formula = f"AND({{Korepetytor}} = '{tutor}', {{DzienTygodnia}} = '{day_of_week_name}', {{Godzina}} = '{new_time}', {{Aktywna}}=1)"
-        if cyclic_reservations_table.first(formula=cyclic_check_formula):
-            abort(409, "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny.")
+        if record_to_reschedule:
+            fields = record_to_reschedule.get('fields', {})
+            psid = fields.get('Klient')
             
-        # === KLUCZOWA ZMIANA LOGIKI JEST TUTAJ ===
-        
-        # 1. Sprawdź, czy oryginalna lekcja była opłacona
-        was_paid = original_fields.get('Opłacona', False)
-        
-        # 2. Ustaw status nowej lekcji
-        new_status = 'Oczekuje na płatność' # Domyślny status
-        if was_paid:
-            new_status = 'Opłacona' # Jeśli stara była opłacona, nowa też jest!
-        elif original_fields.get('Status') == 'Przeniesiona':
-             new_status = 'Oczekuje na płatność' # Jeśli przenosi ją klient po prośbie korepetytora
-
-        # === KONIEC ZMIANY ===
-
-        new_reservation_data = {
-            "Klient": original_fields.get('Klient'),
-            "Korepetytor": tutor,
-            "Data": new_date,
-            "Godzina": new_time,
-            "Przedmiot": original_fields.get('Przedmiot'),
-            "Typ": original_fields.get('Typ', 'Jednorazowa'),
-            "Status": new_status, # Używamy nowego, inteligentnego statusu
-            "Opłacona": was_paid, # Kopiujemy status płatności
-            "ManagementToken": str(uuid.uuid4()),
-            "TypSzkoły": original_fields.get('TypSzkoły'),
-            "Poziom": original_fields.get('Poziom'),
-            "Klasa": original_fields.get('Klasa'),
-            "TeamsLink": original_fields.get('TeamsLink')
-        }
-        reservations_table.create(new_reservation_data)
-
-        reservations_table.update(original_record['id'], {"Status": "Przeniesiona (zakończona)"})
-        
-        # Powiadomienie na Messengerze (bez zmian)
-        if MESSENGER_PAGE_TOKEN:
-            psid = original_fields.get('Klient')
-            if psid:
+            reservations_table.update(record_to_reschedule['id'], {"Status": "Przeniesiona"})
+            
+            # --- DODANO POWIADOMIENIE ---
+            if MESSENGER_PAGE_TOKEN and psid:
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
                 message_to_send = (
-                    f"Termin Twojej lekcji został pomyślnie zmieniony.\n\n"
-                    f"Nowy termin to: {new_date} o godzinie {new_time}."
+                    f"Ważna informacja! Twój korepetytor musiał przenieść lekcję zaplanowaną na {date} o {time}.\n\n"
+                    f"Prosimy o wejście do panelu klienta i wybranie nowego, dogodnego terminu:\n{dashboard_link}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
-        
-        return jsonify({"message": f"Termin został pomyślnie zmieniony na {new_date} o {new_time}."})
+            # --- KONIEC DODAWANIA ---
+            
+            return jsonify({"message": "Status lekcji został zmieniony na 'Przeniesiona'. Uczeń został poinformowany."})
+        else:
+            # Tutaj obsługujemy stały termin - jest trudniej znaleźć klienta, na razie pomijamy powiadomienie.
+            new_exception = {
+                "Korepetytor": tutor_name, "Data": date, "Godzina": time,
+                "Status": "Przeniesiona", "Typ": "Cykliczna Wyjątek"
+            }
+            reservations_table.create(new_exception)
+            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiony'."})
 
     except Exception as e:
         traceback.print_exc()
-        abort(500, "Wystąpił błąd podczas zmiany terminu.")
+        abort(500, "Wystąpił błąd podczas przenoszenia lekcji.")
 
 @app.route('/api/add-adhoc-slot', methods=['POST'])
 def add_adhoc_slot():
