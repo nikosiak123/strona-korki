@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooseTutorCheckbox = document.getElementById('chooseTutorCheckbox');
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
+    const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
     
-    // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
@@ -66,6 +66,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function prepareBookingForm(clientData) {
+        firstNameInput.value = clientData.firstName;
+        lastNameInput.value = clientData.lastName;
         bookingContainer.style.display = 'flex';
     }
 
@@ -75,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedTime = null;
     let currentWeekStart = getMonday(new Date());
     let availableSlotsData = {};
+    let cyclicUnavailableData = {};
     const monthNames = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const workingHoursStart = 8;
@@ -152,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tutorSelect.required = false;
             tutorSelect.value = '';
         }
-        generateTimeSlotCalendar(currentWeekStart);
+        fetchAvailableSlots(currentWeekStart);
         checkFormValidity();
     }
     
@@ -219,16 +222,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const tbody = table.createTBody();
         
-        // --- NOWA, KLUCZOWA LOGIKA JEST TUTAJ ---
-        // Obliczamy granicę 12 godzin od teraz
-        const twelveHoursFromNow = new Date();
-        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
-        // --- KONIEC NOWEJ LOGIKI ---
-    
         let currentTime = new Date(startDate);
         currentTime.setHours(workingHoursStart, 0, 0, 0);
         const endTime = new Date(startDate);
         endTime.setHours(workingHoursEnd, 0, 0, 0);
+    
+        // ### NOWA LOGIKA: Oblicz moment 12 godzin od teraz ###
+        const twelveHoursFromNow = new Date();
+        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
     
         while (currentTime < endTime) {
             const timeSlot = currentTime.toTimeString().substring(0, 5);
@@ -250,28 +251,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 block.dataset.date = formattedDate;
                 block.dataset.time = timeSlot;
                 
-                const slotDateTime = new Date(`${formattedDate}T${timeSlot}`);
+                let isClickable = false;
+                
+                // ### ZMIANA TUTAJ: Dodatkowa walidacja czasu ###
+                const blockDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
     
-                // --- ZMIANA WARUNKU IF ---
-                if (matchingSlot && slotDateTime > twelveHoursFromNow) {
-                    // Warunek spełniony: slot jest dostępny I jest za więcej niż 12 godzin
+                if (matchingSlot && blockDateTime > twelveHoursFromNow) {
+                    // Warunek spełniony: slot jest dostępny i jest za ponad 12 godzin
                     block.textContent = timeSlot;
-                    block.addEventListener('click', () => selectSlot(blockId, block, formattedDate, timeSlot));
-                } else if (slotDateTime <= new Date()) {
-                    // Termin jest w przeszłości
-                    block.classList.add('past');
+                    isClickable = true;
                 } else {
-                    // Termin jest w przyszłości, ale niedostępny LUB za mniej niż 12h
+                    // W przeciwnym razie slot jest niedostępny (zajęty, minął, lub jest za mniej niż 12h)
                     block.classList.add('disabled');
                     if (matchingSlot) { // Jeśli istniał, ale jest za blisko w czasie
                          block.textContent = timeSlot;
-                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 12 godzin do rozpoczęcia).";
+                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 12h).";
                     }
                 }
-                // --- KONIEC ZMIANY ---
     
-                if (selectedSlotId === blockId) {
+                // 'selectedSlotId' jest zdefiniowany globalnie w każdym skrypcie
+                const currentSelectedSlotId = typeof newSelectedSlotId !== 'undefined' ? newSelectedSlotId : selectedSlotId;
+                if(currentSelectedSlotId === blockId) {
                     block.classList.add('selected');
+                }
+                
+                if(isClickable) {
+                    block.addEventListener('click', () => selectSlot(blockId, block, formattedDate, timeSlot));
                 }
                 
                 cell.appendChild(block);
@@ -338,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updateSchoolDependentFields();
                 }
                 fetchAvailableSlots(currentWeekStart);
-            } else if (targetId === 'chooseTutorCheckbox' || targetId === 'tutorSelect') {
+            } else if (targetId === 'chooseTutorCheckbox' || targetId === 'tutorSelect' || targetId === 'isOneTimeCheckbox') {
                 handleTutorSelection();
             }
             checkFormValidity();
@@ -352,6 +357,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showStatus('Proszę wypełnić wszystkie wymagane pola i wybrać termin.', 'error');
                 return;
             }
+        
+            // ### POPRAWKA TUTAJ ###
+            // Upewniamy się, że pobieramy wartości ze wszystkich pól, nawet tych dynamicznych
             const formData = {
                 clientID: clientID,
                 firstName: firstNameInput.value, 
@@ -365,40 +373,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                 selectedTime: selectedTime
             };
             
+            // Dodajemy logikę specyficzną dla `script-cykliczny.js`
+            if (typeof isOneTimeCheckbox !== 'undefined') {
+                formData.isOneTime = isOneTimeCheckbox.checked;
+            }
+        
             reserveButton.disabled = true;
             reserveButton.textContent = 'Rezerwuję...';
-            console.log("Wysyłam dane do backendu:", formData);
-
+            showStatus('Trwa rezerwacja...', 'info');
+            
+            console.log("Dane wysyłane do backendu:", formData); // Dodatkowy log do sprawdzenia
+        
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData),
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
                 });
-                
                 if (response.ok) {
                     const result = await response.json();
+                    // Przekierowanie na stronę potwierdzenia z wszystkimi potrzebnymi danymi
                     const params = new URLSearchParams({
                         date: formData.selectedDate,
                         time: formData.selectedTime,
                         teamsUrl: encodeURIComponent(result.teamsUrl),
                         token: result.managementToken,
                         clientID: result.clientID,
-                        isTest: result.isTest,
-                        isCyclic: result.isCyclic
+                        isCyclic: result.isCyclic,
+                        isTest: result.isTest
                     });
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {
-                    console.error("Odpowiedź z serwera nie była OK:", response);
-                    const errorData = await response.text();
-                    showStatus(`Błąd rezerwacji: ${errorData}`, 'error');
+                    const errorData = await response.json();
+                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć spotkania.'}`, 'error');
                 }
             } catch (error) {
                 console.error('Błąd rezerwacji:', error);
-                showStatus('Wystąpił błąd podczas komunikacji z serwerem.', 'error');
+                showStatus('Wystąpił błąd podczas rezerwacji terminu.', 'error');
             } finally {
                 reserveButton.disabled = false;
-                reserveButton.textContent = 'Zarezerwuj testową lekcję';
+                // Ustaw poprawny tekst w zależności od skryptu
+                const buttonText = (typeof isOneTimeCheckbox !== 'undefined') ? 'Zarezerwuj termin' : 'Zarezerwuj testową lekcję';
+                reserveButton.textContent = buttonText;
                 checkFormValidity();
             }
         });
