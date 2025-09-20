@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
-    const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na adres z Cloud Run przy wdrożeniu
+    const API_BASE_URL = ''; // Adres API jest względny
 
     // --- GŁÓWNA LOGIKA INICJALIZACJI APLIKACJI ---
     async function initializeApp() {
@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function prepareBookingForm(clientData) {
+        // Usunęliśmy automatyczne wypełnianie imienia i nazwiska
         bookingContainer.style.display = 'flex';
     }
 
@@ -187,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- ZAKTUALIZOWANA FUNKCJA ---
     function generateTimeSlotCalendar(startDate) {
         calendarContainer.innerHTML = '';
         calendarContainer.className = 'time-slot-calendar';
@@ -196,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             d.setDate(d.getDate() + i);
             return d;
         });
-    
+
         const calendarNavigation = document.createElement('div');
         calendarNavigation.className = 'calendar-navigation';
         const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()].substring(0,3)}.`;
@@ -207,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <button id="nextWeek">Następny tydzień</button>
         `;
         calendarContainer.appendChild(calendarNavigation);
-    
+
         const table = document.createElement('table');
         table.className = 'calendar-grid-table';
         let headerRow = '<tr><th class="time-label">Godzina</th>';
@@ -219,17 +221,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const tbody = table.createTBody();
         
-        // --- NOWA, KLUCZOWA LOGIKA JEST TUTAJ ---
-        // Obliczamy granicę 12 godzin od teraz
         const twelveHoursFromNow = new Date();
         twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
-        // --- KONIEC NOWEJ LOGIKI ---
-    
+
         let currentTime = new Date(startDate);
         currentTime.setHours(workingHoursStart, 0, 0, 0);
         const endTime = new Date(startDate);
         endTime.setHours(workingHoursEnd, 0, 0, 0);
-    
+
         while (currentTime < endTime) {
             const timeSlot = currentTime.toTimeString().substring(0, 5);
             
@@ -251,37 +250,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 block.dataset.time = timeSlot;
                 
                 const slotDateTime = new Date(`${formattedDate}T${timeSlot}`);
-    
-                // --- ZMIANA WARUNKU IF ---
+
                 if (matchingSlot && slotDateTime > twelveHoursFromNow) {
-                    // Warunek spełniony: slot jest dostępny I jest za więcej niż 12 godzin
                     block.textContent = timeSlot;
                     block.addEventListener('click', () => selectSlot(blockId, block, formattedDate, timeSlot));
                 } else if (slotDateTime <= new Date()) {
-                    // Termin jest w przeszłości
                     block.classList.add('past');
                 } else {
-                    // Termin jest w przyszłości, ale niedostępny LUB za mniej niż 12h
                     block.classList.add('disabled');
-                    if (matchingSlot) { // Jeśli istniał, ale jest za blisko w czasie
+                    if (matchingSlot) {
                          block.textContent = timeSlot;
                          block.title = "Tego terminu nie można już zarezerwować (mniej niż 12 godzin do rozpoczęcia).";
                     }
                 }
-                // --- KONIEC ZMIANY ---
-    
+
                 if (selectedSlotId === blockId) {
                     block.classList.add('selected');
                 }
                 
                 cell.appendChild(block);
             });
-    
+
             currentTime.setMinutes(currentTime.getMinutes() + 70);
         }
         
         calendarContainer.appendChild(table);
-    
+
         document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
         document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
     }
@@ -367,8 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             reserveButton.disabled = true;
             reserveButton.textContent = 'Rezerwuję...';
-            console.log("Wysyłam dane do backendu:", formData);
-
+            
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
                     method: 'POST',
@@ -389,9 +382,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {
-                    console.error("Odpowiedź z serwera nie była OK:", response);
-                    const errorData = await response.text();
-                    showStatus(`Błąd rezerwacji: ${errorData}`, 'error');
+                    const errorData = await response.json();
+                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć rezerwacji.'}`, 'error');
                 }
             } catch (error) {
                 console.error('Błąd rezerwacji:', error);
