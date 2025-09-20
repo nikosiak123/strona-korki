@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooseTutorCheckbox = document.getElementById('chooseTutorCheckbox');
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
-    const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
     
+    // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
@@ -66,8 +66,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function prepareBookingForm(clientData) {
-        firstNameInput.value = clientData.firstName;
-        lastNameInput.value = clientData.lastName;
         bookingContainer.style.display = 'flex';
     }
 
@@ -77,7 +75,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedTime = null;
     let currentWeekStart = getMonday(new Date());
     let availableSlotsData = {};
-    let cyclicUnavailableData = {};
     const monthNames = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const workingHoursStart = 8;
@@ -155,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tutorSelect.required = false;
             tutorSelect.value = '';
         }
-        fetchAvailableSlots(currentWeekStart);
+        generateTimeSlotCalendar(currentWeekStart);
         checkFormValidity();
     }
     
@@ -341,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updateSchoolDependentFields();
                 }
                 fetchAvailableSlots(currentWeekStart);
-            } else if (targetId === 'chooseTutorCheckbox' || targetId === 'tutorSelect' || targetId === 'isOneTimeCheckbox') {
+            } else if (targetId === 'chooseTutorCheckbox' || targetId === 'tutorSelect') {
                 handleTutorSelection();
             }
             checkFormValidity();
@@ -355,9 +352,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showStatus('Proszę wypełnić wszystkie wymagane pola i wybrać termin.', 'error');
                 return;
             }
-        
-            // ### POPRAWKA TUTAJ ###
-            // Upewniamy się, że pobieramy wartości ze wszystkich pól, nawet tych dynamicznych
             const formData = {
                 clientID: clientID,
                 firstName: firstNameInput.value, 
@@ -371,46 +365,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 selectedTime: selectedTime
             };
             
-            // Dodajemy logikę specyficzną dla `script-cykliczny.js`
-            if (typeof isOneTimeCheckbox !== 'undefined') {
-                formData.isOneTime = isOneTimeCheckbox.checked;
-            }
-        
             reserveButton.disabled = true;
             reserveButton.textContent = 'Rezerwuję...';
-            showStatus('Trwa rezerwacja...', 'info');
-            
-            console.log("Dane wysyłane do backendu:", formData); // Dodatkowy log do sprawdzenia
-        
+            console.log("Wysyłam dane do backendu:", formData);
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
                 });
+                
                 if (response.ok) {
                     const result = await response.json();
-                    // Przekierowanie na stronę potwierdzenia z wszystkimi potrzebnymi danymi
                     const params = new URLSearchParams({
                         date: formData.selectedDate,
                         time: formData.selectedTime,
                         teamsUrl: encodeURIComponent(result.teamsUrl),
                         token: result.managementToken,
                         clientID: result.clientID,
-                        isCyclic: result.isCyclic,
-                        isTest: result.isTest
+                        isTest: result.isTest,
+                        isCyclic: result.isCyclic
                     });
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {
-                    const errorData = await response.json();
-                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć spotkania.'}`, 'error');
+                    console.error("Odpowiedź z serwera nie była OK:", response);
+                    const errorData = await response.text();
+                    showStatus(`Błąd rezerwacji: ${errorData}`, 'error');
                 }
             } catch (error) {
                 console.error('Błąd rezerwacji:', error);
-                showStatus('Wystąpił błąd podczas rezerwacji terminu.', 'error');
+                showStatus('Wystąpił błąd podczas komunikacji z serwerem.', 'error');
             } finally {
                 reserveButton.disabled = false;
-                // Ustaw poprawny tekst w zależności od skryptu
-                const buttonText = (typeof isOneTimeCheckbox !== 'undefined') ? 'Zarezerwuj termin' : 'Zarezerwuj testową lekcję';
-                reserveButton.textContent = buttonText;
+                reserveButton.textContent = 'Zarezerwuj testową lekcję';
                 checkFormValidity();
             }
         });
