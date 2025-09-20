@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("--- Inicjalizacja skryptu dla lekcji testowej (script.js) ---");
+
     // Odwołania do elementów
     const invalidLinkContainer = document.getElementById('invalidLinkContainer');
     const bookingContainer = document.getElementById('bookingContainer');
@@ -18,11 +20,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
     
-    // Lista pól do podstawowej walidacji
-    const baseFormFields = [subjectSelect, schoolTypeSelect];
+    const baseFormFields = [firstNameInput, lastNameInput, subjectSelect, schoolTypeSelect];
     let clientID = null;
 
-    const API_BASE_URL = ''; // Adres API jest względny
+    const API_BASE_URL = '';
 
     // --- GŁÓWNA LOGIKA INICJALIZACJI APLIKACJI ---
     async function initializeApp() {
@@ -66,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function prepareBookingForm(clientData) {
-        // Usunęliśmy automatyczne wypełnianie imienia i nazwiska
+        // Imię i nazwisko nie są już `readonly`, klient musi je wpisać
         bookingContainer.style.display = 'flex';
     }
 
@@ -188,8 +189,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- ZAKTUALIZOWANA FUNKCJA ---
     function generateTimeSlotCalendar(startDate) {
+        console.log("--- Funkcja generateTimeSlotCalendar ---");
+        console.log("Dane dostępne w momencie rysowania kalendarza (availableSlotsData):", availableSlotsData);
+
         calendarContainer.innerHTML = '';
         calendarContainer.className = 'time-slot-calendar';
         
@@ -223,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const twelveHoursFromNow = new Date();
         twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
+        console.log(`Aktualna granica rezerwacji (12h od teraz): ${twelveHoursFromNow.toLocaleString()}`);
 
         let currentTime = new Date(startDate);
         currentTime.setHours(workingHoursStart, 0, 0, 0);
@@ -250,6 +254,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 block.dataset.time = timeSlot;
                 
                 const slotDateTime = new Date(`${formattedDate}T${timeSlot}`);
+
+                if (matchingSlot) {
+                    console.log(`Sprawdzam termin: ${formattedDate} o ${timeSlot}. Czy jest po ${twelveHoursFromNow.toLocaleTimeString()}? -> ${slotDateTime > twelveHoursFromNow}`);
+                }
 
                 if (matchingSlot && slotDateTime > twelveHoursFromNow) {
                     block.textContent = timeSlot;
@@ -305,6 +313,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(`${API_BASE_URL}/api/get-schedule?${params.toString()}`);
             if (!response.ok) { throw new Error('Błąd pobierania danych z serwera'); }
             const scheduleFromApi = await response.json();
+            
+            console.log("--- Funkcja fetchAvailableSlots ---");
+            console.log("Otrzymano surowe dane terminów z API:", scheduleFromApi);
             
             const processedData = {};
             const uniqueTutors = new Set();
