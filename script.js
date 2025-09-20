@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             d.setDate(d.getDate() + i);
             return d;
         });
-
+    
         const calendarNavigation = document.createElement('div');
         calendarNavigation.className = 'calendar-navigation';
         const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()].substring(0,3)}.`;
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <button id="nextWeek">Następny tydzień</button>
         `;
         calendarContainer.appendChild(calendarNavigation);
-
+    
         const table = document.createElement('table');
         table.className = 'calendar-grid-table';
         let headerRow = '<tr><th class="time-label">Godzina</th>';
@@ -224,7 +224,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentTime.setHours(workingHoursStart, 0, 0, 0);
         const endTime = new Date(startDate);
         endTime.setHours(workingHoursEnd, 0, 0, 0);
-
+    
+        // --- NOWA LOGIKA: Oblicz moment 12 godzin od teraz ---
+        const twelveHoursFromNow = new Date();
+        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
+    
         while (currentTime < endTime) {
             const timeSlot = currentTime.toTimeString().substring(0, 5);
             
@@ -247,13 +251,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 let isClickable = false;
                 
-                if (matchingSlot) {
+                // --- POPRAWIONA LOGIKA Z WALIDACJĄ CZASU ---
+                const blockDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
+    
+                if (matchingSlot && blockDateTime > twelveHoursFromNow) {
+                    // Warunek spełniony: slot jest dostępny i jest za ponad 12 godzin
                     block.textContent = timeSlot;
                     isClickable = true;
                 } else {
+                    // W przeciwnym razie slot jest niedostępny (zajęty, minął, lub jest za mniej niż 12h)
                     block.classList.add('disabled');
+                    if (matchingSlot) { // Jeśli istniał, ale jest za blisko w czasie
+                         block.textContent = timeSlot;
+                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 12h).";
+                    }
                 }
-
+                
                 if (selectedSlotId === blockId) {
                     block.classList.add('selected');
                 }
@@ -264,12 +277,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 cell.appendChild(block);
             });
-
+    
             currentTime.setMinutes(currentTime.getMinutes() + 70);
         }
         
         calendarContainer.appendChild(table);
-
+    
         document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
         document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
     }
