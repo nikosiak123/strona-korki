@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("--- Inicjalizacja skryptu dla lekcji cyklicznej (script-cykliczny.js) ---");
-
     // Odwołania do elementów
     const invalidLinkContainer = document.getElementById('invalidLinkContainer');
     const bookingContainer = document.getElementById('bookingContainer');
@@ -21,11 +19,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
     
-    const baseFormFields = [firstNameInput, lastNameInput, subjectSelect, schoolTypeSelect];
+    const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
-    const API_BASE_URL = '';
+    const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na adres z Cloud Run przy wdrożeniu
 
+    // --- GŁÓWNA LOGIKA INICJALIZACJI APLIKACJI ---
     async function initializeApp() {
         const params = new URLSearchParams(window.location.search);
         clientID = params.get('clientID');
@@ -72,11 +71,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         bookingContainer.style.display = 'flex';
     }
 
+    // --- POZOSTAŁE FUNKCJE ---
     let selectedSlotId = null;
     let selectedDate = null;
     let selectedTime = null;
     let currentWeekStart = getMonday(new Date());
     let availableSlotsData = {};
+    let cyclicUnavailableData = {};
     const monthNames = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const workingHoursStart = 8;
@@ -190,9 +191,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function generateTimeSlotCalendar(startDate) {
-        console.log("--- Funkcja generateTimeSlotCalendar ---");
-        console.log("Dane dostępne w momencie rysowania kalendarza (availableSlotsData):", availableSlotsData);
-
         calendarContainer.innerHTML = '';
         calendarContainer.className = 'time-slot-calendar';
         
@@ -224,9 +222,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const tbody = table.createTBody();
         
+        // --- NOWA, KLUCZOWA LOGIKA JEST TUTAJ ---
+        // Obliczamy granicę 12 godzin od teraz
         const twelveHoursFromNow = new Date();
         twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
-        console.log(`Aktualna granica rezerwacji (12h od teraz): ${twelveHoursFromNow.toLocaleString()}`);
+        // --- KONIEC NOWEJ LOGIKI ---
     
         let currentTime = new Date(startDate);
         currentTime.setHours(workingHoursStart, 0, 0, 0);
@@ -255,22 +255,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const slotDateTime = new Date(`${formattedDate}T${timeSlot}`);
     
-                if (matchingSlot) {
-                    console.log(`Sprawdzam termin: ${formattedDate} o ${timeSlot}. Czy jest po ${twelveHoursFromNow.toLocaleTimeString()}? -> ${slotDateTime > twelveHoursFromNow}`);
-                }
-    
+                // --- ZMIANA WARUNKU IF ---
                 if (matchingSlot && slotDateTime > twelveHoursFromNow) {
+                    // Warunek spełniony: slot jest dostępny I jest za więcej niż 12 godzin
                     block.textContent = timeSlot;
                     block.addEventListener('click', () => selectSlot(blockId, block, formattedDate, timeSlot));
                 } else if (slotDateTime <= new Date()) {
+                    // Termin jest w przeszłości
                     block.classList.add('past');
                 } else {
+                    // Termin jest w przyszłości, ale niedostępny LUB za mniej niż 12h
                     block.classList.add('disabled');
-                    if (matchingSlot) {
+                    if (matchingSlot) { // Jeśli istniał, ale jest za blisko w czasie
                          block.textContent = timeSlot;
                          block.title = "Tego terminu nie można już zarezerwować (mniej niż 12 godzin do rozpoczęcia).";
                     }
                 }
+                // --- KONIEC ZMIANY ---
     
                 if (selectedSlotId === blockId) {
                     block.classList.add('selected');
@@ -314,9 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) { throw new Error('Błąd pobierania danych z serwera'); }
             const scheduleFromApi = await response.json();
             
-            console.log("--- Funkcja fetchAvailableSlots ---");
-            console.log("Otrzymano surowe dane terminów z API:", scheduleFromApi);
-            
             const processedData = {};
             const uniqueTutors = new Set();
             
@@ -358,6 +356,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
         
+            // ### POPRAWKA TUTAJ ###
+            // Upewniamy się, że pobieramy wartości ze wszystkich pól, nawet tych dynamicznych
             const formData = {
                 clientID: clientID,
                 firstName: firstNameInput.value, 
@@ -368,19 +368,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 schoolClass: classGroup.style.display === 'block' ? schoolClassSelect.value : null,
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
-                selectedTime: selectedTime,
-                isOneTime: isOneTimeCheckbox.checked
+                selectedTime: selectedTime
             };
+            
+            // Dodajemy logikę specyficzną dla `script-cykliczny.js`
+            if (typeof isOneTimeCheckbox !== 'undefined') {
+                formData.isOneTime = isOneTimeCheckbox.checked;
+            }
         
             reserveButton.disabled = true;
             reserveButton.textContent = 'Rezerwuję...';
+            showStatus('Trwa rezerwacja...', 'info');
             
+            console.log("Dane wysyłane do backendu:", formData); // Dodatkowy log do sprawdzenia
+        
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
                 });
                 if (response.ok) {
                     const result = await response.json();
+                    // Przekierowanie na stronę potwierdzenia z wszystkimi potrzebnymi danymi
                     const params = new URLSearchParams({
                         date: formData.selectedDate,
                         time: formData.selectedTime,
@@ -393,18 +401,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {
                     const errorData = await response.json();
-                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć rezerwacji.'}`, 'error');
+                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć spotkania.'}`, 'error');
                 }
             } catch (error) {
                 console.error('Błąd rezerwacji:', error);
                 showStatus('Wystąpił błąd podczas rezerwacji terminu.', 'error');
             } finally {
                 reserveButton.disabled = false;
-                reserveButton.textContent = 'Zarezerwuj termin';
+                // Ustaw poprawny tekst w zależności od skryptu
+                const buttonText = (typeof isOneTimeCheckbox !== 'undefined') ? 'Zarezerwuj termin' : 'Zarezerwuj testową lekcję';
+                reserveButton.textContent = buttonText;
                 checkFormValidity();
             }
         });
     }
 
+    // --- Start aplikacji ---
     initializeApp();
 });
