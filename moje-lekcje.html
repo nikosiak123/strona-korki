@@ -276,12 +276,13 @@
                                 // Krok 2a: Jeśli wolny, pokaż standardowe okno potwierdzenia
                                 showConfirmationStep(lesson);
                             } else {
-                                // Krok 2b: Jeśli zajęty, pokaż od razu okno konfliktu
-                                showConflictModal(result.message, null); // null, bo nie mamy jeszcze tokena
+                                // Krok 2b: Jeśli zajęty, pokaż od razu okno konfliktu, przekazując token
+                                showConflictModal(result.message, result.managementToken);
                             }
                         } catch (error) {
                             alert("Wystąpił błąd podczas sprawdzania dostępności. Spróbuj ponownie.");
                         } finally {
+                            // Przywróć przycisk do stanu początkowego
                             confirmButton.textContent = 'Potwierdź najbliższą lekcję';
                             confirmButton.disabled = false;
                         }
@@ -396,19 +397,30 @@
 
             function showConflictModal(message, token) {
                 modalTitle.textContent = "Termin niedostępny!";
-                modalText.textContent = message;
+                // Używamy innerHTML, aby dodać nową linię
+                modalText.innerHTML = `${message}<br><br><strong>Jednorazowo przenieś termin lekcji lub odwołaj zajęcia.</strong>`;
                 modalInfo.style.display = 'none';
-                const editUrl = token ? `edit.html?token=${token}` : '#';
                 
-                modalButtons.innerHTML = `
-                    ${token ? `<a href="${editUrl}" class="modal-btn primary">Wybierz inny termin</a>` : ''}
-                    <button id="modalConflictOkBtn" class="modal-btn secondary">OK</button>
-                `;
+                // --- NOWA LOGIKA PRZYCISKÓW ---
+                const editUrl = token ? `edit.html?token=${token}` : '#';
+                let buttonsHtml = '';
+                
+                // Jeśli mamy token, pokazujemy przycisk "Zarządzaj"
+                if (token) {
+                    buttonsHtml = `<a href="${editUrl}" class="modal-btn primary">Zarządzaj terminem</a>`;
+                }
+                
+                // Przycisk "OK" jest zawsze widoczny
+                buttonsHtml += `<button id="modalConflictOkBtn" class="modal-btn secondary">OK</button>`;
+                // --- KONIEC NOWEJ LOGIKI ---
+                
+                modalButtons.innerHTML = buttonsHtml;
                 modalButtons.style.display = 'flex';
                 modalOverlay.classList.add('active');
-
+            
                 document.getElementById('modalConflictOkBtn').onclick = () => {
                     modalOverlay.classList.remove('active');
+                    // Przeładuj stronę, aby pokazać nowo utworzoną, "przeniesioną" lekcję
                     window.location.reload();
                 };
             }
