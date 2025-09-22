@@ -149,17 +149,26 @@ def is_cancellation_allowed(record):
 # --- Endpointy API ---
 @app.route('/api/mark-lesson-as-paid', methods=['POST'])
 def mark_lesson_as_paid():
-    """Endpoint do symulacji płatności - zaznacza checkbox 'Opłacona' w Airtable."""
+    """Endpoint do symulacji płatności - zaznacza checkbox i zmienia status."""
     try:
         token = request.json.get('managementToken')
-        if not token: abort(400, "Brak tokena.")
+        if not token:
+            abort(400, "Brak tokena zarządzającego w zapytaniu.")
 
+        # Znajdź rezerwację na podstawie unikalnego tokena
         record_to_update = reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
-        if not record_to_update: abort(404, "Nie znaleziono rezerwacji.")
-
-        reservations_table.update(record_to_update['id'], {"Opłacona": True})
         
-        # --- DODANO POWIADOMIENIE ---
+        if not record_to_update:
+            abort(404, "Nie znaleziono rezerwacji o podanym tokenie.")
+
+        # Przygotuj dane do aktualizacji w Airtable
+        update_data = {
+            "Opłacona": True,
+            "Status": "Opłacona" 
+        }
+        reservations_table.update(record_to_update['id'], update_data)
+        
+        # Logika wysyłania powiadomienia na Messengerze
         if MESSENGER_PAGE_TOKEN:
             fields = record_to_update.get('fields', {})
             psid = fields.get('Klient')
@@ -169,9 +178,9 @@ def mark_lesson_as_paid():
                     f"jest już w pełni potwierdzona i opłacona. Do zobaczenia!"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
-        # --- KONIEC DODAWANIA ---
             
         print(f"Oznaczono lekcję (ID: {record_to_update['id']}) jako OPŁACONĄ.")
+        
         return jsonify({"message": "Lekcja została oznaczona jako opłacona."})
 
     except Exception as e:
@@ -995,38 +1004,34 @@ def reschedule_reservation():
         if not all([token, new_date, new_time]):
             abort(400, "Brak wymaganych danych.")
 
-        # 1. Znajdź oryginalny rekord rezerwacji (ten ze statusem 'Przeniesiona')
         original_record = find_reservation_by_token(token)
         if not original_record:
             abort(404, "Nie znaleziono oryginalnej rezerwacji do przeniesienia.")
 
         original_fields = original_record.get('fields', {})
         
-        # Sprawdź, czy status pozwala na zmianę terminu
-        original_status = original_fields.get('Status')
-        if original_status not in ['Przeniesiona', 'Oczekuje na potwierdzenie']: # Możemy pozwolić na zmianę z różnych statusów
-             if not is_cancellation_allowed(original_record):
-                abort(403, "Nie można zmienić terminu rezerwacji. Pozostało mniej niż 12 godzin.")
+        if not is_cancellation_allowed(original_record) and original_fields.get('Status') != 'Przeniesiona':
+            abort(403, "Nie można zmienić terminu rezerwacji. Pozostało mniej niż 12 godzin.")
 
-        # 2. Sprawdź, czy nowy termin jest na pewno wolny (bardzo ważne!)
         tutor = original_fields.get('Korepetytor')
         
         formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
         if reservations_table.first(formula=formula_check):
             abort(409, "Wybrany termin jest już zajęty. Proszę wybrać inny.")
-
+        
         new_date_obj = datetime.strptime(new_date, '%Y-%m-%d').date()
         day_of_week_name = WEEKDAY_MAP[new_date_obj.weekday()]
         cyclic_check_formula = f"AND({{Korepetytor}} = '{tutor}', {{DzienTygodnia}} = '{day_of_week_name}', {{Godzina}} = '{new_time}', {{Aktywna}}=1)"
         if cyclic_reservations_table.first(formula=cyclic_check_formula):
             abort(409, "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny.")
             
-        # 3. Stwórz NOWY rekord rezerwacji, kopiując dane
-        # Status nowej lekcji zależy od statusu starej
-        new_status = original_fields.get('Status')
-        if new_status == 'Przeniesiona':
-            # Jeśli lekcja była przeniesiona, nowy termin jest po prostu do opłacenia
-            new_status = 'Oczekuje na płatność'
+        was_paid = original_fields.get('Opłacona', False)
+        new_status = 'Oczekuje na płatność'
+
+        # Sprawdzamy, czy oryginalna lekcja była opłacona (na podstawie checkboxa lub statusu)
+        if was_paid or original_fields.get('Status') == 'Opłacona':
+            was_paid = True
+            new_status = 'Opłacona'
         
         new_reservation_data = {
             "Klient": original_fields.get('Klient'),
@@ -1036,28 +1041,25 @@ def reschedule_reservation():
             "Przedmiot": original_fields.get('Przedmiot'),
             "Typ": original_fields.get('Typ', 'Jednorazowa'),
             "Status": new_status,
+            "Opłacona": was_paid,
             "ManagementToken": str(uuid.uuid4()),
             "TypSzkoły": original_fields.get('TypSzkoły'),
             "Poziom": original_fields.get('Poziom'),
             "Klasa": original_fields.get('Klasa'),
-            "TeamsLink": original_fields.get('TeamsLink') # Można przenieść stary link lub wygenerować nowy
+            "TeamsLink": original_fields.get('TeamsLink')
         }
         reservations_table.create(new_reservation_data)
 
-        # 4. Zaktualizuj stary rekord, aby nie był już aktywny
-        # Możemy nadać mu status np. "Przeniesiona (zakończona)"
         reservations_table.update(original_record['id'], {"Status": "Przeniesiona (zakończona)"})
-        # --- DODANO POWIADOMIENIE ---
+        
         if MESSENGER_PAGE_TOKEN:
-            fields = original_record.get('fields', {})
-            psid = fields.get('Klient')
+            psid = original_fields.get('Klient')
             if psid:
                 message_to_send = (
                     f"Termin Twojej lekcji został pomyślnie zmieniony.\n\n"
                     f"Nowy termin to: {new_date} o godzinie {new_time}."
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
-        # --- KONIEC DODAWANIA ---
         
         return jsonify({"message": f"Termin został pomyślnie zmieniony na {new_date} o {new_time}."})
 
