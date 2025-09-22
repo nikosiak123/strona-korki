@@ -397,22 +397,21 @@
 
             function showConflictModal(message, token) {
                 modalTitle.textContent = "Termin niedostępny!";
-                // Używamy innerHTML, aby dodać nową linię
                 modalText.innerHTML = `${message}<br><br><strong>Jednorazowo przenieś termin lekcji lub odwołaj zajęcia.</strong>`;
                 modalInfo.style.display = 'none';
-                
-                // --- NOWA LOGIKA PRZYCISKÓW ---
                 const editUrl = token ? `edit.html?token=${token}` : '#';
+                
                 let buttonsHtml = '';
                 
-                // Jeśli mamy token, pokazujemy przycisk "Zarządzaj"
+                // === ZMIANA JEST TUTAJ (Tekst przycisku) ===
                 if (token) {
-                    buttonsHtml = `<a href="${editUrl}" class="modal-btn primary">Zarządzaj terminem</a>`;
+                    // Zmieniamy "Zarządzaj terminem" na bardziej bezpośrednie "Wybierz inny termin"
+                    buttonsHtml = `<a href="${editUrl}" class="modal-btn primary">Wybierz inny termin</a>`;
                 }
                 
-                // Przycisk "OK" jest zawsze widoczny
-                buttonsHtml += `<button id="modalConflictOkBtn" class="modal-btn secondary">OK</button>`;
-                // --- KONIEC NOWEJ LOGIKI ---
+                // Zmieniamy "OK" na "Zmień termin później"
+                buttonsHtml += `<button id="modalConflictOkBtn" class="modal-btn secondary">Zmienię później</button>`;
+                // === KONIEC ZMIANY ===
                 
                 modalButtons.innerHTML = buttonsHtml;
                 modalButtons.style.display = 'flex';
