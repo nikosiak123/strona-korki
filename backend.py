@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, time
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler # <-- DODAJ TO
 import atexit # <-- DODAJ TO
+import logging 
 
 # --- Konfiguracja ---
 AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
