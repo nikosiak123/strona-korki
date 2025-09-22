@@ -922,6 +922,8 @@ def get_client_dashboard():
                 "subject": fields.get('Przedmiot', 'N/A'), "managementToken": fields.get('ManagementToken'),
                 "status": status, "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')), "isPaid": fields.get('Opłacona', False)
+                "Typ": fields.get('Typ') # Dodajemy pole 'Typ' do obiektu lesson
+
             }
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
             if lesson_datetime < datetime.now() or status in inactive_statuses:
