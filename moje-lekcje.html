@@ -242,11 +242,11 @@
                 } else {
                     actionButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
                 }
-
+            
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
                     : '';
-
+            
                 card.innerHTML = `
                     <div class="lesson-info">
                         <div><strong>Stały termin:</strong> ${lesson.dayOfWeek} o ${lesson.time}</div>
@@ -256,13 +256,39 @@
                     <div class="lesson-actions">${actionButtonHtml}</div>
                 `;
                 
+                // --- NOWA, ULEPSZONA LOGIKA KLIKNIĘCIA ---
                 const confirmButton = card.querySelector('.btn-confirm');
                 if (confirmButton) {
-                    confirmButton.addEventListener('click', () => {
-                        showConfirmationStep(lesson);
+                    confirmButton.addEventListener('click', async () => {
+                        confirmButton.textContent = 'Sprawdzam...';
+                        confirmButton.disabled = true;
+            
+                        try {
+                            // Krok 1: Sprawdź dostępność w tle
+                            const response = await fetch(`${API_BASE_URL}/api/check-cyclic-availability`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ cyclicReservationId: lesson.id })
+                            });
+                            const result = await response.json();
+                            
+                            if (response.ok && result.isAvailable) {
+                                // Krok 2a: Jeśli wolny, pokaż standardowe okno potwierdzenia
+                                showConfirmationStep(lesson);
+                            } else {
+                                // Krok 2b: Jeśli zajęty, pokaż od razu okno konfliktu
+                                showConflictModal(result.message, null); // null, bo nie mamy jeszcze tokena
+                            }
+                        } catch (error) {
+                            alert("Wystąpił błąd podczas sprawdzania dostępności. Spróbuj ponownie.");
+                        } finally {
+                            confirmButton.textContent = 'Potwierdź najbliższą lekcję';
+                            confirmButton.disabled = false;
+                        }
                     });
                 }
-
+                // --- KONIEC NOWEJ LOGIKI ---
+            
                 return card;
             }
             
