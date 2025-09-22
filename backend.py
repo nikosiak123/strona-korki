@@ -81,15 +81,10 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby anulować nieopłacone lekcje."""
-    print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
-    
-    # Znajdź lekcje, które:
-    # 1. Są nieopłacone
-    # 2. Ich termin jest za mniej niż 12 godzin
-    # 3. Ich status to 'Oczekuje na płatność'
+    # Zmieniamy print() na logging.debug(), aby nie pojawiało się w standardowych logach
+    logging.debug(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     deadline = datetime.now() + timedelta(hours=12)
-    # Formatowanie daty dla Airtable: 'YYYY-MM-DDTHH:mm:ss.sssZ'
     deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
@@ -98,16 +93,19 @@ def check_and_cancel_unpaid_lessons():
         lessons_to_cancel = reservations_table.all(formula=formula)
         
         if not lessons_to_cancel:
-            print("Nie znaleziono lekcji do anulowania.")
+            # Ten log również zmieniamy na debug
+            logging.debug("Nie znaleziono lekcji do anulowania.")
             return
 
-        print(f"Znaleziono {len(lessons_to_cancel)} lekcji do anulowania...")
+        # Te logi zostawiamy jako INFO, bo to ważna informacja, że coś zostało zmienione
+        logging.info(f"Znaleziono {len(lessons_to_cancel)} lekcji do anulowania...")
         for lesson in lessons_to_cancel:
             reservations_table.update(lesson['id'], {"Status": "Anulowana (brak płatności)"})
-            print(f"Anulowano lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')} o {lesson['fields'].get('Godzina')}")
+            logging.info(f"Anulowano lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')} o {lesson['fields'].get('Godzina')}")
 
     except Exception as e:
-        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
+        # Ten log jest ważny, więc zostaje jako ERROR
+        logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
 
 def parse_time_range(time_range_str):
     try:
@@ -149,15 +147,13 @@ def is_cancellation_allowed(record):
 # --- Endpointy API ---
 @app.route('/api/check-cyclic-availability', methods=['POST'])
 def check_cyclic_availability():
-    """Sprawdza, czy najbliższy termin dla rezerwacji cyklicznej jest wolny."""
+    """Sprawdza dostępność i w razie konfliktu tworzy tymczasowy rekord do zarządzania."""
     try:
         cyclic_reservation_id = request.json.get('cyclicReservationId')
-        if not cyclic_reservation_id:
-            abort(400, "Brak ID stałej rezerwacji.")
+        if not cyclic_reservation_id: abort(400, "Brak ID.")
 
         cyclic_record = cyclic_reservations_table.get(cyclic_reservation_id)
-        if not cyclic_record:
-            abort(404, "Nie znaleziono stałej rezerwacji.")
+        if not cyclic_record: abort(404, "Nie znaleziono rezerwacji.")
         
         fields = cyclic_record.get('fields', {})
         tutor = fields.get('Korepetytor')
@@ -167,8 +163,7 @@ def check_cyclic_availability():
         day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
         today = datetime.now().date()
         days_ahead = day_num - today.weekday()
-        if days_ahead <= 0:
-            days_ahead += 7
+        if days_ahead <= 0: days_ahead += 7
         next_lesson_date = today + timedelta(days=days_ahead)
         next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
         
@@ -176,10 +171,29 @@ def check_cyclic_availability():
         existing_reservation = reservations_table.first(formula=formula_check)
 
         if existing_reservation:
-            # Termin jest zajęty, zwracamy konflikt
-            return jsonify({"isAvailable": False, "message": f"Niestety, termin {next_lesson_date_str} o {lesson_time} został w międzyczasie jednorazowo zablokowany przez korepetystora."})
+            # --- NOWA LOGIKA OBSŁUGI KONFLIKTU ---
+            client_uuid = fields.get('Klient_ID', '').strip()
+            
+            # Tworzymy tymczasowy rekord, aby klient mógł nim zarządzać
+            temp_token = str(uuid.uuid4())
+            temp_reservation = {
+                "Klient": client_uuid,
+                "Korepetytor": tutor,
+                "Data": next_lesson_date_str,
+                "Godzina": lesson_time,
+                "Przedmiot": fields.get('Przedmiot'),
+                "ManagementToken": temp_token,
+                "Typ": "Cykliczna",
+                "Status": "Przeniesiona" # Od razu nadajemy status "Przeniesiona"
+            }
+            reservations_table.create(temp_reservation)
+
+            return jsonify({
+                "isAvailable": False,
+                "message": f"Niestety, termin {next_lesson_date_str} o {lesson_time} został w międzyczasie jednorazowo zablokowany przez korepetystora.",
+                "managementToken": temp_token # Zwracamy token do zarządzania
+            })
         
-        # Termin jest wolny
         return jsonify({"isAvailable": True})
 
     except Exception as e:
