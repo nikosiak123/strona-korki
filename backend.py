@@ -895,11 +895,14 @@ def confirm_next_lesson():
 def get_client_dashboard():
     try:
         client_id = request.args.get('clientID')
-        if not client_id: abort(400, "Brak identyfikatora klienta.")
+        if not client_id: 
+            abort(400, "Brak identyfikatora klienta.")
+        
         client_id = client_id.strip()
         
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
-        if not client_record: abort(404, "Nie znaleziono klienta.")
+        if not client_record: 
+            abort(404, "Nie znaleziono klienta.")
         client_name = client_record['fields'].get('Imię', 'Uczniu')
 
         all_tutors_records = tutors_table.all()
@@ -914,17 +917,27 @@ def get_client_dashboard():
         past = []
         for record in all_reservations:
             fields = record.get('fields', {})
-            if 'Data' not in fields or 'Godzina' not in fields: continue
+            if 'Data' not in fields or 'Godzina' not in fields: 
+                continue
+            
             lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
             status = fields.get('Status', 'N/A')
+            
             lesson_data = {
-                "date": fields.get('Data'), "time": fields.get('Godzina'), "tutor": fields.get('Korepetytor', 'N/A'),
-                "subject": fields.get('Przedmiot', 'N/A'), "managementToken": fields.get('ManagementToken'),
-                "status": status, "teamsLink": fields.get('TeamsLink'),
-                "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')), "isPaid": fields.get('Opłacona', False)
-                "Typ": fields.get('Typ') # Dodajemy pole 'Typ' do obiektu lesson
-
+                "date": fields.get('Data'),
+                "time": fields.get('Godzina'),
+                "tutor": fields.get('Korepetytor', 'N/A'),
+                "subject": fields.get('Przedmiot', 'N/A'),
+                "managementToken": fields.get('ManagementToken'),
+                "status": status,
+                "teamsLink": fields.get('TeamsLink'),
+                "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
+                "isPaid": fields.get('Opłacona', False),
+                # === KLUCZOWA POPRAWKA JEST TUTAJ ===
+                "Typ": fields.get('Typ')
+                # === KONIEC POPRAWKI ===
             }
+            
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
             if lesson_datetime < datetime.now() or status in inactive_statuses:
                 past.append(lesson_data)
@@ -934,26 +947,21 @@ def get_client_dashboard():
         upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
         past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
         
-        # --- NOWA, ULEPSZONA LOGIKA JEST TUTAJ ---
         cyclic_lessons = []
         cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
         
-        # Wyznaczamy początek i koniec bieżącego tygodnia (od poniedziałku do niedzieli)
         today = datetime.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
 
         for record in cyclic_records:
             fields = record.get('fields', {})
-            
-            # Sprawdzamy, czy istnieje JAKAKOLWIEK aktywna lekcja cykliczna w tym tygodniu
             is_next_lesson_confirmed_this_week = False
             for lesson in upcoming:
                 lesson_date = datetime.strptime(lesson['date'], '%Y-%m-%d').date()
-                # Warunek: lekcja pochodzi z tego cyklu I jest w tym tygodniu
                 if lesson.get('Typ') == 'Cykliczna' and start_of_week <= lesson_date <= end_of_week:
                     is_next_lesson_confirmed_this_week = True
-                    break # Wystarczy, że znajdziemy jedną
+                    break
 
             tutor_name = fields.get('Korepetytor')
             cyclic_lessons.append({
@@ -962,10 +970,9 @@ def get_client_dashboard():
                 "time": fields.get('Godzina'),
                 "tutor": tutor_name,
                 "subject": fields.get('Przedmiot'),
-                "isNextLessonConfirmed": is_next_lesson_confirmed_this_week, # Używamy nowego, mądrzejszego warunku
+                "isNextLessonConfirmed": is_next_lesson_confirmed_this_week,
                 "tutorContactLink": tutor_links_map.get(tutor_name)
             })
-        # --- KONIEC NOWEJ LOGIKI ---
 
         return jsonify({
             "clientName": client_name,
