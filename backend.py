@@ -147,6 +147,45 @@ def is_cancellation_allowed(record):
     return (lesson_datetime - datetime.now()) > timedelta(hours=12)
 
 # --- Endpointy API ---
+@app.route('/api/check-cyclic-availability', methods=['POST'])
+def check_cyclic_availability():
+    """Sprawdza, czy najbliższy termin dla rezerwacji cyklicznej jest wolny."""
+    try:
+        cyclic_reservation_id = request.json.get('cyclicReservationId')
+        if not cyclic_reservation_id:
+            abort(400, "Brak ID stałej rezerwacji.")
+
+        cyclic_record = cyclic_reservations_table.get(cyclic_reservation_id)
+        if not cyclic_record:
+            abort(404, "Nie znaleziono stałej rezerwacji.")
+        
+        fields = cyclic_record.get('fields', {})
+        tutor = fields.get('Korepetytor')
+        day_name = fields.get('DzienTygodnia')
+        lesson_time = fields.get('Godzina')
+        
+        day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+        today = datetime.now().date()
+        days_ahead = day_num - today.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        next_lesson_date = today + timedelta(days=days_ahead)
+        next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
+        
+        formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{next_lesson_date_str}', {{Godzina}} = '{lesson_time}')"
+        existing_reservation = reservations_table.first(formula=formula_check)
+
+        if existing_reservation:
+            # Termin jest zajęty, zwracamy konflikt
+            return jsonify({"isAvailable": False, "message": f"Niestety, termin {next_lesson_date_str} o {lesson_time} został w międzyczasie jednorazowo zablokowany przez korepetystora."})
+        
+        # Termin jest wolny
+        return jsonify({"isAvailable": True})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Błąd serwera podczas sprawdzania dostępności.")
+
 @app.route('/api/mark-lesson-as-paid', methods=['POST'])
 def mark_lesson_as_paid():
     """Endpoint do symulacji płatności - zaznacza checkbox i zmienia status."""
