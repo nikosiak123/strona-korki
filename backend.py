@@ -8,6 +8,7 @@ from pyairtable import Api
 from datetime import datetime, timedelta, time
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler # <-- DODAJ TO
+import pytz
 import atexit # <-- DODAJ TO
 import logging 
 
@@ -1146,7 +1147,7 @@ def reschedule_reservation():
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=10)
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
