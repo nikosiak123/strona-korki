@@ -82,31 +82,44 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby anulować nieopłacone lekcje."""
-    # Zmieniamy print() na logging.debug(), aby nie pojawiało się w standardowych logach
+    
+    # Ten log jest na poziomie DEBUG, więc nie będzie zaśmiecał standardowego dziennika
     logging.debug(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
+    # Ustawiamy horyzont czasowy: szukamy lekcji, których termin jest za mniej niż 12 godzin od teraz
     deadline = datetime.now() + timedelta(hours=12)
     deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
     
+    # Formuła w Airtable do znalezienia odpowiednich rekordów
     formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
     
     try:
         lessons_to_cancel = reservations_table.all(formula=formula)
         
         if not lessons_to_cancel:
-            # Ten log również zmieniamy na debug
             logging.debug("Nie znaleziono lekcji do anulowania.")
             return
 
-        # Te logi zostawiamy jako INFO, bo to ważna informacja, że coś zostało zmienione
-        logging.info(f"Znaleziono {len(lessons_to_cancel)} lekcji do anulowania...")
-        for lesson in lessons_to_cancel:
-            reservations_table.update(lesson['id'], {"Status": "Anulowana (brak płatności)"})
-            logging.info(f"Anulowano lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')} o {lesson['fields'].get('Godzina')}")
+        # --- DODANE LOGI (Poziom INFO - ważne) ---
+        logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do usunięcia.")
+        
+        records_to_delete_ids = [lesson['id'] for lesson in lessons_to_cancel]
+        
+        # Logujemy ID wszystkich rekordów, które zostaną usunięte
+        logging.info(f"Przygotowano do usunięcia ID: {records_to_delete_ids}")
+
+        # Airtable pozwala na usunięcie do 10 rekordów naraz
+        # Dzielimy listę na mniejsze fragmenty po 10
+        for i in range(0, len(records_to_delete_ids), 10):
+            chunk = records_to_delete_ids[i:i+10]
+            reservations_table.batch_delete(chunk)
+            logging.info(f"Pomyślnie usunięto fragment rezerwacji: {chunk}")
+        
+        logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces usuwania nieopłaconych lekcji.")
+        # --- KONIEC DODANYCH LOGÓW ---
 
     except Exception as e:
-        # Ten log jest ważny, więc zostaje jako ERROR
-        logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
+        logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
 
 def parse_time_range(time_range_str):
     try:
