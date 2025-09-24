@@ -83,6 +83,7 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
     
+    # Zmieniamy logging.debug na print dla lepszej widoczności w Gunicorn
     print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     deadline = datetime.now() + timedelta(hours=12)
@@ -94,12 +95,14 @@ def check_and_cancel_unpaid_lessons():
         lessons_to_cancel = reservations_table.all(formula=formula)
         
         if not lessons_to_cancel:
-            logging.debug("Nie znaleziono lekcji do anulowania.")
+            # Ten komunikat jest mniej ważny, zostawiamy go jako print, ale można go też usunąć
+            print(f"[{datetime.now()}] Nie znaleziono lekcji do anulowania.")
             return
 
+        # === DODANY PRINT I ZMIENIONE LOGI ===
+        print(f"\n--- [{datetime.now()}] ---") # Nowy print z aktualną godziną
         print(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
-        # Przygotowujemy listę rekordów do aktualizacji
         records_to_update = []
         for lesson in lessons_to_cancel:
             records_to_update.append({
@@ -108,17 +111,18 @@ def check_and_cancel_unpaid_lessons():
             })
             print(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')}")
 
-        # Airtable pozwala na aktualizację do 10 rekordów naraz
-        # Dzielimy listę na mniejsze fragmenty po 10
         for i in range(0, len(records_to_update), 10):
             chunk = records_to_update[i:i+10]
             reservations_table.batch_update(chunk)
             print(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
         
-        print("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
+        print(f"AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.\n")
+        # === KONIEC ZMIAN ===
 
     except Exception as e:
-        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
+        # Błędy są krytyczne, więc tutaj używamy traceback, aby zobaczyć pełny ślad błędu
+        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
+        traceback.print_exc()
 
 def parse_time_range(time_range_str):
     try:
