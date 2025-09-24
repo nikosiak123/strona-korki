@@ -83,11 +83,18 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
     
-    # Zmieniamy logging.debug na print dla lepszej widoczności w Gunicorn
-    print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
+    # === ZMIANA 1: Używamy strefy czasowej do logowania ===
+    # Definiujemy naszą strefę czasową
+    warsaw_tz = pytz.timezone('Europe/Warsaw')
+    # Używamy jej do uzyskania poprawnego czasu lokalnego
+    current_local_time = datetime.now(warsaw_tz)
+    # === KONIEC ZMIANY 1 ===
+
+    print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
-    deadline = datetime.now() + timedelta(hours=12)
-    deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
+    # Deadline obliczamy na podstawie czasu UTC, tak jak oczekuje tego Airtable
+    deadline_utc = datetime.utcnow() + timedelta(hours=12)
+    deadline_str_airtable = deadline_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
     
@@ -95,21 +102,25 @@ def check_and_cancel_unpaid_lessons():
         lessons_to_cancel = reservations_table.all(formula=formula)
         
         if not lessons_to_cancel:
-            # Ten komunikat jest mniej ważny, zostawiamy go jako print, ale można go też usunąć
-            print(f"[{datetime.now()}] Nie znaleziono lekcji do anulowania.")
+            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono lekcji do anulowania.")
             return
 
-        # === DODANY PRINT I ZMIENIONE LOGI ===
-        print(f"\n--- [{datetime.now()}] ---") # Nowy print z aktualną godziną
+        print(f"\n--- [{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] ---")
         print(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
         records_to_update = []
         for lesson in lessons_to_cancel:
+            # === ZMIANA 2: Dodajemy godzinę do logu ===
+            lesson_fields = lesson.get('fields', {})
+            lesson_date = lesson_fields.get('Data')
+            lesson_time = lesson_fields.get('Godzina')
+            print(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson_date} o godzinie {lesson_time}")
+            # === KONIEC ZMIANY 2 ===
+            
             records_to_update.append({
                 "id": lesson['id'],
                 "fields": {"Status": "Anulowana (brak płatności)"}
             })
-            print(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')}")
 
         for i in range(0, len(records_to_update), 10):
             chunk = records_to_update[i:i+10]
@@ -117,10 +128,8 @@ def check_and_cancel_unpaid_lessons():
             print(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
         
         print(f"AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.\n")
-        # === KONIEC ZMIAN ===
 
     except Exception as e:
-        # Błędy są krytyczne, więc tutaj używamy traceback, aby zobaczyć pełny ślad błędu
         print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
         traceback.print_exc()
 
