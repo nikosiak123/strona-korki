@@ -87,23 +87,22 @@ def check_and_cancel_unpaid_lessons():
     warsaw_tz = pytz.timezone('Europe/Warsaw')
     current_local_time = datetime.now(warsaw_tz)
     
-    print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
+    # Zmieniamy print na logging.debug, aby był domyślnie ukryty
+    logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     try:
-        # Krok 1: Pobierz WSZYSTKIE lekcje, które oczekują na płatność w przyszłości
         formula = f"AND({{Opłacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność')"
         
         potential_lessons = reservations_table.all(formula=formula)
         
         if not potential_lessons:
-            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji.")
+            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji.")
             return
 
-        print(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji. Sprawdzam terminy płatności...")
+        logging.debug(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji. Sprawdzam terminy płatności...")
         
         lessons_to_cancel = []
         
-        # Krok 2: W Pythonie sprawdź każdą lekcję, czy minął jej termin płatności
         for lesson in potential_lessons:
             fields = lesson.get('fields', {})
             lesson_date_str = fields.get('Data')
@@ -112,25 +111,22 @@ def check_and_cancel_unpaid_lessons():
             if not lesson_date_str or not lesson_time_str:
                 continue
 
-            # Tworzymy "świadomy" obiekt daty dla lekcji
             lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
             lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
             
-            # Obliczamy ostateczny termin płatności (12h przed lekcją)
             payment_deadline = lesson_datetime_aware - timedelta(hours=12)
             
-            # Sprawdzamy, czy aktualny czas jest PO terminie płatności
             if current_local_time > payment_deadline:
                 lessons_to_cancel.append(lesson)
-                print(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} zakwalifikowana do anulowania. Termin płatności: {payment_deadline.strftime('%Y-%m-%d %H:%M:%S')}")
+                # Ten log jest ważny, więc zostaje jako INFO
+                logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} zakwalifikowana do anulowania. Termin płatności: {payment_deadline.strftime('%Y-%m-%d %H:%M:%S')}")
 
         if not lessons_to_cancel:
-            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Żadna z lekcji nie przekroczyła terminu płatności.")
+            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Żadna z lekcji nie przekroczyła terminu płatności.")
             return
 
-        # Krok 3: Zmień status tylko dla tych lekcji, które faktycznie przekroczyły termin
-        print(f"\n--- [{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] ---")
-        print(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
+        # Te logi również są ważne, więc zostają jako INFO
+        logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
         records_to_update = []
         for lesson in lessons_to_cancel:
@@ -142,13 +138,13 @@ def check_and_cancel_unpaid_lessons():
         for i in range(0, len(records_to_update), 10):
             chunk = records_to_update[i:i+10]
             reservations_table.batch_update(chunk)
-            print(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
+            logging.info(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
         
-        print(f"AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.\n")
+        logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
 
     except Exception as e:
-        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}")
-        traceback.print_exc()
+        # Błędy są zawsze krytyczne
+        logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
 
 def parse_time_range(time_range_str):
     try:
