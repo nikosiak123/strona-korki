@@ -81,16 +81,13 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
         print(f"    Odpowiedź serwera: {e.response.text if e.response else 'Brak'}")
 
 def check_and_cancel_unpaid_lessons():
-    """To zadanie jest uruchamiane w tle, aby anulować nieopłacone lekcje."""
+    """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
     
-    # Ten log jest na poziomie DEBUG, więc nie będzie zaśmiecał standardowego dziennika
     logging.debug(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
-    # Ustawiamy horyzont czasowy: szukamy lekcji, których termin jest za mniej niż 12 godzin od teraz
     deadline = datetime.now() + timedelta(hours=12)
     deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
     
-    # Formuła w Airtable do znalezienia odpowiednich rekordów
     formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
     
     try:
@@ -100,23 +97,25 @@ def check_and_cancel_unpaid_lessons():
             logging.debug("Nie znaleziono lekcji do anulowania.")
             return
 
-        # --- DODANE LOGI (Poziom INFO - ważne) ---
-        logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do usunięcia.")
+        logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
-        records_to_delete_ids = [lesson['id'] for lesson in lessons_to_cancel]
-        
-        # Logujemy ID wszystkich rekordów, które zostaną usunięte
-        logging.info(f"Przygotowano do usunięcia ID: {records_to_delete_ids}")
+        # Przygotowujemy listę rekordów do aktualizacji
+        records_to_update = []
+        for lesson in lessons_to_cancel:
+            records_to_update.append({
+                "id": lesson['id'],
+                "fields": {"Status": "Anulowana (brak płatności)"}
+            })
+            logging.info(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')}")
 
-        # Airtable pozwala na usunięcie do 10 rekordów naraz
+        # Airtable pozwala na aktualizację do 10 rekordów naraz
         # Dzielimy listę na mniejsze fragmenty po 10
-        for i in range(0, len(records_to_delete_ids), 10):
-            chunk = records_to_delete_ids[i:i+10]
-            reservations_table.batch_delete(chunk)
-            logging.info(f"Pomyślnie usunięto fragment rezerwacji: {chunk}")
+        for i in range(0, len(records_to_update), 10):
+            chunk = records_to_update[i:i+10]
+            reservations_table.batch_update(chunk)
+            logging.info(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
         
-        logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces usuwania nieopłaconych lekcji.")
-        # --- KONIEC DODANYCH LOGÓW ---
+        logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
 
     except Exception as e:
         logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
