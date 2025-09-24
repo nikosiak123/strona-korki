@@ -1163,7 +1163,7 @@ def reschedule_reservation():
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=10)
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
