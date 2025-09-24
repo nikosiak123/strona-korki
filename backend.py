@@ -84,40 +84,56 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
     
-    # === ZMIANA 1: Używamy strefy czasowej do logowania ===
-    # Definiujemy naszą strefę czasową
     warsaw_tz = pytz.timezone('Europe/Warsaw')
-    # Używamy jej do uzyskania poprawnego czasu lokalnego
     current_local_time = datetime.now(warsaw_tz)
-    # === KONIEC ZMIANY 1 ===
-
+    
     print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
-    # Deadline obliczamy na podstawie czasu UTC, tak jak oczekuje tego Airtable
-    deadline_utc = datetime.utcnow() + timedelta(hours=12)
-    deadline_str_airtable = deadline_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
-    
-    formula = f"AND({{Opłacona}} != 1, IS_BEFORE(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), '{deadline_str_airtable}'), {{Status}} = 'Oczekuje na płatność')"
-    
     try:
-        lessons_to_cancel = reservations_table.all(formula=formula)
+        # Krok 1: Pobierz WSZYSTKIE lekcje, które oczekują na płatność w przyszłości
+        formula = f"AND({{Opłacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność')"
         
-        if not lessons_to_cancel:
-            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono lekcji do anulowania.")
+        potential_lessons = reservations_table.all(formula=formula)
+        
+        if not potential_lessons:
+            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji.")
             return
 
+        print(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji. Sprawdzam terminy płatności...")
+        
+        lessons_to_cancel = []
+        
+        # Krok 2: W Pythonie sprawdź każdą lekcję, czy minął jej termin płatności
+        for lesson in potential_lessons:
+            fields = lesson.get('fields', {})
+            lesson_date_str = fields.get('Data')
+            lesson_time_str = fields.get('Godzina')
+
+            if not lesson_date_str or not lesson_time_str:
+                continue
+
+            # Tworzymy "świadomy" obiekt daty dla lekcji
+            lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+            lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
+            
+            # Obliczamy ostateczny termin płatności (12h przed lekcją)
+            payment_deadline = lesson_datetime_aware - timedelta(hours=12)
+            
+            # Sprawdzamy, czy aktualny czas jest PO terminie płatności
+            if current_local_time > payment_deadline:
+                lessons_to_cancel.append(lesson)
+                print(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} zakwalifikowana do anulowania. Termin płatności: {payment_deadline.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        if not lessons_to_cancel:
+            print(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Żadna z lekcji nie przekroczyła terminu płatności.")
+            return
+
+        # Krok 3: Zmień status tylko dla tych lekcji, które faktycznie przekroczyły termin
         print(f"\n--- [{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] ---")
         print(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
         records_to_update = []
         for lesson in lessons_to_cancel:
-            # === ZMIANA 2: Dodajemy godzinę do logu ===
-            lesson_fields = lesson.get('fields', {})
-            lesson_date = lesson_fields.get('Data')
-            lesson_time = lesson_fields.get('Godzina')
-            print(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson_date} o godzinie {lesson_time}")
-            # === KONIEC ZMIANY 2 ===
-            
             records_to_update.append({
                 "id": lesson['id'],
                 "fields": {"Status": "Anulowana (brak płatności)"}
