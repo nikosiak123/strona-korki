@@ -83,7 +83,7 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
     
-    logging.debug(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
+    print(f"[{datetime.now()}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     deadline = datetime.now() + timedelta(hours=12)
     deadline_str_airtable = deadline.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -97,7 +97,7 @@ def check_and_cancel_unpaid_lessons():
             logging.debug("Nie znaleziono lekcji do anulowania.")
             return
 
-        logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
+        print(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
         # Przygotowujemy listę rekordów do aktualizacji
         records_to_update = []
@@ -106,19 +106,19 @@ def check_and_cancel_unpaid_lessons():
                 "id": lesson['id'],
                 "fields": {"Status": "Anulowana (brak płatności)"}
             })
-            logging.info(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')}")
+            print(f"Przygotowano do anulowania lekcję (ID: {lesson['id']}) z dnia {lesson['fields'].get('Data')}")
 
         # Airtable pozwala na aktualizację do 10 rekordów naraz
         # Dzielimy listę na mniejsze fragmenty po 10
         for i in range(0, len(records_to_update), 10):
             chunk = records_to_update[i:i+10]
             reservations_table.batch_update(chunk)
-            logging.info(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
+            print(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
         
-        logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
+        print("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
 
     except Exception as e:
-        logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
+        print(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
 
 def parse_time_range(time_range_str):
     try:
