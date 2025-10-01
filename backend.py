@@ -11,8 +11,24 @@ from apscheduler.schedulers.background import BackgroundScheduler # <-- DODAJ TO
 import pytz
 import atexit # <-- DODAJ TO
 import logging 
+import pickle
+from io import BytesIO
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+from PIL import Image
+import imagehash
 
 # --- Konfiguracja ---
+PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
+PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
+COOKIES_FILE = "cookies.pkl"
+HASH_DIFFERENCE_THRESHOLD = 10
+
 AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
 AIRTABLE_BASE_ID = "appTjrMTVhYBZDPw9"
 TUTORS_TABLE_NAME = "Korepetytorzy"
@@ -58,6 +74,136 @@ LEVEL_MAPPING = {
 last_fetched_schedule = {}
 
 # --- Funkcje pomocnicze ---
+# ================================================
+# === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
+# ================================================
+
+def calculate_image_hash(image_source):
+    try:
+        image = Image.open(BytesIO(image_source))
+        return imagehash.phash(image)
+    except Exception as e:
+        print(f"BŁĄD: Nie można przetworzyć obrazu: {e}")
+        return None
+
+def load_cookies(driver, file_path):
+    if not os.path.exists(file_path): return False
+    try:
+        with open(file_path, 'rb') as file: cookies = pickle.load(file)
+        if not cookies: return False
+        driver.get("https://www.facebook.com"); time.sleep(1)
+        for cookie in cookies:
+            if 'expiry' in cookie: cookie['expiry'] = int(cookie['expiry'])
+            driver.add_cookie(cookie)
+        driver.refresh(); time.sleep(2)
+        return True
+    except: return False
+
+def initialize_driver_and_login():
+    print("\n--- INICJALIZACJA PRZEGLĄDARKI (WYSZUKIWARKA) ---")
+    driver = None
+    try:
+        service = ChromeService(executable_path=PATH_DO_RECZNEGO_CHROMEDRIVER)
+        options = webdriver.ChromeOptions()
+        options.binary_location = PATH_DO_GOOGLE_CHROME
+        options.add_argument("--headless") # Uruchomienie bez interfejsu graficznego
+        options.add_argument("--disable-notifications")
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        driver = webdriver.Chrome(service=service, options=options)
+        print("INFO: Przeglądarka uruchomiona w trybie headless.")
+        driver.get("https://www.facebook.com")
+        
+        if not load_cookies(driver, COOKIES_FILE):
+            # W środowisku serwerowym nie możemy zalogować się ręcznie.
+            # To jest miejsce na przyszłą, bardziej zaawansowaną logikę logowania.
+            # Na razie, jeśli nie ma ciasteczek, skrypt się nie powiedzie.
+            print("!!! KRYTYCZNY BŁĄD: Brak pliku cookies.pkl. Nie można się zalogować.")
+            driver.quit()
+            return None
+
+        wait = WebDriverWait(driver, 15)
+        wait.until(EC.presence_of_element_located((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
+        print("SUKCES: Sesja przeglądarki jest aktywna.")
+        return driver
+    except Exception as e:
+        print(f"BŁĄD KRYTYCZNY PODCZAS INICJALIZACJI WYSZUKIWARKI: {e}")
+        if driver: driver.quit()
+        return None
+
+def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
+    """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta."""
+    driver = None
+    try:
+        print(f"--- WYSZUKIWARKA: Start dla klienta {first_name} {last_name} ---")
+        
+        # Pobierz docelowe zdjęcie
+        response = requests.get(profile_pic_url)
+        if response.status_code != 200:
+            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można pobrać zdjęcia profilowego'})
+            return
+        target_image_hash = calculate_image_hash(response.content)
+        if not target_image_hash:
+            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można przetworzyć zdjęcia'})
+            return
+
+        driver = initialize_driver_and_login()
+        if not driver:
+            clients_table.update(record_id, {'LINK': 'BŁĄD - Inicjalizacja przeglądarki nieudana'})
+            return
+        
+        # Proces wyszukiwania (kod w większości bez zmian)
+        search_name = f"{first_name} {last_name}"
+        wait = WebDriverWait(driver, 20)
+        driver.get("https://www.facebook.com")
+        time.sleep(3)
+        search_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
+        search_input.click(); search_input.clear(); time.sleep(0.5)
+        search_input.send_keys(search_name)
+        time.sleep(1)
+        search_input.send_keys(Keys.RETURN)
+        
+        people_filter_xpath = "//a[contains(@href, '/search/people/')]"
+        people_filter_button = wait.until(EC.element_to_be_clickable((By.XPATH, people_filter_xpath)))
+        people_filter_button.click()
+        time.sleep(5)
+
+        css_selector = 'a[role="link"] image'
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
+        all_image_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
+
+        found_match = False
+        for image_element in all_image_elements:
+            try:
+                profile_link_element = image_element.find_element(By.XPATH, "./ancestor::a[1]")
+                profile_link = profile_link_element.get_attribute('href')
+                image_url = image_element.get_attribute('xlink:href')
+                if not profile_link or not image_url: continue
+                
+                response = requests.get(image_url)
+                if response.status_code != 200: continue
+                
+                scanned_image_hash = calculate_image_hash(response.content)
+                if scanned_image_hash and (target_image_hash - scanned_image_hash) <= HASH_DIFFERENCE_THRESHOLD:
+                    print("\n!!! WYSZUKIWARKA: ZNALEZIONO PASUJĄCY PROFIL !!!")
+                    clients_table.update(record_id, {'LINK': profile_link})
+                    print("--- WYSZUKIWARKA: Zaktualizowano LINK w Airtable. ---")
+                    found_match = True
+                    break # Zakończ pętlę po znalezieniu
+            except Exception:
+                continue # Ignoruj błędy pojedynczych elementów
+        
+        if not found_match:
+            clients_table.update(record_id, {'LINK': f'BŁĄD - ZDJĘCIE NIE PASUJE DLA {search_name}'})
+
+    except Exception as e:
+        traceback.print_exc()
+        clients_table.update(record_id, {'LINK': 'BŁĄD - KRYTYCZNY WYJĄTEK WYSZUKIWANIA'})
+    finally:
+        if driver:
+            driver.quit()
+            print("--- WYSZUKIWARKA: Przeglądarka została zamknięta. ---")
+
 def send_messenger_confirmation(psid, message_text, page_access_token):
     """Wysyła wiadomość potwierdzającą na Messengerze."""
     if not all([psid, message_text, page_access_token]):
@@ -803,7 +949,24 @@ def create_reservation():
             }
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
-            
+            if is_test_lesson:
+                client_fields = client_record.get('fields', {})
+                # Pobieramy dane z odpowiednich kolumn
+                first_name_client = client_fields.get('ImięKlienta')
+                last_name_client = client_fields.get('NazwiskoKlienta')
+                profile_pic_client = client_fields.get('Zdjęcie')
+    
+                if all([first_name_client, last_name_client, profile_pic_client]):
+                    # Uruchom proces wyszukiwania w osobnym wątku, aby nie blokować odpowiedzi
+                    search_thread = threading.Thread(
+                        target=find_profile_and_update_airtable,
+                        args=(client_record['id'], first_name_client, last_name_client, profile_pic_client)
+                    )
+                    search_thread.start()
+                    print(f"--- INFO: Uruchomiono w tle wyszukiwarkę profilu dla {first_name_client} {last_name_client} ---")
+                else:
+                    print("--- OSTRZEŻENIE: Brak pełnych danych klienta (Imię/Nazwisko/Zdjęcie) do uruchomienia wyszukiwarki.")
+
             # --- NOWA, UPROSZCZONA LOGIKA WYSYŁANIA POWIADOMIEŃ ---
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
