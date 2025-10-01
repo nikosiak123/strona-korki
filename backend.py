@@ -133,24 +133,26 @@ def initialize_driver_and_login():
         return None
 
 def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
-    """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta."""
+    """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta, robiąc zrzuty ekranu."""
     driver = None
+    # Zdefiniuj ścieżkę do zapisywania screenshotów
+    SCREENSHOTS_DIR = os.path.join(os.getcwd(), "screenshots")
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+    
     print("\n" + "="*60)
     print(f"--- WYSZUKIWARKA: Start dla klienta '{first_name} {last_name}' (ID rekordu: {record_id}) ---")
+    print(f"      -> Zrzuty ekranu będą zapisywane w: {SCREENSHOTS_DIR}")
     print("="*60)
 
     try:
-        # --- Krok 1: Pobranie i przetworzenie docelowego zdjęcia ---
+        # ... (Krok 1: Pobieranie i przetwarzanie zdjęcia - bez zmian) ...
         print("[1/6] Pobieranie docelowego zdjęcia profilowego...")
         response = requests.get(profile_pic_url)
         if response.status_code != 200:
-            print(f"!!! BŁĄD: Nie można pobrać zdjęcia profilowego. Status: {response.status_code}")
-            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można pobrać zdjęcia profilowego'})
+            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można pobrać zdjęcia'})
             return
-            
         target_image_hash = calculate_image_hash(response.content)
         if not target_image_hash:
-            print("!!! BŁĄD: Nie można obliczyć hasha dla zdjęcia profilowego.")
             clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można przetworzyć zdjęcia'})
             return
         print(f"      -> Sukces. Hash docelowy: {target_image_hash}")
@@ -159,17 +161,20 @@ def find_profile_and_update_airtable(record_id, first_name, last_name, profile_p
         print("[2/6] Inicjalizacja przeglądarki...")
         driver = initialize_driver_and_login()
         if not driver:
-            print("!!! BŁĄD: Inicjalizacja przeglądarki nieudana. Przerywam.")
             clients_table.update(record_id, {'LINK': 'BŁĄD - Inicjalizacja przeglądarki nieudana'})
             return
         print("      -> Sukces. Przeglądarka gotowa.")
+        
+        # --- Zrzut ekranu #1: Po zalogowaniu ---
+        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "1_po_zalogowaniu.png"))
+        print("      -> ZROBIONO ZRZUT EKRANU: 1_po_zalogowaniu.png")
 
         # --- Krok 3: Wyszukanie frazy na Facebooku ---
         search_name = f"{first_name} {last_name}"
         print(f"[3/6] Wyszukiwanie frazy: '{search_name}'...")
         wait = WebDriverWait(driver, 20)
         driver.get("https://www.facebook.com")
-        time.sleep(3) # Czekamy na załadowanie strony
+        time.sleep(3)
         
         search_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
         search_input.click(); search_input.clear(); time.sleep(0.5)
@@ -177,21 +182,31 @@ def find_profile_and_update_airtable(record_id, first_name, last_name, profile_p
         time.sleep(1)
         search_input.send_keys(Keys.RETURN)
         print("      -> Sukces. Wysłano zapytanie.")
+        time.sleep(3) # Dajmy chwilę na załadowanie wyników
+
+        # --- Zrzut ekranu #2: Po wyszukaniu frazy ---
+        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "2_po_wyszukaniu.png"))
+        print("      -> ZROBIONO ZRZUT EKRANU: 2_po_wyszukaniu.png")
         
         # --- Krok 4: Przejście do filtra "Osoby" ---
         print("[4/6] Przechodzenie do filtra 'Osoby'...")
         people_filter_xpath = "//a[contains(@href, '/search/people/')]"
         people_filter_button = wait.until(EC.element_to_be_clickable((By.XPATH, people_filter_xpath)))
         people_filter_button.click()
-        print("      -> Sukces. Jesteśmy na stronie wyników dla osób.")
-        time.sleep(5) # Czekamy na załadowanie wyników
+        print("      -> Sukces. Przechodzę na stronę wyników dla osób.")
+        time.sleep(5)
 
+        # --- Zrzut ekranu #3: Po przejściu do filtra "Osoby" ---
+        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "3_po_filtrowaniu_osob.png"))
+        print("      -> ZROBIONO ZRZUT EKRANU: 3_po_filtrowaniu_osob.png")
+        
         # --- Krok 5: Pobranie wszystkich wyników i ich analiza ---
         print("[5/6] Analiza wyników wyszukiwania...")
         css_selector = 'a[role="link"] image'
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
         all_image_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
         print(f"      -> Znaleziono {len(all_image_elements)} potencjalnych profili.")
+
         
         if not all_image_elements:
             print("!!! OSTRZEŻENIE: Brak wyników na stronie.")
