@@ -134,75 +134,124 @@ def initialize_driver_and_login():
 def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
     """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta."""
     driver = None
+    print("\n" + "="*60)
+    print(f"--- WYSZUKIWARKA: Start dla klienta '{first_name} {last_name}' (ID rekordu: {record_id}) ---")
+    print("="*60)
+
     try:
-        print(f"--- WYSZUKIWARKA: Start dla klienta {first_name} {last_name} ---")
-        
-        # Pobierz docelowe zdjęcie
+        # --- Krok 1: Pobranie i przetworzenie docelowego zdjęcia ---
+        print("[1/6] Pobieranie docelowego zdjęcia profilowego...")
         response = requests.get(profile_pic_url)
         if response.status_code != 200:
+            print(f"!!! BŁĄD: Nie można pobrać zdjęcia profilowego. Status: {response.status_code}")
             clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można pobrać zdjęcia profilowego'})
             return
+            
         target_image_hash = calculate_image_hash(response.content)
         if not target_image_hash:
+            print("!!! BŁĄD: Nie można obliczyć hasha dla zdjęcia profilowego.")
             clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można przetworzyć zdjęcia'})
             return
+        print(f"      -> Sukces. Hash docelowy: {target_image_hash}")
 
+        # --- Krok 2: Uruchomienie przeglądarki ---
+        print("[2/6] Inicjalizacja przeglądarki...")
         driver = initialize_driver_and_login()
         if not driver:
+            print("!!! BŁĄD: Inicjalizacja przeglądarki nieudana. Przerywam.")
             clients_table.update(record_id, {'LINK': 'BŁĄD - Inicjalizacja przeglądarki nieudana'})
             return
-        
-        # Proces wyszukiwania (kod w większości bez zmian)
+        print("      -> Sukces. Przeglądarka gotowa.")
+
+        # --- Krok 3: Wyszukanie frazy na Facebooku ---
         search_name = f"{first_name} {last_name}"
+        print(f"[3/6] Wyszukiwanie frazy: '{search_name}'...")
         wait = WebDriverWait(driver, 20)
         driver.get("https://www.facebook.com")
-        time.sleep(3)
+        time.sleep(3) # Czekamy na załadowanie strony
+        
         search_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
         search_input.click(); search_input.clear(); time.sleep(0.5)
         search_input.send_keys(search_name)
         time.sleep(1)
         search_input.send_keys(Keys.RETURN)
+        print("      -> Sukces. Wysłano zapytanie.")
         
+        # --- Krok 4: Przejście do filtra "Osoby" ---
+        print("[4/6] Przechodzenie do filtra 'Osoby'...")
         people_filter_xpath = "//a[contains(@href, '/search/people/')]"
         people_filter_button = wait.until(EC.element_to_be_clickable((By.XPATH, people_filter_xpath)))
         people_filter_button.click()
-        time.sleep(5)
+        print("      -> Sukces. Jesteśmy na stronie wyników dla osób.")
+        time.sleep(5) # Czekamy na załadowanie wyników
 
+        # --- Krok 5: Pobranie wszystkich wyników i ich analiza ---
+        print("[5/6] Analiza wyników wyszukiwania...")
         css_selector = 'a[role="link"] image'
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
         all_image_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
+        print(f"      -> Znaleziono {len(all_image_elements)} potencjalnych profili.")
+        
+        if not all_image_elements:
+            print("!!! OSTRZEŻENIE: Brak wyników na stronie.")
+            clients_table.update(record_id, {'LINK': f'BŁĄD - BRAK WYNIKÓW DLA {search_name}'})
+            return
 
         found_match = False
-        for image_element in all_image_elements:
+        for i, image_element in enumerate(all_image_elements):
+            print(f"      -> Przetwarzam profil {i+1}/{len(all_image_elements)}...")
             try:
                 profile_link_element = image_element.find_element(By.XPATH, "./ancestor::a[1]")
                 profile_link = profile_link_element.get_attribute('href')
                 image_url = image_element.get_attribute('xlink:href')
-                if not profile_link or not image_url: continue
+                if not profile_link or not image_url:
+                    print(f"         - Pominięto: Brak linku lub URL zdjęcia.")
+                    continue
                 
                 response = requests.get(image_url)
-                if response.status_code != 200: continue
+                if response.status_code != 200:
+                    print(f"         - Pominięto: Nie udało się pobrać zdjęcia z URL.")
+                    continue
                 
                 scanned_image_hash = calculate_image_hash(response.content)
-                if scanned_image_hash and (target_image_hash - scanned_image_hash) <= HASH_DIFFERENCE_THRESHOLD:
-                    print("\n!!! WYSZUKIWARKA: ZNALEZIONO PASUJĄCY PROFIL !!!")
+                if not scanned_image_hash:
+                    print(f"         - Pominięto: Nie udało się przetworzyć zdjęcia z wyniku.")
+                    continue
+                    
+                hash_diff = target_image_hash - scanned_image_hash
+                print(f"         - Hash zdjęcia z wyniku: {scanned_image_hash} (Różnica: {hash_diff})")
+                
+                if hash_diff <= HASH_DIFFERENCE_THRESHOLD:
+                    print("\n!!! ZNALEZIONO PASUJĄCY PROFIL !!!")
+                    print(f"      -> Link: {profile_link}")
                     clients_table.update(record_id, {'LINK': profile_link})
-                    print("--- WYSZUKIWARKA: Zaktualizowano LINK w Airtable. ---")
+                    print("--- WYSZUKIWARKA: Pomyślnie zaktualizowano LINK w Airtable. ---")
                     found_match = True
                     break # Zakończ pętlę po znalezieniu
-            except Exception:
-                continue # Ignoruj błędy pojedynczych elementów
+            except Exception as e:
+                print(f"         - Wystąpił błąd podczas analizy tego profilu: {e}")
+                continue
         
         if not found_match:
+            print("!!! OSTRZEŻENIE: Przejrzano wszystkie wyniki, nie znaleziono pasującego zdjęcia.")
             clients_table.update(record_id, {'LINK': f'BŁĄD - ZDJĘCIE NIE PASUJE DLA {search_name}'})
 
+    except TimeoutException:
+        print("!!! BŁĄD KRYTYCZNY: TimeoutException. Strona ładowała się zbyt długo lub nie znaleziono elementu.")
+        clients_table.update(record_id, {'LINK': 'BŁĄD - TIMEOUT WYSZUKIWANIA'})
     except Exception as e:
+        print("!!! BŁĄD KRYTYCZNY: Niespodziewany błąd w głównej logice wyszukiwarki.")
         traceback.print_exc()
         clients_table.update(record_id, {'LINK': 'BŁĄD - KRYTYCZNY WYJĄTEK WYSZUKIWANIA'})
     finally:
+        # --- Krok 6: Zamykanie przeglądarki ---
         if driver:
+            print("[6/6] Zamykanie przeglądarki...")
             driver.quit()
-            print("--- WYSZUKIWARKA: Przeglądarka została zamknięta. ---")
+            print("      -> Sukces. Przeglądarka została zamknięta.")
+        print("="*60)
+        print(f"--- WYSZUKIWARKA: Zakończono zadanie dla klienta '{first_name} {last_name}' ---")
+        print("="*60 + "\n")
 
 def send_messenger_confirmation(psid, message_text, page_access_token):
     """Wysyła wiadomość potwierdzającą na Messengerze."""
