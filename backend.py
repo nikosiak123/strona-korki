@@ -7,10 +7,11 @@ from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from pyairtable import Api
 from datetime import datetime, timedelta, time
+import time
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler # <-- DODAJ TO
+from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
-import atexit # <-- DODAJ TO
+import atexit
 import logging 
 import pickle
 from io import BytesIO
