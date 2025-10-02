@@ -571,35 +571,34 @@ def get_tutor_lessons():
         if not tutor_name:
             abort(400, "Brak parametru tutorName.")
 
-        # Pobierz mapę klientów, aby łatwo znaleźć ich imiona
+        # Pobierz mapę klientów z ich imionami i LINKAMI
         all_clients_records = clients_table.all()
         clients_map = {
-            rec['fields'].get('ClientID'): rec['fields'].get('Imię', 'Uczeń')
+            rec['fields'].get('ClientID'): {
+                'name': rec['fields'].get('Imię', 'Uczeń'),
+                'link': rec['fields'].get('LINK') # <-- Pobieramy link
+            }
             for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
         }
 
-        # Formuła do Airtable: znajdź rezerwacje dla danego korepetytora od dzisiaj w przyszłość
-        # DATEADD(TODAY(), -1, 'days') to pewny sposób na uwzględnienie dzisiejszego dnia
         formula = f"AND({{Korepetytor}} = '{tutor_name}', IS_AFTER({{Data}}, DATEADD(TODAY(), -1, 'days')))"
-        
         lessons_records = reservations_table.all(formula=formula)
 
         upcoming_lessons = []
         for record in lessons_records:
             fields = record.get('fields', {})
-            
-            # Pomijamy sloty, które są tylko blokadami lub wolnymi terminami korepetytora
             status = fields.get('Status')
             if status in ['Niedostępny', 'Dostępny']:
                 continue
 
             client_id = fields.get('Klient')
-            student_name = clients_map.get(client_id, 'Brak danych')
+            client_info = clients_map.get(client_id, {})
             
             lesson_data = {
                 'date': fields.get('Data'),
                 'time': fields.get('Godzina'),
-                'studentName': student_name,
+                'studentName': client_info.get('name', 'Brak danych'),
+                'studentContactLink': client_info.get('link'), # <-- Dodajemy link do danych
                 'subject': fields.get('Przedmiot'),
                 'schoolType': fields.get('TypSzkoły'),
                 'schoolLevel': fields.get('Poziom'),
@@ -608,7 +607,6 @@ def get_tutor_lessons():
             }
             upcoming_lessons.append(lesson_data)
         
-        # Sortuj lekcje chronologicznie
         upcoming_lessons.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
 
         return jsonify(upcoming_lessons)
@@ -854,9 +852,14 @@ def get_schedule():
             status = fields.get('Status')
             if status != 'Dostępny':
                 student_name = all_clients.get(fields.get('Klient'), {}).get('Imię', 'Uczeń')
+                client_info = all_clients.get(fields.get('Klient'), {})
+                student_name = client_info.get('Imię', 'Uczeń')
+                
                 booked_slots[key] = {
                     "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
-                    "studentName": student_name, "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
+                    "studentName": student_name, 
+                    "studentContactLink": client_info.get('LINK'), # <-- DODAJ TĘ LINIĘ
+                    "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink')
                 }
 
