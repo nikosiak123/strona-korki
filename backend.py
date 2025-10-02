@@ -101,36 +101,109 @@ def load_cookies(driver, file_path):
     except: return False
 
 def initialize_driver_and_login():
-    print("\n--- INICJALIZACJA PRZEGLĄDARKI (WYSZUKIWARKA) ---")
+    print("\n" + "="*50)
+    print("--- ROZPOCZYNAM TEST LOGOWANIA (z backend.py) ---")
+    print("="*50)
+    
     driver = None
     try:
+        # --- Krok 1: Weryfikacja plików z dodatkowymi logami ---
+        print("\n[Krok 1/5] Weryfikacja plików i uprawnień...")
+        
+        # Sprawdzamy, gdzie skrypt jest aktualnie uruchomiony
+        current_working_dir = os.getcwd()
+        print(f"      -> Bieżący katalog roboczy (CWD): {current_working_dir}")
+
+        # Sprawdzamy ścieżkę do pliku cookies
+        print(f"      -> Oczekiwana ścieżka do ciasteczek: {COOKIES_FILE}")
+
+        if not os.path.exists(COOKIES_FILE):
+            print(f"!!! KRYTYCZNY BŁĄD: Plik {COOKIES_FILE} NIE ISTNIEJE z perspektywy skryptu.")
+            # Sprawdźmy, czy plik istnieje, ale może mamy problem z uprawnieniami do katalogu nadrzędnego
+            parent_dir = os.path.dirname(COOKIES_FILE)
+            print(f"      -> Sprawdzam zawartość katalogu nadrzędnego: {parent_dir}")
+            try:
+                dir_contents = os.listdir(parent_dir)
+                print(f"      -> Zawartość katalogu: {dir_contents}")
+                if "cookies.pkl" in dir_contents:
+                    print("      -> UWAGA: Plik 'cookies.pkl' jest w katalogu, ale os.path.exists() go nie widzi. To może być problem z uprawnieniami.")
+            except Exception as e:
+                print(f"      -> BŁĄD: Nie można odczytać zawartości katalogu {parent_dir}: {e}")
+            return None # Zakończ, jeśli pliku nie ma
+        
+        print(f"      -> OK: Plik {COOKIES_FILE} istnieje.")
+
+        # Sprawdzamy, czy mamy uprawnienia do odczytu pliku
+        if not os.access(COOKIES_FILE, os.R_OK):
+            print(f"!!! KRYTYCZNY BŁĄD: Brak uprawnień do ODCZYTU pliku {COOKIES_FILE}.")
+            # Spróbujmy wyświetlić uprawnienia
+            try:
+                stat_info = os.stat(COOKIES_FILE)
+                print(f"      -> Uprawnienia pliku: {oct(stat_info.st_mode)}")
+                print(f"      -> Właściciel (UID): {stat_info.st_uid}, Grupa (GID): {stat_info.st_gid}")
+            except Exception as e:
+                print(f"      -> Nie można odczytać statystyk pliku: {e}")
+            return None # Zakończ, jeśli nie ma uprawnień
+
+        print(f"      -> OK: Skrypt ma uprawnienia do odczytu pliku {COOKIES_FILE}.")
+
+        # --- Krok 2: Inicjalizacja przeglądarki (bez zmian) ---
+        print("\n[Krok 2/5] Uruchamianie przeglądarki...")
         service = ChromeService(executable_path=PATH_DO_RECZNEGO_CHROMEDRIVER)
         options = webdriver.ChromeOptions()
         options.binary_location = PATH_DO_GOOGLE_CHROME
-        options.add_argument("--headless") # Uruchomienie bez interfejsu graficznego
+        options.add_argument("--headless")
         options.add_argument("--disable-notifications")
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         driver = webdriver.Chrome(service=service, options=options)
-        print("INFO: Przeglądarka uruchomiona w trybie headless.")
-        driver.get("https://www.facebook.com")
+        print("      -> Sukces. Przeglądarka uruchomiona.")
         
-        if not load_cookies(driver, COOKIES_FILE):
-            # W środowisku serwerowym nie możemy zalogować się ręcznie.
-            # To jest miejsce na przyszłą, bardziej zaawansowaną logikę logowania.
-            # Na razie, jeśli nie ma ciasteczek, skrypt się nie powiedzie.
-            print("!!! KRYTYCZNY BŁĄD: Brak pliku cookies.pkl. Nie można się zalogować.")
+        # --- Krok 3: Ładowanie ciasteczek (z dodatkową obsługą błędów) ---
+        print(f"\n[Krok 3/5] Próba załadowania ciasteczek z pliku {COOKIES_FILE}...")
+        driver.get("https://www.facebook.com"); time.sleep(1)
+
+        try:
+            with open(COOKIES_FILE, 'rb') as file:
+                cookies = pickle.load(file)
+            
+            if not cookies:
+                print("!!! BŁĄD: Plik z ciasteczkami jest pusty.")
+                driver.quit()
+                return None
+
+            for cookie in cookies:
+                if 'expiry' in cookie:
+                    cookie['expiry'] = int(cookie['expiry'])
+                driver.add_cookie(cookie)
+            
+            print("      -> Sukces. Ciasteczka dodane do przeglądarki.")
+        
+        except (pickle.UnpicklingError, EOFError) as e:
+            print(f"!!! KRYTYCZNY BŁĄD: Plik {COOKIES_FILE} jest uszkodzony lub w nieprawidłowym formacie: {e}")
             driver.quit()
             return None
-
+        
+        # --- Krok 4: Odświeżenie i weryfikacja ---
+        print("\n[Krok 4/5] Odświeżanie strony i weryfikacja logowania...")
+        driver.refresh()
+        time.sleep(5)
+        
         wait = WebDriverWait(driver, 15)
-        wait.until(EC.presence_of_element_located((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
-        print("SUKCES: Sesja przeglądarki jest aktywna.")
+        search_input_xpath = "//input[@aria-label='Szukaj na Facebooku']"
+        
+        print("      -> Oczekuję na pojawienie się pola 'Szukaj na Facebooku'...")
+        wait.until(EC.presence_of_element_located((By.XPATH, search_input_xpath)))
+        
+        print("\nSUKCES: Sesja przeglądarki jest aktywna i jesteś zalogowany!")
         return driver
+
     except Exception as e:
-        print(f"BŁĄD KRYTYCZNY PODCZAS INICJALIZACJI WYSZUKIWARKI: {e}")
-        if driver: driver.quit()
+        print("\n!!! WYSTĄPIŁ NIESPODZIEWANY BŁĄD w initialize_driver_and_login !!!")
+        traceback.print_exc()
         return None
+    finally:
+        print("--- Zakończono proces inicjalizacji przeglądarki (w ramach bloku finally). ---")
 
 def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
     """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta, robiąc zrzuty ekranu."""
