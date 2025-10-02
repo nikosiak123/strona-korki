@@ -6,7 +6,7 @@ import threading
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from pyairtable import Api
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 import time
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -885,8 +885,8 @@ def get_schedule():
             except ValueError: pass
         
         # Stała "główna" siatka godzin dla wszystkich
-        master_start_time = time(8, 0)
-        master_end_time = time(22, 0) # Siatka generowana do tej godziny
+        master_start_time = datetime.time(8, 0)
+        master_end_time = datatime.time(22, 0) # Siatka generowana do tej godziny
 
         # Generujemy wszystkie możliwe sloty na podstawie szablonów i filtrujemy je
         available_slots = []
