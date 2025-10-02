@@ -27,7 +27,7 @@ import imagehash
 # --- Konfiguracja ---
 PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
 PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
-COOKIES_FILE = "cookies.pkl"
+COOKIES_FILE = "/var/www/korki/cookies.pkl"
 HASH_DIFFERENCE_THRESHOLD = 10
 
 AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
