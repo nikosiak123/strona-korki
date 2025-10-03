@@ -94,40 +94,56 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .time-block.past { background-color: var(--past-color); color: #9E9E9E; cursor: not-allowed; border: 1px solid #BDBDBD; text-decoration: line-through; }
 
 @media (max-width: 992px) {
-    .container { flex-direction: column; margin: 1.5rem auto; }
-    .sidebar { flex: auto; border-right: none; border-bottom: 1px solid var(--border-color); }
-}
-
-footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark); color: #FFF; margin-top: 2.5rem; font-size: 0.9rem; }
-/* ======================================== */
-/* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
-/* ======================================== */
-
-/* Te style zostaną aktywowane tylko, jeśli szerokość ekranu jest mniejsza niż 992 piksele */
-@media (max-width: 992px) {
     
-    /* Zmieniamy układ głównego kontenera z poziomego na pionowy */
+    /* Reguły, które już miałeś */
     .container-content {
         flex-direction: column;
     }
-
-    /* Usuwamy sztywną szerokość paska bocznego i dodajemy obramowanie na dole */
     .sidebar {
-        flex: 1 1 auto; /* Pozwól mu się rozciągać */
+        flex: 1 1 auto;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
     }
-
-    /* Zmniejszamy trochę marginesy na urządzeniach mobilnych */
     .container {
         margin: 1.5rem auto;
     }
-
     h1 {
         font-size: 1.8rem;
     }
-
     h2 {
         font-size: 1.5rem;
     }
-}
+
+    /* Nowe reguły, które dodaliśmy */
+    .dashboard-container,
+    .edit-container,
+    .panel-container {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        box-sizing: border-box;
+    }
+    .details-panel, 
+    .calendar-panel,
+    .panel-section {
+        padding: 1.5rem;
+    }
+    .sidebar,
+    .main-content {
+        padding: 1.5rem;
+    }
+    .confirmation-container h1,
+    .details-panel h2 {
+        font-size: 1.5rem;
+    }
+    .lesson-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .lesson-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+} /* <--- Tutaj kończy się JEDYNY blok @media */
+
