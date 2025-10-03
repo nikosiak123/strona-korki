@@ -95,7 +95,6 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 
 @media (max-width: 992px) {
     
-    /* Reguły, które już miałeś */
     .container-content {
         flex-direction: column;
     }
@@ -107,43 +106,51 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     .container {
         margin: 1.5rem auto;
     }
-    h1 {
-        font-size: 1.8rem;
-    }
-    h2 {
-        font-size: 1.5rem;
-    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
 
-    /* Nowe reguły, które dodaliśmy */
+    /* --- NOWE, ULEPSZONE REGUŁY DLA KOMÓREK --- */
+
     .dashboard-container,
     .edit-container,
     .panel-container {
         max-width: 100%;
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding: 0 1rem; /* Zmieniamy marginesy na padding */
+        box-sizing: border-box;
+        box-shadow: none; /* Usuwamy cień na komórkach */
+        border-radius: 0;
+        background-color: transparent; /* Tło przejrzyste */
+    }
+
+    /* Upewniamy się, że karty mają pełną szerokość */
+    .lesson-card {
+        width: 100%;
         box-sizing: border-box;
     }
+
     .details-panel, 
     .calendar-panel,
-    .panel-section {
-        padding: 1.5rem;
-    }
+    .panel-section,
     .sidebar,
     .main-content {
         padding: 1.5rem;
     }
-    .confirmation-container h1,
-    .details-panel h2 {
+
+    .confirmation-container h1 {
         font-size: 1.5rem;
     }
-    .lesson-card {
+    
+    /* Główna zmiana dla kart lekcji */
+    .lesson-card > div { /* Zmieniamy selektor na bardziej ogólny */
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
+    
     .lesson-actions {
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-end; /* Przyciski do prawej */
+        flex-wrap: wrap; /* ZEZWÓL NA ZAWIJANIE */
+        gap: 0.5rem; /* Zmniejsz odstęp */
     }
-} /* <--- Tutaj kończy się JEDYNY blok @media */
-
+}
