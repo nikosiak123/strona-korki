@@ -150,14 +150,19 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     }
     
     .day-row {
-        display: grid;
-        grid-template-columns: 1fr;
-        align-items: center;
-        justify-items: center; /* <-- DODAJ TĘ LINIĘ */
-        gap: 1rem; 
+        display: block; /* Ustawiamy na prosty blok */
+        text-align: center; /* Wyśrodkowujemy tekst wewnątrz (nazwę dnia na mobilnych) */
         margin-bottom: 1.5rem;
         padding-bottom: 1.5rem;
         border-bottom: 1px solid var(--border-color);
+    }
+    .time-inputs {
+        display: flex;
+        align-items: center;
+        /* Ten fragment jest kluczowy - wyśrodkowuje cały blok w poziomie */
+        justify-content: center; 
+        margin: 0 auto; /* Magiczny trik na wyśrodkowanie */
+        max-width: 300px; /* Zapobiegamy zbytnim rozciąganiu na dużych ekranach */
     }
     .time-inputs-wrapper {
         display: inline-block; /* Zapobiegnie rozciąganiu na 100% szerokości */
