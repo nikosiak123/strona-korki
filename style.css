@@ -104,12 +104,21 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         display: block;
     }
     
-    .calendar-wrapper {
-        width: 100%;
-        overflow-x: auto; /* Włącz przewijanie w poziomie */
-        -webkit-overflow-scrolling: touch; /* Lepsze przewijanie na iOS */
+    .mobile-day-card .time-block {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        text-align: left;
     }
-
+    
+    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]) {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]):hover {
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
     .mobile-day-card {
         background-color: #FAFAFA;
         border: 1px solid var(--border-color);
