@@ -652,18 +652,16 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
 @media (max-width: 992px) {
     
     /* --- OGÓLNY UKŁAD --- */
-    .container-content {
+    .container-content, .edit-container {
         flex-direction: column;
     }
-    .sidebar {
+    .sidebar, .details-panel, .calendar-panel {
         flex: 1 1 auto;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
+        padding: 1.5rem;
     }
-    .container,
-    .dashboard-container,
-    .edit-container,
-    .panel-container {
+    .container, .dashboard-container, .edit-container, .panel-container {
         margin: 0;
         padding: 1.5rem;
         max-width: 100%;
@@ -689,9 +687,19 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         gap: 0.5rem;
     }
 
-    /* --- PANEL KOREPETYTORA (panel-korepetytora.html) --- */
-    
-    /* Poprawka nawigacji kalendarza */
+    /* --- WIDOKI KALENDARZA (Wszystkie strony) --- */
+    #calendar-container, .time-slot-calendar { 
+        display: none !important;
+    }
+    #calendar-mobile-container {
+        display: block !important;
+        padding: 0;
+        min-height: 200px;
+        margin-top: 1.5rem;
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+    }
     .calendar-navigation button {
         padding: 6px 10px;
         font-size: 0.8rem;
@@ -700,78 +708,33 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         font-size: 1rem;
         margin: 0 0.5rem;
     }
-    
-    /* Poprawka edycji stałego grafiku */
+
+    /* --- PANEL KOREPETYTORA - EDYCJA GRAFIKU --- */
     .day-row {
-        display: grid; /* Zmieniono, aby używać siatki 50px + 1fr */
-        grid-template-columns: 50px 1fr; /* Ustawienie dwóch kolumn: 50px dla nazwy dnia, reszta (1fr) dla pól */
-        align-items: center;
-        gap: 0.5rem; /* Zmniejszona odległość */
+        display: block; /* Ustawienie na block, aby siatka nie obowiązywała */
+        text-align: center; /* Wyśrodkowanie zawartości */
+        gap: 0.5rem; 
         padding-bottom: 1.5rem;
         margin-bottom: 1.5rem;
         border-bottom: 1px solid var(--border-color);
     }
-
     .day-label {
         display: none; /* UKRYWAMY ETYKIETĘ DNIA */
     }
     .time-inputs {
-        justify-content: space-between; /* Rozciągamy pola na całą dostępną szerokość */
-        flex-grow: 1; /* Wypełnia resztę miejsca po ukrytej etykiecie */
+        justify-content: center; /* Wyśrodkowanie pól czasu */
     }
-    /* NOWA REGUŁA ZMNIEJSZAJĄCA POLA CZASU */
     .time-inputs input[type="time"] {
         width: 100px;
         padding: 6px 8px;
         font-size: 0.9rem;
     }
-
-    /* Przełączanie widoków kalendarza */
+    
+    /* --- PANEL KOREPETYTORA - WIDOK KALENDARZA --- */
     .calendar-wrapper {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    #calendar-container .calendar-grid-table {
-        display: none;
-    }
-    #calendar-mobile-container {
-        display: block !important; /* Pokazujemy listę mobilną */
-        padding: 0;
-        min-height: 200px;
-        margin-top: 1.5rem; /* Dodany margines */
-    }
-
-    /* Style dla nowego, mobilnego widoku listy */
-    .mobile-day-card {
-        background-color: var(--container-bg-color);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
-    }
-    .time-slot-calendar { 
-        display: none !important; /* Ukrywamy siatkę kalendarza PC */
-    }
-    
-    .mobile-day-card h4 {
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 1.1rem;
-    }
-    .mobile-day-card .time-block {
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        text-align: center;
-        border-radius: 6px;
-    }
-    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]) {
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]):hover {
-        transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
+    /* Reguła ukrywająca siatkę PC jest już wyżej, więc nie trzeba jej powtarzać */
 }
