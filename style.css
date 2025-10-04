@@ -115,7 +115,7 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     .edit-container,
     .panel-container {
         max-width: 100%;
-        padding: 0 1rem; /* Zmieniamy marginesy na padding */
+        padding: 1.5rem; /* <-- ZMIANA TUTAJ */
         box-sizing: border-box;
         box-shadow: none; /* Usuwamy cień na komórkach */
         border-radius: 0;
@@ -148,9 +148,16 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     }
     
     .lesson-actions {
-        width: 100%;
-        justify-content: flex-end; /* Przyciski do prawej */
-        flex-wrap: wrap; /* ZEZWÓL NA ZAWIJANIE */
-        gap: 0.5rem; /* Zmniejsz odstęp */
+        width: auto; /* Zmieniamy szerokość na auto */
+        flex-direction: column; /* Ustawiamy przyciski JEDEN POD DRUGIM */
+        align-items: flex-end; /* Wyrównujemy je do prawej krawędzi */
+        gap: 0.75rem; /* Zwiększamy trochę odstęp między nimi */
+    }
+    .lesson-actions a,
+    .lesson-actions button,
+    .lesson-actions span {
+        width: 100%; /* Rozciągnij każdy przycisk na pełną szerokość */
+        text-align: center; /* Wyśrodkuj tekst w przycisku */
+        box-sizing: border-box; /* Ważne dla poprawnego obliczania szerokości */
     }
 }
