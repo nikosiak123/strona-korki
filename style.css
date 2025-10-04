@@ -93,55 +93,13 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .time-block.disabled { background-color: transparent; /* ZMIANA: Puste bloki są przezroczyste */ color: #E0E0E0; cursor: not-allowed; border: 1px dashed #f0f0f0; /* ZMIANA: Delikatna ramka */ }
 .time-block.past { background-color: var(--past-color); color: #9E9E9E; cursor: not-allowed; border: 1px solid #BDBDBD; text-decoration: line-through; }
 
+/* ======================================== */
+/* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
+/* ======================================== */
+
 @media (max-width: 992px) {
-    /* Wewnątrz @media (max-width: 992px) */
     
-    .calendar-navigation button {
-        padding: 6px 10px; /* Zmniejszamy padding */
-        font-size: 0.8rem; /* Zmniejszamy czcionkę */
-    }
-    
-    .calendar-navigation h3 {
-        font-size: 1rem; /* Zmniejszamy czcionkę daty */
-        margin: 0 0.5rem; /* Dodajemy mały margines po bokach */
-    }
-    #calendar-container .calendar-grid-table {
-        display: none;
-    }
-    
-    /* Pokaż nowy kontener mobilny (domyślnie jest ukryty) */
-    #calendar-mobile-container {
-        display: block;
-    }
-    
-    .mobile-day-card .time-block {
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        text-align: left;
-    }
-    
-    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]) {
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    
-    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]):hover {
-        transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .mobile-day-card {
-        background-color: #FAFAFA;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        padding: 1rem;
-    }
-    
-    .mobile-day-card h4 {
-        margin: 0 0 1rem 0;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--border-color);
-    }
+    /* --- OGÓLNY UKŁAD --- */
     .container-content {
         flex-direction: column;
     }
@@ -150,75 +108,99 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         border-right: none;
         border-bottom: 1px solid var(--border-color);
     }
-    .container {
-        margin: 1.5rem auto;
-    }
-    h1 { font-size: 1.8rem; }
-    h2 { font-size: 1.5rem; }
-
-    /* --- NOWE, ULEPSZONE REGUŁY DLA KOMÓREK --- */
-
+    .container,
     .dashboard-container,
     .edit-container,
     .panel-container {
-        max-width: 100%;
-        padding: 1.5rem; /* <-- ZMIANA TUTAJ */
-        box-sizing: border-box;
-        box-shadow: none; /* Usuwamy cień na komórkach */
-        border-radius: 0;
-        background-color: transparent; /* Tło przejrzyste */
-    }
-    
-    .day-row {
-        display: flex; /* Używamy flexboxa dla lepszej kontroli */
-        flex-direction: column; /* Ustawiamy elementy JEDEN POD DRUGIM */
-        align-items: center; /* Wyśrodkowujemy wszystko w poziomie */
-        gap: 0.75rem; /* Zwiększamy trochę odstęp */
-    }
-    
-    .day-label {
-        margin-bottom: 0.5rem; /* Dodaj odstęp pod nazwą dnia */
-    }
-    
-    .time-inputs {
-        justify-content: center; /* Wyśrodkuj pola input */
-    }
-    /* Upewniamy się, że karty mają pełną szerokość */
-    .lesson-card {
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .details-panel, 
-    .calendar-panel,
-    .panel-section,
-    .sidebar,
-    .main-content {
+        margin: 0;
         padding: 1.5rem;
+        max-width: 100%;
+        box-sizing: border-box;
+        box-shadow: none;
+        border-radius: 0;
+        background-color: var(--background-color);
     }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
+    .confirmation-container h1 { font-size: 1.5rem; }
 
-    .confirmation-container h1 {
-        font-size: 1.5rem;
-    }
-    
-    /* Główna zmiana dla kart lekcji */
-    .lesson-card > div { /* Zmieniamy selektor na bardziej ogólny */
+    /* --- PANEL KLIENTA (moje-lekcje.html) --- */
+    .lesson-card {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
-    
     .lesson-actions {
-        width: auto; /* Zmieniamy szerokość na auto */
-        flex-direction: column; /* Ustawiamy przyciski JEDEN POD DRUGIM */
-        align-items: flex-end; /* Wyrównujemy je do prawej krawędzi */
-        gap: 0.75rem; /* Zwiększamy trochę odstęp między nimi */
+        width: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
-    .lesson-actions a,
-    .lesson-actions button,
-    .lesson-actions span {
-        width: 100%; /* Rozciągnij każdy przycisk na pełną szerokość */
-        text-align: center; /* Wyśrodkuj tekst w przycisku */
-        box-sizing: border-box; /* Ważne dla poprawnego obliczania szerokości */
+
+    /* --- PANEL KOREPETYTORA (panel-korepetytora.html) --- */
+    
+    /* Poprawka nawigacji kalendarza */
+    .calendar-navigation button {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    .calendar-navigation h3 {
+        font-size: 1rem;
+        margin: 0 0.5rem;
+    }
+    
+    /* Poprawka edycji stałego grafiku */
+    .day-row {
+        display: block; /* Zmieniamy na block, aby elementy były jeden pod drugim */
+        text-align: center;
+        grid-template-columns: none; /* Resetujemy grida */
+        gap: 1rem;
+    }
+    .day-label {
+        margin-bottom: 1rem;
+    }
+    .time-inputs {
+        justify-content: center;
+    }
+
+    /* Przełączanie widoków kalendarza */
+    .calendar-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    #calendar-container .calendar-grid-table {
+        display: none; /* Ukryj tabelę na mobilnych */
+    }
+    #calendar-mobile-container {
+        display: block; /* Pokaż widok listowy */
+    }
+
+    /* Style dla nowego, mobilnego widoku listy */
+    .mobile-day-card {
+        background-color: var(--container-bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    .mobile-day-card h4 {
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .mobile-day-card .time-block {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        text-align: left;
+        border-radius: 6px;
+    }
+    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]) {
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .mobile-day-card .time-block:not([style*="cursor: not-allowed"]):hover {
+        transform: scale(1.02);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 }
