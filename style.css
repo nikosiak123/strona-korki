@@ -151,10 +151,13 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     
     /* Poprawka edycji stałego grafiku */
     .day-row {
-        display: block; /* Zmieniamy na block, aby elementy były jeden pod drugim */
-        text-align: center;
-        grid-template-columns: none; /* Resetujemy grida */
-        gap: 1rem;
+        display: grid;
+        grid-template-columns: 150px 1fr; /* Zwiększamy trochę miejsce na etykietę */
+        align-items: center;
+        gap: 1.5rem; /* Zwiększamy odstęp */
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
     }
     .day-label {
         margin-bottom: 1rem;
