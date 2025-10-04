@@ -186,16 +186,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function renderWeeklyCalendar(startDate) {
         calendarContainer.innerHTML = '<p>Ładowanie grafiku...</p>';
         const mobileContainer = document.getElementById('calendar-mobile-container');
-        if(mobileContainer) mobileContainer.innerHTML = ''; // Czyścimy kontener mobilny
-        
+        if (mobileContainer) mobileContainer.innerHTML = '';
+    
         const params = new URLSearchParams({ startDate: getFormattedDate(startDate), tutorName: tutorName });
-        
+    
         try {
             const response = await fetch(`${API_BASE_URL}/api/get-schedule?${params.toString()}`);
             if (!response.ok) throw new Error("Błąd ładowania grafiku.");
-            
+    
             const fullSchedule = await response.json();
-            console.log("Otrzymano pełny grafik z backendu:", fullSchedule);
     
             const scheduleMap = {};
             fullSchedule.forEach(slot => {
@@ -203,11 +202,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 scheduleMap[slot.date][slot.time] = slot;
             });
     
-            // ----------------------------------------------------
-            // === 1. PRZYGOTOWANIE WSPÓLNEJ NAWIGACJI DLA OBU WIDOKÓW ===
-            // ----------------------------------------------------
+            // Przygotowanie nawigacji (bez zmian)
             calendarContainer.innerHTML = '';
-            const daysInWeek = Array.from({length: 7}, (_, i) => {
+            const daysInWeek = Array.from({ length: 7 }, (_, i) => {
                 const d = new Date(startDate);
                 d.setDate(d.getDate() + i);
                 return d;
@@ -220,151 +217,128 @@ document.addEventListener('DOMContentLoaded', async () => {
             calendarNavigation.innerHTML = `<button id="prevWeek">Poprzedni tydzień</button><h3>${firstDayFormatted} - ${lastDayFormatted}</h3><button id="nextWeek">Następny tydzień</button>`;
             calendarContainer.appendChild(calendarNavigation);
     
-            // ----------------------------------------------------
-            // === 2. WIDOK NA KOMPUTER (Tabela) - Bez zmian ===
-            // ----------------------------------------------------
+            // === WIDOK NA KOMPUTER (Tabela) - Logika bez zmian ===
             const table = document.createElement('table');
             table.className = 'calendar-grid-table';
+            // ... (cały Twój istniejący kod do generowania tabeli, aż do `calendarContainer.appendChild(table);`)
+            // Poniżej wklejam go dla kompletności
             let headerRow = '<tr><th class="time-label">Godzina</th>';
             daysInWeek.forEach(day => { headerRow += `<th>${dayNamesFull[day.getDay()]}<br>${String(day.getDate()).padStart(2, '0')} ${monthNames[day.getMonth()]}</th>`; });
             headerRow += '</tr>';
             table.createTHead().innerHTML = headerRow;
             const tbody = table.createTBody();
-    
-            let masterTime = new Date(startDate);
-            masterTime.setHours(8, 0, 0, 0);
-            const endMasterTime = new Date(startDate);
-            endMasterTime.setHours(22, 0, 0, 0);
-    
+            let masterTime = new Date(startDate); masterTime.setHours(8, 0, 0, 0);
+            const endMasterTime = new Date(startDate); endMasterTime.setHours(22, 0, 0, 0);
             while (masterTime < endMasterTime) {
                 const timeSlot = masterTime.toTimeString().substring(0, 5);
                 const row = tbody.insertRow();
                 row.insertCell().outerHTML = `<td class="time-label">${timeSlot}</td>`;
-                
                 daysInWeek.forEach(day => {
                     const cell = row.insertCell();
                     const formattedDate = getFormattedDate(day);
                     const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
-                    
                     const block = document.createElement('div');
                     block.className = 'time-block';
-                    
-                    // Logika dla widoku tabelarycznego - OK
                     if (slotData) {
                         switch(slotData.status) {
-                            case 'available':
-                                block.classList.add('available');
-                                block.textContent = "Dostępny";
-                                block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
-                                break;
-                            case 'booked_lesson':
-                            case 'cyclic_reserved':
-                                block.classList.add('booked-lesson');
-                                block.textContent = slotData.studentName;
-                                block.addEventListener('click', () => showActionModal(slotData));
-                                break;
-                            case 'rescheduled_by_tutor':
-                                block.classList.add('rescheduled');
-                                block.textContent = "PRZENIESIONE";
-                                block.style.cursor = 'not-allowed';
-                                break;
-                            case 'blocked_by_tutor':
-                                block.classList.add('unavailable');
-                                block.textContent = "BLOKADA";
-                                block.addEventListener('click', ()myBlockClick(formattedDate, timeSlot));
-                                break;
-                            default:
-                                 block.classList.add('unavailable');
-                                 block.textContent = "Zajęty";
-                                 block.style.cursor = 'not-allowed';
+                            case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
+                            case 'booked_lesson': case 'cyclic_reserved': block.classList.add('booked-lesson'); block.textContent = slotData.studentName; block.addEventListener('click', () => showActionModal(slotData)); break;
+                            case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
+                            case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
+                            default: block.classList.add('unavailable'); block.textContent = "Zajęty"; block.style.cursor = 'not-allowed';
                         }
-                    } else {
-                        block.classList.add('disabled');
-                        block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
-                    }
-                    
+                    } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
                     cell.appendChild(block);
                 });
                 masterTime.setMinutes(masterTime.getMinutes() + 70);
             }
             calendarContainer.appendChild(table);
-    
-    
-            // ----------------------------------------------------
-            // === 3. NOWY WIDOK NA TELEFON (Lista Dni) - NAPRAWIONY ===
-            // ----------------------------------------------------
+            
+            // === NOWY, INTERAKTYWNY WIDOK NA TELEFON (Lista Dni) ===
             if (mobileContainer) {
+                // Generujemy wszystkie możliwe sloty czasowe, tak jak w tabeli
+                let mobileMasterTime = new Date(startDate); mobileMasterTime.setHours(8, 0, 0, 0);
+                const mobileEndMasterTime = new Date(startDate); mobileEndMasterTime.setHours(22, 0, 0, 0);
+                const allTimeSlots = [];
+                while(mobileMasterTime < mobileEndMasterTime) {
+                    allTimeSlots.push(mobileMasterTime.toTimeString().substring(0, 5));
+                    mobileMasterTime.setMinutes(mobileMasterTime.getMinutes() + 70);
+                }
+    
                 daysInWeek.forEach(day => {
                     const formattedDate = getFormattedDate(day);
                     const dayCard = document.createElement('div');
                     dayCard.className = 'mobile-day-card';
-                    
-                    let dayHtml = `<h4>${dayNamesFull[day.getDay()]}, ${day.getDate()} ${monthNames[day.getMonth()]}</h4>`;
-                    
-                    // Znajdujemy wszystkie sloty DLA TEGO DNIA (w tym wolne, jeśli chcemy dodawać ad-hoc)
-                    const allSlotsForDay = fullSchedule.filter(slot => slot.date === formattedDate);
-                    
-                    if (allSlotsForDay.length > 0) {
-                        allSlotsForDay.sort((a, b) => a.time.localeCompare(b.time));
+                    let dayHtmlContent = '';
+    
+                    allTimeSlots.forEach(timeSlot => {
+                        const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
+                        const block = document.createElement('div');
+                        block.className = 'time-block'; // Używamy tej samej klasy bazowej
                         
-                        allSlotsForDay.forEach(slot => {
-                            const block = document.createElement('div');
-                            block.className = 'time-block';
-                            
-                            // Zapisujemy kluczowe dane, aby móc je później odzyskać w event listenerze
-                            block.dataset.date = slot.date;
-                            block.dataset.time = slot.time; 
-                            
-                            switch(slot.status) {
+                        // Ta sama logika kolorowania i dodawania event listenerów, co w tabeli
+                        if (slotData) {
+                            switch(slotData.status) {
                                 case 'available':
                                     block.classList.add('available');
-                                    block.textContent = `${slot.time} - Dostępny (kliknij, aby zablokować)`;
-                                    block.addEventListener('click', () => handleBlockClick(slot.date, slot.time)); // Akcja blokowania
+                                    block.textContent = `${timeSlot} - Dostępny`;
+                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
                                     break;
                                 case 'booked_lesson':
                                 case 'cyclic_reserved':
                                     block.classList.add('booked-lesson');
-                                    block.textContent = `${slot.time} - ${slot.studentName} (Szczegóły)`;
-                                    block.addEventListener('click', () => showActionModal(slot)); // Akcja zarządzania
-                                    break;
-                                case 'blocked_by_tutor':
-                                    block.classList.add('unavailable');
-                                    block.textContent = `${slot.time} - BLOKADA (kliknij, aby odblokować)`;
-                                    block.addEventListener('click', () => handleBlockClick(slot.date, slot.time)); // Akcja odblokowania
+                                    block.textContent = `${timeSlot} - ${slotData.studentName}`;
+                                    block.addEventListener('click', () => showActionModal(slotData));
                                     break;
                                 case 'rescheduled_by_tutor':
                                     block.classList.add('rescheduled');
-                                    block.textContent = `${slot.time} - PRZENIESIONE`;
+                                    block.textContent = `${timeSlot} - PRZENIESIONE`;
                                     block.style.cursor = 'not-allowed';
+                                    break;
+                                case 'blocked_by_tutor':
+                                    block.classList.add('unavailable');
+                                    block.textContent = `${timeSlot} - BLOKADA`;
+                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
                                     break;
                                 default:
                                      block.classList.add('unavailable');
-                                     block.textContent = `${slot.time} - Zajęty`;
+                                     block.textContent = `${timeSlot} - Zajęty`;
                                      block.style.cursor = 'not-allowed';
                             }
-                            dayHtml += block.outerHTML;
-                        });
-                    } else {
-                        dayHtml += '<p style="font-size: 0.9em; color: var(--text-light);">Brak zaplanowanych terminów na ten dzień.</p>';
-                    }
-                    dayCard.innerHTML = dayHtml;
-                    mobileContainer.appendChild(dayCard);
+                        } else {
+                            block.classList.add('disabled');
+                            block.textContent = `${timeSlot} - Niedostępny (poza grafikiem)`;
+                            block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
+                        }
+                        dayHtmlContent += block.outerHTML;
+                    });
                     
-                    // UWAGA: Funkcjonalność handleAddHocSlot jest trudniejsza do dodania w widoku mobilnym, 
-                    // ponieważ wymaga iteracji po wszystkich nieistniejących blokach. Na razie skupiamy się
-                    // na udostępnieniu akcji dla istniejących bloków.
+                    dayCard.innerHTML = `<h4>${dayNamesFull[day.getDay()]}, ${day.getDate()} ${monthNames[day.getMonth()]}</h4>` + dayHtmlContent;
+                    mobileContainer.appendChild(dayCard);
+    
+                    // Ponownie dodajemy listenery, bo innerHTML je usuwa
+                    dayCard.querySelectorAll('.time-block').forEach(blockEl => {
+                        const time = blockEl.textContent.split(' - ')[0];
+                        const date = formattedDate;
+                        const slotData = scheduleMap[date] ? scheduleMap[date][time] : null;
+    
+                        if (blockEl.classList.contains('available') || blockEl.classList.contains('unavailable')) {
+                             blockEl.addEventListener('click', () => handleBlockClick(date, time));
+                        } else if (blockEl.classList.contains('booked-lesson')) {
+                             blockEl.addEventListener('click', () => showActionModal(slotData));
+                        } else if (blockEl.classList.contains('disabled')) {
+                             blockEl.addEventListener('click', () => handleAddHocSlot(date, time));
+                        }
+                    });
                 });
             }
     
-            // ----------------------------------------------------
-            // === 4. OBSŁUGA NAWIGACJI DLA OBU WIDOKÓW ===
-            // ----------------------------------------------------
             document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
             document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
     
         } catch (error) {
             console.error("Błąd podczas renderowania kalendarza:", error);
-            calendarContainer.innerHTML = '<p style="color: red;">Wystąpił krytyczny błąd podczas renderowania kalendarza.</p>';
+            calendarContainer.innerHTML = '<p style="color: red;">Błąd renderowania kalendarza.</p>';
         }
     }
 
