@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const actionModalButtons = document.getElementById('actionModalButtons');
 
     const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
-    const daysOfWeek = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"];
+    const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
+    const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
 
@@ -56,12 +57,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const saveButton = document.getElementById('saveScheduleBtn');
         saveButton.textContent = 'Zapisywanie...';
         saveButton.disabled = true;
+        
+        // Używamy listy skróconej do pobierania danych z formularza
         const scheduleData = {};
-        daysOfWeek.forEach(day => {
-            const start = document.querySelector(`input[name="${day}_start"]`).value;
-            const end = document.querySelector(`input[name="${day}_end"]`).value;
-            scheduleData[day] = (start && end) ? `${start}-${end}` : "";
+        daysOfWeekShort.forEach(dayShort => {
+            const start = document.querySelector(`input[name="${dayShort}_start"]`).value;
+            const end = document.querySelector(`input[name="${dayShort}_end"]`).value;
+            // Mapujemy z powrotem na pełną nazwę do wysłania
+            const dayFullName = daysOfWeek[daysOfWeekShort.indexOf(dayShort)];
+            scheduleData[dayFullName] = (start && end) ? `${start}-${end}` : "";
         });
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/update-tutor-schedule`, {
                 method: 'POST',
@@ -152,12 +158,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showActionModal(slot) {
         actionModalTitle.textContent = `Zarządzaj terminem (${slot.date} o ${slot.time})`;
         
-        // --- NOWA LOGIKA DLA LINKU KONTAKTOWEGO ---
         let contactLinkHtml = '';
         if (slot.studentContactLink) {
             contactLinkHtml = `<a href="${slot.studentContactLink}" target="_blank"> (Przejdź do profilu)</a>`;
         }
-        // --- KONIEC NOWEJ LOGIKI ---
     
         let detailsHtml = `
             <div class="modal-details-item"><strong>Uczeń:</strong> <span>${slot.studentName || 'Brak danych'}${contactLinkHtml}</span></div>
@@ -179,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('closeActionModalBtn').onclick = () => actionModal.classList.remove('active');
         
         document.getElementById('rescheduleBtn').onclick = async () => {
-            // ... (reszta funkcji bez zmian)
+            // Placeholder for reschedule logic
         };
     }
 
@@ -202,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 scheduleMap[slot.date][slot.time] = slot;
             });
     
-            // Przygotowanie nawigacji (bez zmian)
             calendarContainer.innerHTML = '';
             const daysInWeek = Array.from({ length: 7 }, (_, i) => {
                 const d = new Date(startDate);
@@ -217,11 +220,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             calendarNavigation.innerHTML = `<button id="prevWeek">Poprzedni tydzień</button><h3>${firstDayFormatted} - ${lastDayFormatted}</h3><button id="nextWeek">Następny tydzień</button>`;
             calendarContainer.appendChild(calendarNavigation);
     
-            // === WIDOK NA KOMPUTER (Tabela) - Logika bez zmian ===
             const table = document.createElement('table');
             table.className = 'calendar-grid-table';
-            // ... (cały Twój istniejący kod do generowania tabeli, aż do `calendarContainer.appendChild(table);`)
-            // Poniżej wklejam go dla kompletności
             let headerRow = '<tr><th class="time-label">Godzina</th>';
             daysInWeek.forEach(day => { headerRow += `<th>${dayNamesFull[day.getDay()]}<br>${String(day.getDate()).padStart(2, '0')} ${monthNames[day.getMonth()]}</th>`; });
             headerRow += '</tr>';
@@ -254,9 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             calendarContainer.appendChild(table);
             
-            // === NOWY, INTERAKTYWNY WIDOK NA TELEFON (Lista Dni) ===
             if (mobileContainer) {
-                // Generujemy wszystkie możliwe sloty czasowe, tak jak w tabeli
                 let mobileMasterTime = new Date(startDate); mobileMasterTime.setHours(8, 0, 0, 0);
                 const mobileEndMasterTime = new Date(startDate); mobileEndMasterTime.setHours(22, 0, 0, 0);
                 const allTimeSlots = [];
@@ -274,9 +272,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     allTimeSlots.forEach(timeSlot => {
                         const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
                         const block = document.createElement('div');
-                        block.className = 'time-block'; // Używamy tej samej klasy bazowej
+                        block.className = 'time-block';
                         
-                        // Ta sama logika kolorowania i dodawania event listenerów, co w tabeli
                         if (slotData) {
                             switch(slotData.status) {
                                 case 'available':
@@ -316,7 +313,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     dayCard.innerHTML = `<h4>${dayNamesFull[day.getDay()]}, ${day.getDate()} ${monthNames[day.getMonth()]}</h4>` + dayHtmlContent;
                     mobileContainer.appendChild(dayCard);
     
-                    // Ponownie dodajemy listenery, bo innerHTML je usuwa
                     dayCard.querySelectorAll('.time-block').forEach(blockEl => {
                         const time = blockEl.textContent.split(' - ')[0];
                         const date = formattedDate;
@@ -404,18 +400,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const minute = String(parts[1]).padStart(2, '0');
             return `${hour}:${minute}`;
         };
-        daysOfWeek.forEach(day => {
-            const timeRange = data[dayNamesFull[daysOfWeek.indexOf(day) + 1] || dayNamesFull[0]] || "";
+        daysOfWeekShort.forEach(dayShort => { // Iterujemy po skróconych nazwach
+            const dayFullName = daysOfWeek[daysOfWeekShort.indexOf(dayShort)]; // Pobieramy pełną nazwę do pobrania danych
+            const timeRange = data[dayFullName] || "";
             const [startTime = '', endTime = ''] = timeRange.split('-');
             const row = document.createElement('div');
             row.className = 'day-row';
             
             row.innerHTML = `
-                <div class="day-label">${day}</div>
+                <div class="day-label">${dayShort}</div>
                 <div class="time-inputs">
-                    <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
+                    <input type="time" class="form-control" name="${dayShort}_start" value="${formatTime(startTime.trim())}">
                     <span>-</span>
-                    <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
+                    <input type="time" class="form-control" name="${dayShort}_end" value="${formatTime(endTime.trim())}">
                 </div>
             `;
             
