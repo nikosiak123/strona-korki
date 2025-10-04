@@ -127,6 +127,11 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     width: 120px;
 }
 
+#calendar-mobile-container {
+    display: none;
+}
+
+
 footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark); color: #FFF; margin-top: 2.5rem; font-size: 0.9rem; }
 
 /* ======================================== */
@@ -437,15 +442,15 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     
     /* Poprawka edycji stałego grafiku */
     .day-row {
-        /* Resetujemy siatkę na rzecz prostego flex (lub domyślnego flow) */
-        display: flex;
-        justify-content: space-between;
+        display: grid; /* Zmieniono, aby używać siatki 50px + 1fr */
+        grid-template-columns: 50px 1fr; /* Ustawienie dwóch kolumn: 50px dla nazwy dnia, reszta (1fr) dla pól */
         align-items: center;
-        gap: 0.5rem;
-        padding-bottom: 1rem; /* Zmniejszony padding */
-        margin-bottom: 1rem;
+        gap: 0.5rem; /* Zmniejszona odległość */
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
         border-bottom: 1px solid var(--border-color);
     }
+
     .day-label {
         display: none; /* UKRYWAMY ETYKIETĘ DNIA */
     }
