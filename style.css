@@ -129,10 +129,6 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 
 footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark); color: #FFF; margin-top: 2.5rem; font-size: 0.9rem; }
 
-/* ======================================== */
-/* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
-/* ======================================== */
-
 @media (max-width: 992px) {
     
     /* --- OGÓLNY UKŁAD --- */
@@ -185,18 +181,18 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         margin: 0 0.5rem;
     }
     
-    /* Poprawka edycji stałego grafiku */
+    /* Poprawka edycji stałego grafiku: Przeniesienie godzin pod nazwę dnia */
     .day-row {
-        display: block;
+        display: block; /* Ustawia elementy jeden pod drugim */
         grid-template-columns: none;
         text-align: center;
         gap: 1rem;
     }
     .day-label {
-        margin-bottom: 1rem;
+        margin-bottom: 1rem; /* Odstęp między nazwą dnia a polami */
     }
     .time-inputs {
-        justify-content: center;
+        justify-content: center; /* Wyśrodkowanie pól czasu */
     }
 
     /* Przełączanie widoków kalendarza */
