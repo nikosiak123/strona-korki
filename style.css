@@ -150,11 +150,11 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     }
     
     .day-row {
-        display: block; /* Ustawiamy na prosty blok */
-        text-align: center; /* Wyśrodkowujemy tekst wewnątrz (nazwę dnia na mobilnych) */
-        margin-bottom: 1.5rem;
+        /* Jedyne zadanie tego kontenera to oddzielanie dni */
         padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
         border-bottom: 1px solid var(--border-color);
+        text-align: center; /* Wyśrodkuj WSZYSTKO, co jest w środku */
     }
     .time-inputs {
         display: flex;
@@ -165,7 +165,8 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         max-width: 300px; /* Zapobiegamy zbytnim rozciąganiu na dużych ekranach */
     }
     .time-inputs-wrapper {
-        display: inline-block; /* Zapobiegnie rozciąganiu na 100% szerokości */
+        /* Ten blok będzie teraz wyśrodkowany dzięki 'text-align' w rodzicu */
+        display: inline-block; 
     }
     .time-inputs input[type="time"] { 
         border: 1px solid var(--border-color); 
@@ -178,9 +179,6 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     }
     .day-label {
         margin-bottom: 1rem;
-    }
-    .time-inputs {
-        justify-content: center;
     }
 
     /* Przełączanie widoków kalendarza */
