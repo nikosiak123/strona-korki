@@ -221,7 +221,7 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         display: none;
     }
     #calendar-mobile-container {
-        display: block;
+        display: none;
     }
 
     /* Style dla nowego, mobilnego widoku listy */
@@ -475,7 +475,9 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         display: none;
     }
     #calendar-mobile-container {
-        display: block;
+        display: block; /* Pokazujemy listę mobilną */
+        padding: 0;
+        min-height: 200px;
     }
 
     /* Style dla nowego, mobilnego widoku listy */
@@ -486,15 +488,20 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         margin-bottom: 1rem;
         padding: 1rem;
     }
+    .time-slot-calendar { 
+        display: none; /* Ukrywamy siatkę kalendarza PC */
+    }
+
     .mobile-day-card h4 {
         margin: 0 0 1rem 0;
         padding-bottom: 0.75rem;
         border-bottom: 1px solid var(--border-color);
+        font-size: 1.1rem;
     }
     .mobile-day-card .time-block {
         padding: 0.75rem;
         margin-bottom: 0.5rem;
-        text-align: left;
+        text-align: center;
         border-radius: 6px;
     }
     .mobile-day-card .time-block:not([style*="cursor: not-allowed"]) {
