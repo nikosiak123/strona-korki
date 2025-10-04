@@ -149,36 +149,18 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         margin: 0 0.5rem;
     }
     
+    /* Poprawka edycji stałego grafiku */
     .day-row {
-        /* Jedyne zadanie tego kontenera to oddzielanie dni */
-        padding-bottom: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        text-align: center; /* Wyśrodkuj WSZYSTKO, co jest w środku */
-    }
-    .time-inputs {
-        display: flex;
-        align-items: center;
-        /* Ten fragment jest kluczowy - wyśrodkowuje cały blok w poziomie */
-        justify-content: center; 
-        margin: 0 auto; /* Magiczny trik na wyśrodkowanie */
-        max-width: 300px; /* Zapobiegamy zbytnim rozciąganiu na dużych ekranach */
-    }
-    .time-inputs-wrapper {
-        /* Ten blok będzie teraz wyśrodkowany dzięki 'text-align' w rodzicu */
-        display: inline-block; 
-    }
-    .time-inputs input[type="time"] { 
-        border: 1px solid var(--border-color); 
-        border-radius: 8px; 
-        padding: 6px 8px; /* Zmniejszamy padding */
-        font-family: 'Nunito', sans-serif;
-        font-size: 0.9rem; /* Zmniejszamy czcionkę */
-        width: 100%; /* Pozwalamy im się dopasować do kontenera */
-        box-sizing: border-box;
+        display: block; /* Zmieniamy na block, aby elementy były jeden pod drugim */
+        text-align: center;
+        grid-template-columns: none; /* Resetujemy grida */
+        gap: 1rem;
     }
     .day-label {
         margin-bottom: 1rem;
+    }
+    .time-inputs {
+        justify-content: center;
     }
 
     /* Przełączanie widoków kalendarza */
