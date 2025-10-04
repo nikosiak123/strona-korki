@@ -415,12 +415,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // --- ZMIANA STRUKTURY HTML - USUNIĘTO "day-label" ---
             row.innerHTML = `
-                <div class="time-inputs-wrapper"> 
-                    <div class="time-inputs">
-                        <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
-                        <span>-</span>
-                        <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
-                    </div>
+                <div class="day-label">${dayNamesMap[day]}</div>
+                <div class="time-inputs">
+                    <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
+                    <span>-</span>
+                    <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
                 </div>
             `;
             // --- KONIEC ZMIANY ---
