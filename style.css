@@ -429,18 +429,29 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         margin: 0 0.5rem;
     }
     
-    /* Poprawka edycji stałego grafiku: Przeniesienie godzin pod nazwę dnia */
+    /* Poprawka edycji stałego grafiku */
     .day-row {
-        display: block; /* Ustawia elementy jeden pod drugim */
-        grid-template-columns: none;
-        text-align: center;
-        gap: 1rem;
+        display: grid; /* Zmieniono z block na grid */
+        grid-template-columns: 50px 1fr; /* Ustawienie dwóch kolumn: 50px dla nazwy dnia, reszta (1fr) dla pól */
+        align-items: center;
+        gap: 0.5rem; /* Zmniejszona odległość */
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
     }
     .day-label {
-        margin-bottom: 1rem; /* Odstęp między nazwą dnia a polami */
+        margin-bottom: 0; /* Usunięto margines, ponieważ jest siatka */
+        text-align: left; /* Wyrównanie do lewej w wąskiej kolumnie */
+        font-size: 1rem;
     }
     .time-inputs {
-        justify-content: center; /* Wyśrodkowanie pól czasu */
+        justify-content: flex-start; /* Wyrównanie do lewej strony w komórce */
+    }
+    /* NOWA REGUŁA ZMNIEJSZAJĄCA POLA CZASU */
+    .time-inputs input[type="time"] {
+        width: 100px;
+        padding: 6px 8px;
+        font-size: 0.9rem;
     }
 
     /* Przełączanie widoków kalendarza */
