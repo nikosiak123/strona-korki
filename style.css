@@ -149,17 +149,18 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         margin: 0 0.5rem;
     }
     
+    /* Poprawka edycji stałego grafiku */
     .day-row {
         display: block; /* Zmieniamy na block, aby elementy były jeden pod drugim */
         text-align: center;
+        grid-template-columns: none; /* Resetujemy grida */
+        gap: 1rem;
     }
-    
     .day-label {
-        margin-bottom: 1rem; /* Dodajemy większy odstęp pod nazwą dnia */
+        margin-bottom: 1rem;
     }
-    
     .time-inputs {
-        justify-content: center; /* Wyśrodkowuje pola input w ich kontenerze */
+        justify-content: center;
     }
 
     /* Przełączanie widoków kalendarza */
