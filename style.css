@@ -104,6 +104,12 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         display: block;
     }
     
+    .calendar-wrapper {
+        width: 100%;
+        overflow-x: auto; /* Włącz przewijanie w poziomie */
+        -webkit-overflow-scrolling: touch; /* Lepsze przewijanie na iOS */
+    }
+
     .mobile-day-card {
         background-color: #FAFAFA;
         border: 1px solid var(--border-color);
