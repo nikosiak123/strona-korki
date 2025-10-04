@@ -151,10 +151,23 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     
     /* Poprawka edycji stałego grafiku */
     .day-row {
-        display: block; /* Zmieniamy na block, aby elementy były jeden pod drugim */
-        text-align: center;
-        grid-template-columns: none; /* Resetujemy grida */
-        gap: 1rem;
+        display: grid;
+        /* Zmieniamy układ kolumn, aby dać więcej miejsca na godziny */
+        grid-template-columns: 80px 1fr; 
+        align-items: center;
+        gap: 1rem; 
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .time-inputs input[type="time"] { 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        padding: 6px 8px; /* Zmniejszamy padding */
+        font-family: 'Nunito', sans-serif;
+        font-size: 0.9rem; /* Zmniejszamy czcionkę */
+        width: 100%; /* Pozwalamy im się dopasować do kontenera */
+        box-sizing: border-box;
     }
     .day-label {
         margin-bottom: 1rem;
