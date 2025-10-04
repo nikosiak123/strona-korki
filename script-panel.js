@@ -212,8 +212,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
             const calendarNavigation = document.createElement('div');
             calendarNavigation.className = 'calendar-navigation';
-            const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()]}`;
-            const lastDayFormatted = `${dayNamesFull[daysInWeek[6].getDay()].substring(0,3)}. ${daysInWeek[6].getDate()} ${monthNames[daysInWeek[6].getMonth()]}`;
+            const firstDayFormatted = `${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()]}`;
+            const lastDayFormatted = `${daysInWeek[6].getDate()} ${monthNames[daysInWeek[6].getMonth()]}`;
             calendarNavigation.innerHTML = `<button id="prevWeek">Poprzedni tydzień</button><h3>${firstDayFormatted} - ${lastDayFormatted}</h3><button id="nextWeek">Następny tydzień</button>`;
             calendarContainer.appendChild(calendarNavigation);
     
