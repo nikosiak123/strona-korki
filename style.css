@@ -151,13 +151,16 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     
     .day-row {
         display: grid;
-        /* Zmieniamy na jedną kolumnę */
-        grid-template-columns: 1fr; 
+        grid-template-columns: 1fr;
         align-items: center;
+        justify-items: center; /* <-- DODAJ TĘ LINIĘ */
         gap: 1rem; 
         margin-bottom: 1.5rem;
         padding-bottom: 1.5rem;
         border-bottom: 1px solid var(--border-color);
+    }
+    .time-inputs-wrapper {
+        display: inline-block; /* Zapobiegnie rozciąganiu na 100% szerokości */
     }
     .time-inputs input[type="time"] { 
         border: 1px solid var(--border-color); 
