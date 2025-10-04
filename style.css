@@ -149,11 +149,10 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         margin: 0 0.5rem;
     }
     
-    /* Poprawka edycji stałego grafiku */
     .day-row {
         display: grid;
-        /* Zmieniamy układ kolumn, aby dać więcej miejsca na godziny */
-        grid-template-columns: 80px 1fr; 
+        /* Zmieniamy na jedną kolumnę */
+        grid-template-columns: 1fr; 
         align-items: center;
         gap: 1rem; 
         margin-bottom: 1.5rem;
