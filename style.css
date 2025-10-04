@@ -94,7 +94,17 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .time-block.past { background-color: var(--past-color); color: #9E9E9E; cursor: not-allowed; border: 1px solid #BDBDBD; text-decoration: line-through; }
 
 @media (max-width: 992px) {
-    /* Ukryj kalendarz w formie tabeli na komórkach */
+    /* Wewnątrz @media (max-width: 992px) */
+    
+    .calendar-navigation button {
+        padding: 6px 10px; /* Zmniejszamy padding */
+        font-size: 0.8rem; /* Zmniejszamy czcionkę */
+    }
+    
+    .calendar-navigation h3 {
+        font-size: 1rem; /* Zmniejszamy czcionkę daty */
+        margin: 0 0.5rem; /* Dodajemy mały margines po bokach */
+    }
     #calendar-container .calendar-grid-table {
         display: none;
     }
