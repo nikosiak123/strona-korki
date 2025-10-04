@@ -168,7 +168,20 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
         border-radius: 0;
         background-color: transparent; /* Tło przejrzyste */
     }
-
+    
+    .day-row {
+        grid-template-columns: 1fr; /* Zamiast dwóch kolumn, użyj jednej */
+        gap: 0.5rem; /* Zmniejsz odstęp */
+        text-align: center; /* Wyśrodkuj wszystko */
+    }
+    
+    .day-label {
+        margin-bottom: 0.5rem; /* Dodaj odstęp pod nazwą dnia */
+    }
+    
+    .time-inputs {
+        justify-content: center; /* Wyśrodkuj pola input */
+    }
     /* Upewniamy się, że karty mają pełną szerokość */
     .lesson-card {
         width: 100%;
