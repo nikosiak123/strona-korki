@@ -94,7 +94,29 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .time-block.past { background-color: var(--past-color); color: #9E9E9E; cursor: not-allowed; border: 1px solid #BDBDBD; text-decoration: line-through; }
 
 @media (max-width: 992px) {
+    /* Ukryj kalendarz w formie tabeli na komórkach */
+    #calendar-container .calendar-grid-table {
+        display: none;
+    }
     
+    /* Pokaż nowy kontener mobilny (domyślnie jest ukryty) */
+    #calendar-mobile-container {
+        display: block;
+    }
+    
+    .mobile-day-card {
+        background-color: #FAFAFA;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    
+    .mobile-day-card h4 {
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
     .container-content {
         flex-direction: column;
     }
