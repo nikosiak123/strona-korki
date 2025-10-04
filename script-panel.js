@@ -409,14 +409,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             const [startTime = '', endTime = ''] = timeRange.split('-');
             const row = document.createElement('div');
             row.className = 'day-row';
+            
+            // --- ZMIANA STRUKTURY HTML JEST TUTAJ ---
             row.innerHTML = `
                 <div class="day-label">${day}</div>
-                <div class="time-inputs">
-                    <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
-                    <span>-</span>
-                    <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
+                <div class="time-inputs-wrapper"> 
+                    <div class="time-inputs">
+                        <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
+                        <span>-</span>
+                        <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
+                    </div>
                 </div>
             `;
+            // --- KONIEC ZMIANY ---
+            
             scheduleFields.appendChild(row);
         });
     }
