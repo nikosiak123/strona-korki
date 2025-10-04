@@ -410,9 +410,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = document.createElement('div');
             row.className = 'day-row';
             
-            // --- ZMIANA STRUKTURY HTML JEST TUTAJ ---
+            // --- ZMIANA STRUKTURY HTML - USUNIĘTO "day-label" ---
             row.innerHTML = `
-                <div class="day-label">${day}</div>
                 <div class="time-inputs-wrapper"> 
                     <div class="time-inputs">
                         <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
