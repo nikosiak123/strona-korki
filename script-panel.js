@@ -17,9 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
     const daysOfWeek = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"];
-    const dayNamesMap = {
-    "Pon": "Poniedziałek", "Wt": "Wtorek", "Śr": "Środa", "Czw": "Czwartek",
-    "Pt": "Piątek", "Sob": "Sobota", "Niedz": "Niedziela"};
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
 
@@ -408,21 +405,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `${hour}:${minute}`;
         };
         daysOfWeek.forEach(day => {
-            const timeRange = data[day] || "";
+            const timeRange = data[dayNamesFull[daysOfWeek.indexOf(day) + 1] || dayNamesFull[0]] || "";
             const [startTime = '', endTime = ''] = timeRange.split('-');
             const row = document.createElement('div');
             row.className = 'day-row';
             
-            // --- ZMIANA STRUKTURY HTML - USUNIĘTO "day-label" ---
             row.innerHTML = `
-                <div class="day-label">${dayNamesMap[day]}</div>
+                <div class="day-label">${day}</div>
                 <div class="time-inputs">
                     <input type="time" class="form-control" name="${day}_start" value="${formatTime(startTime.trim())}">
                     <span>-</span>
                     <input type="time" class="form-control" name="${day}_end" value="${formatTime(endTime.trim())}">
                 </div>
             `;
-            // --- KONIEC ZMIANY ---
             
             scheduleFields.appendChild(row);
         });
