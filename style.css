@@ -170,9 +170,10 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
     }
     
     .day-row {
-        grid-template-columns: 1fr; /* Zamiast dwóch kolumn, użyj jednej */
-        gap: 0.5rem; /* Zmniejsz odstęp */
-        text-align: center; /* Wyśrodkuj wszystko */
+        display: flex; /* Używamy flexboxa dla lepszej kontroli */
+        flex-direction: column; /* Ustawiamy elementy JEDEN POD DRUGIM */
+        align-items: center; /* Wyśrodkowujemy wszystko w poziomie */
+        gap: 0.75rem; /* Zwiększamy trochę odstęp */
     }
     
     .day-label {
