@@ -383,10 +383,6 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
 /* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
 /* ======================================== */
 
-/* ======================================== */
-/* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
-/* ======================================== */
-
 @media (max-width: 992px) {
     
     /* --- OGÓLNY UKŁAD --- */
@@ -441,26 +437,23 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     
     /* Poprawka edycji stałego grafiku */
     .day-row {
-        /* ZMIANA: Powrót do display: block, aby elementy ułożyły się w kolumnie */
-        display: block; 
-        grid-template-columns: none;
-        text-align: center;
-        gap: 1rem;
-        padding-bottom: 1.5rem;
-        margin-bottom: 1.5rem;
+        /* Resetujemy siatkę na rzecz prostego flex (lub domyślnego flow) */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 1rem; /* Zmniejszony padding */
+        margin-bottom: 1rem;
         border-bottom: 1px solid var(--border-color);
     }
     .day-label {
-        /* ZMIANA: Etykieta widoczna i wyśrodkowana, z marginesem pod spodem */
-        display: block; 
-        margin-bottom: 0.75rem;
-        text-align: center;
-        font-size: 1.1rem;
+        display: none; /* UKRYWAMY ETYKIETĘ DNIA */
     }
     .time-inputs {
-        /* ZMIANA: Centrowanie pól czasu pod etykietą */
-        justify-content: center; 
+        justify-content: space-between; /* Rozciągamy pola na całą dostępną szerokość */
+        flex-grow: 1; /* Wypełnia resztę miejsca po ukrytej etykiecie */
     }
+    /* NOWA REGUŁA ZMNIEJSZAJĄCA POLA CZASU */
     .time-inputs input[type="time"] {
         width: 100px;
         padding: 6px 8px;
