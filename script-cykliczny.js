@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedTime = null;
     let currentWeekStart = getMonday(new Date());
     let availableSlotsData = {};
-    let cyclicUnavailableData = {};
     const monthNames = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
     const workingHoursStart = 8;
@@ -160,9 +159,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function selectSlot(slotId, element, date, time) {
-        const prevSelected = document.querySelector('.time-block.selected');
-        if (prevSelected) prevSelected.classList.remove('selected');
-        element.classList.add('selected');
+        // Usuwamy klasę 'selected' ze wszystkich elementów
+        const prevSelected = document.querySelectorAll('.time-block.selected');
+        prevSelected.forEach(block => block.classList.remove('selected'));
+        
+        // Zaznaczamy wszystkie pasujące bloki (w obu widokach)
+        const allMatchingBlocks = document.querySelectorAll(`[data-slot-id="${slotId}"]`);
+        allMatchingBlocks.forEach(block => block.classList.add('selected'));
+
         selectedSlotId = slotId;
         selectedDate = date;
         selectedTime = time;
@@ -190,10 +194,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function generateTimeSlotCalendar(startDate) {
+    function renderCalendarViews(startDate) {
+        // Usuwamy stary kalendarz (PC)
         calendarContainer.innerHTML = '';
         calendarContainer.className = 'time-slot-calendar';
-        
+
+        // Czyścimy mobilny kontener
+        const mobileContainer = document.getElementById('calendar-mobile-container');
+        if (mobileContainer) mobileContainer.innerHTML = '';
+
+        generatePCGridCalendar(startDate);
+        generateMobileListCalendar(startDate);
+
+        // Inicjalizacja przycisków dla PC
+        const pcPrev = calendarContainer.querySelector('#prevWeek');
+        const pcNext = calendarContainer.querySelector('#nextWeek');
+        if (pcPrev) pcPrev.addEventListener('click', () => changeWeek(-7));
+        if (pcNext) pcNext.addEventListener('click', () => changeWeek(7));
+
+        // Inicjalizacja przycisków dla Mobile (jeśli zostały wygenerowane)
+        const mobileContainerEl = document.getElementById('calendar-mobile-container');
+        if (mobileContainerEl) {
+            const mobilePrev = mobileContainerEl.querySelector('#mobilePrevWeek');
+            const mobileNext = mobileContainerEl.querySelector('#mobileNextWeek');
+            if (mobilePrev) mobilePrev.addEventListener('click', () => changeWeek(-7));
+            if (mobileNext) mobileNext.addEventListener('click', () => changeWeek(7));
+        }
+    }
+
+    function generatePCGridCalendar(startDate) {
         const daysInWeek = Array.from({length: 7}, (_, i) => {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
@@ -227,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const endTime = new Date(startDate);
         endTime.setHours(workingHoursEnd, 0, 0, 0);
     
-        // ### NOWA LOGIKA: Oblicz moment 12 godzin od teraz ###
         const twelveHoursFromNow = new Date();
         twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
     
@@ -253,30 +281,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 let isClickable = false;
                 
-                // ### ZMIANA TUTAJ: Dodatkowa walidacja czasu ###
                 const blockDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
     
                 if (matchingSlot && blockDateTime > twelveHoursFromNow) {
-                    // Warunek spełniony: slot jest dostępny i jest za ponad 12 godzin
                     block.textContent = timeSlot;
                     isClickable = true;
                 } else {
-                    // W przeciwnym razie slot jest niedostępny (zajęty, minął, lub jest za mniej niż 12h)
                     block.classList.add('disabled');
-                    if (matchingSlot) { // Jeśli istniał, ale jest za blisko w czasie
+                    if (matchingSlot) { 
                          block.textContent = timeSlot;
                          block.title = "Tego terminu nie można już zarezerwować (mniej niż 12h).";
                     }
                 }
     
-                // 'selectedSlotId' jest zdefiniowany globalnie w każdym skrypcie
-                const currentSelectedSlotId = typeof newSelectedSlotId !== 'undefined' ? newSelectedSlotId : selectedSlotId;
-                if(currentSelectedSlotId === blockId) {
+                if(selectedSlotId === blockId) {
                     block.classList.add('selected');
                 }
                 
                 if(isClickable) {
-                    block.addEventListener('click', () => selectSlot(blockId, block, formattedDate, timeSlot));
+                    block.addEventListener('click', (e) => selectSlot(blockId, e.target, formattedDate, timeSlot));
                 }
                 
                 cell.appendChild(block);
@@ -286,24 +309,104 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         calendarContainer.appendChild(table);
-    
-        document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
-        document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
     }
+
+    function generateMobileListCalendar(startDate) {
+        const mobileContainer = document.getElementById('calendar-mobile-container');
+        if (!mobileContainer) return;
+
+        const daysInWeek = Array.from({length: 7}, (_, i) => {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            return d;
+        });
+
+        // 1. Nawigacja
+        const calendarNavigation = document.createElement('div');
+        calendarNavigation.className = 'calendar-navigation';
+        const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()].substring(0,3)}.`;
+        const lastDayFormatted = `${dayNamesFull[daysInWeek[6].getDay()].substring(0,3)}. ${daysInWeek[6].getDate()} ${monthNames[daysInWeek[6].getMonth()].substring(0,3)}.`;
+        calendarNavigation.innerHTML = `
+            <button id="mobilePrevWeek">Poprzedni tydzień</button>
+            <h3>${firstDayFormatted} - ${lastDayFormatted}</h3>
+            <button id="mobileNextWeek">Następny tydzień</button>
+        `;
+        mobileContainer.appendChild(calendarNavigation);
+
+        const twelveHoursFromNow = new Date();
+        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
+        let hasAvailableSlots = false;
+
+        // 2. Lista dni
+        daysInWeek.forEach(day => {
+            const formattedDate = getFormattedDate(day);
+            const daySlots = availableSlotsData[formattedDate] || [];
+            
+            const availableDaySlots = daySlots.filter(slot => {
+                const blockDateTime = new Date(`${formattedDate}T${slot.time}:00`);
+                return blockDateTime > twelveHoursFromNow;
+            });
+
+            if (availableDaySlots.length === 0) {
+                return;
+            }
+            hasAvailableSlots = true;
+
+            const dayCard = document.createElement('div');
+            dayCard.className = 'mobile-day-card';
+            dayCard.innerHTML = `<h4>${dayNamesFull[day.getDay()]} ${day.getDate()} ${monthNames[day.getMonth()]}</h4>`;
+            
+            const slotsContainer = document.createElement('div');
+            slotsContainer.className = 'mobile-slots-container';
+
+            availableDaySlots.sort((a, b) => a.time.localeCompare(b.time));
+
+            availableDaySlots.forEach(slot => {
+                const blockId = `block_${formattedDate}_${slot.time.replace(':', '')}`;
+                
+                // Sprawdzamy, czy slot jest aktualnie zaznaczony
+                const isCurrentlySelected = selectedSlotId === blockId;
+
+                const block = document.createElement('div');
+                block.className = `time-block ${isCurrentlySelected ? 'selected' : ''}`;
+                block.dataset.slotId = blockId;
+                block.dataset.date = formattedDate;
+                block.dataset.time = slot.time;
+                block.textContent = slot.time;
+
+                block.addEventListener('click', (e) => selectSlot(blockId, e.target, formattedDate, slot.time));
+                slotsContainer.appendChild(block);
+            });
+
+            dayCard.appendChild(slotsContainer);
+            mobileContainer.appendChild(dayCard);
+        });
+
+        if (!hasAvailableSlots && mobileContainer.children.length === 1 && mobileContainer.querySelector('.calendar-navigation')) {
+            mobileContainer.innerHTML += '<p style="padding: 2rem; text-align: center; color: var(--text-medium);">Brak dostępnych terminów w tym tygodniu.</p>';
+        }
+    }
+
 
     async function fetchAvailableSlots(startDate) {
         const selectedSchoolType = schoolTypeSelect.value;
         const selectedLevel = schoolLevelSelect.value;
         const selectedSubject = subjectSelect.value;
         
+        const mobileContainer = document.getElementById('calendar-mobile-container');
+        
         if (!selectedSchoolType || !selectedSubject || (levelGroup.style.display === 'block' && !selectedLevel)) {
-            calendarContainer.innerHTML = '<div class="calendar-placeholder"><p style="padding: 2rem; text-align: center; color: var(--text-medium);">Proszę wybrać przedmiot, typ szkoły i poziom, aby zobaczyć dostępne terminy.</p></div>';
+            const placeholder = '<div class="calendar-placeholder"><p style="padding: 2rem; text-align: center; color: var(--text-medium);">Proszę wybrać przedmiot, typ szkoły i poziom, aby zobaczyć dostępne terminy.</p></div>';
+            calendarContainer.innerHTML = placeholder;
+            if (mobileContainer) mobileContainer.innerHTML = placeholder;
             availableSlotsData = {};
             updateTutorList([]);
             return;
         }
 
-        calendarContainer.innerHTML = '<div class="calendar-placeholder"><p style="padding: 2rem; text-align: center; color: var(--text-medium);">Ładowanie dostępnych terminów...</p></div>';
+        const loadingHTML = '<div class="calendar-placeholder"><p style="padding: 2rem; text-align: center; color: var(--text-medium);">Ładowanie dostępnych terminów...</p></div>';
+        calendarContainer.innerHTML = loadingHTML;
+        if (mobileContainer) mobileContainer.innerHTML = loadingHTML;
         
         try {
             const params = new URLSearchParams({
@@ -328,7 +431,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             availableSlotsData = processedData;
             updateTutorList(Array.from(uniqueTutors));
-            generateTimeSlotCalendar(startDate);
+
+            renderCalendarViews(startDate);
+
         } catch (error) {
             console.error('Nie udało się pobrać grafiku:', error);
             showStatus('Błąd ładowania grafiku. Spróbuj ponownie później.', 'error');
@@ -358,8 +463,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
         
-            // ### POPRAWKA TUTAJ ###
-            // Upewniamy się, że pobieramy wartości ze wszystkich pól, nawet tych dynamicznych
             const formData = {
                 clientID: clientID,
                 firstName: firstNameInput.value, 
@@ -373,7 +476,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 selectedTime: selectedTime
             };
             
-            // Dodajemy logikę specyficzną dla `script-cykliczny.js`
             if (typeof isOneTimeCheckbox !== 'undefined') {
                 formData.isOneTime = isOneTimeCheckbox.checked;
             }
@@ -382,7 +484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             reserveButton.textContent = 'Rezerwuję...';
             showStatus('Trwa rezerwacja...', 'info');
             
-            console.log("Dane wysyłane do backendu:", formData); // Dodatkowy log do sprawdzenia
+            console.log("Dane wysyłane do backendu:", formData); 
         
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
@@ -390,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (response.ok) {
                     const result = await response.json();
-                    // Przekierowanie na stronę potwierdzenia z wszystkimi potrzebnymi danymi
+                    
                     const params = new URLSearchParams({
                         date: formData.selectedDate,
                         time: formData.selectedTime,
@@ -410,9 +512,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showStatus('Wystąpił błąd podczas rezerwacji terminu.', 'error');
             } finally {
                 reserveButton.disabled = false;
-                // Ustaw poprawny tekst w zależności od skryptu
-                const buttonText = (typeof isOneTimeCheckbox !== 'undefined') ? 'Zarezerwuj termin' : 'Zarezerwuj testową lekcję';
-                reserveButton.textContent = buttonText;
+                reserveButton.textContent = 'Zarezerwuj termin';
                 checkFormValidity();
             }
         });
