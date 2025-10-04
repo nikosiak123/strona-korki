@@ -377,6 +377,12 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 
 footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark); color: #FFF; margin-top: 2.5rem; font-size: 0.9rem; }
 
+/* ... (pozostała część pliku bez zmian) */
+
+/* ======================================== */
+/* === REGUŁY DLA URZĄDZEŃ MOBILNYCH === */
+/* ======================================== */
+
 @media (max-width: 992px) {
     
     /* --- OGÓLNY UKŁAD --- */
@@ -431,21 +437,21 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     
     /* Poprawka edycji stałego grafiku */
     .day-row {
-        display: grid; /* Zmieniono z block na grid */
-        grid-template-columns: 50px 1fr; /* Ustawienie dwóch kolumn: 50px dla nazwy dnia, reszta (1fr) dla pól */
+        /* Resetujemy siatkę na rzecz prostego flex (lub domyślnego flow) */
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 0.5rem; /* Zmniejszona odległość */
-        padding-bottom: 1.5rem;
-        margin-bottom: 1.5rem;
+        gap: 0.5rem;
+        padding-bottom: 1rem; /* Zmniejszony padding */
+        margin-bottom: 1rem;
         border-bottom: 1px solid var(--border-color);
     }
     .day-label {
-        margin-bottom: 0; /* Usunięto margines, ponieważ jest siatka */
-        text-align: left; /* Wyrównanie do lewej w wąskiej kolumnie */
-        font-size: 1rem;
+        display: none; /* UKRYWAMY ETYKIETĘ DNIA */
     }
     .time-inputs {
-        justify-content: flex-start; /* Wyrównanie do lewej strony w komórce */
+        justify-content: space-between; /* Rozciągamy pola na całą dostępną szerokość */
+        flex-grow: 1; /* Wypełnia resztę miejsca po ukrytej etykiecie */
     }
     /* NOWA REGUŁA ZMNIEJSZAJĄCA POLA CZASU */
     .time-inputs input[type="time"] {
