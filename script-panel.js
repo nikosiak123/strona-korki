@@ -185,6 +185,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function renderWeeklyCalendar(startDate) {
         calendarContainer.innerHTML = '<p>Ładowanie grafiku...</p>';
+        const mobileContainer = document.getElementById('calendar-mobile-container');
+        if(mobileContainer) mobileContainer.innerHTML = ''; // Czyścimy kontener mobilny
+        
         const params = new URLSearchParams({ startDate: getFormattedDate(startDate), tutorName: tutorName });
         
         try {
@@ -192,28 +195,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) throw new Error("Błąd ładowania grafiku.");
             
             const fullSchedule = await response.json();
-            console.log("Otrzymano pełny grafik z backendu:", fullSchedule); // KLUCZOWY LOG
-
+            console.log("Otrzymano pełny grafik z backendu:", fullSchedule);
+    
             const scheduleMap = {};
             fullSchedule.forEach(slot => {
                 if (!scheduleMap[slot.date]) scheduleMap[slot.date] = {};
                 scheduleMap[slot.date][slot.time] = slot;
             });
-
+    
+            // ----------------------------------------------------
+            // === 1. PRZYGOTOWANIE WSPÓLNEJ NAWIGACJI DLA OBU WIDOKÓW ===
+            // ----------------------------------------------------
             calendarContainer.innerHTML = '';
             const daysInWeek = Array.from({length: 7}, (_, i) => {
                 const d = new Date(startDate);
                 d.setDate(d.getDate() + i);
                 return d;
             });
-
+    
             const calendarNavigation = document.createElement('div');
             calendarNavigation.className = 'calendar-navigation';
             const firstDayFormatted = `${dayNamesFull[daysInWeek[0].getDay()].substring(0,3)}. ${daysInWeek[0].getDate()} ${monthNames[daysInWeek[0].getMonth()]}`;
             const lastDayFormatted = `${dayNamesFull[daysInWeek[6].getDay()].substring(0,3)}. ${daysInWeek[6].getDate()} ${monthNames[daysInWeek[6].getMonth()]}`;
             calendarNavigation.innerHTML = `<button id="prevWeek">Poprzedni tydzień</button><h3>${firstDayFormatted} - ${lastDayFormatted}</h3><button id="nextWeek">Następny tydzień</button>`;
             calendarContainer.appendChild(calendarNavigation);
-
+    
+            // ----------------------------------------------------
+            // === 2. WIDOK NA KOMPUTER (Tabela) ===
+            // ----------------------------------------------------
             const table = document.createElement('table');
             table.className = 'calendar-grid-table';
             let headerRow = '<tr><th class="time-label">Godzina</th>';
@@ -221,12 +230,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             headerRow += '</tr>';
             table.createTHead().innerHTML = headerRow;
             const tbody = table.createTBody();
-
-            let masterTime = new Date();
+    
+            let masterTime = new Date(startDate);
             masterTime.setHours(8, 0, 0, 0);
-            const endMasterTime = new Date();
+            const endMasterTime = new Date(startDate);
             endMasterTime.setHours(22, 0, 0, 0);
-
+    
             while (masterTime < endMasterTime) {
                 const timeSlot = masterTime.toTimeString().substring(0, 5);
                 const row = tbody.insertRow();
@@ -279,8 +288,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             calendarContainer.appendChild(table);
             
+    
+            // ----------------------------------------------------
+            // === 3. NOWY WIDOK NA TELEFON (Lista Dni) ===
+            // ----------------------------------------------------
+            if (mobileContainer) {
+                daysInWeek.forEach(day => {
+                    const formattedDate = getFormattedDate(day);
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'mobile-day-card';
+                    
+                    let dayHtml = `<h4>${dayNamesFull[day.getDay()]}, ${day.getDate()} ${monthNames[day.getMonth()]}</h4>`;
+                    let slotsForDay = fullSchedule.filter(slot => slot.date === formattedDate && slot.status !== 'available'); // Pokażemy tylko zajęte/zablokowane
+    
+                    // Jeśli są jakiekolwiek sloty (zajęte/zablokowane)
+                    if (slotsForDay.length > 0) {
+                        slotsForDay.sort((a, b) => a.time.localeCompare(b.time));
+                        slotsForDay.forEach(slot => {
+                            const block = document.createElement('div');
+                            
+                            // Ta sama logika kolorowania, co w tabeli
+                            switch(slot.status) {
+                                case 'available':
+                                    block.classList.add('available');
+                                    block.textContent = `${slot.time} - Dostępny`;
+                                    block.addEventListener('click', () => handleBlockClick(slot.date, slot.time));
+                                    break;
+                                case 'booked_lesson':
+                                case 'cyclic_reserved':
+                                    block.classList.add('booked-lesson');
+                                    block.textContent = `${slot.time} - ${slot.studentName}`;
+                                    block.addEventListener('click', () => showActionModal(slot));
+                                    break;
+                                case 'rescheduled_by_tutor':
+                                    block.classList.add('rescheduled');
+                                    block.textContent = `${slot.time} - PRZENIESIONE`;
+                                    break;
+                                case 'blocked_by_tutor':
+                                    block.classList.add('unavailable');
+                                    block.textContent = `${slot.time} - BLOKADA`;
+                                    block.addEventListener('click', () => handleBlockClick(slot.date, slot.time));
+                                    break;
+                                default:
+                                     block.classList.add('unavailable');
+                                     block.textContent = `${slot.time} - Zajęty`;
+                            }
+                            dayHtml += block.outerHTML;
+                        });
+                    } else {
+                        dayHtml += '<p style="font-size: 0.9em; color: var(--text-light);">Brak zaplanowanych i zablokowanych terminów na ten dzień.</p>';
+                    }
+                    dayCard.innerHTML = dayHtml;
+                    mobileContainer.appendChild(dayCard);
+                });
+            }
+    
+            // ----------------------------------------------------
+            // === 4. OBSŁUGA NAWIGACJI DLA OBU WIDOKÓW ===
+            // ----------------------------------------------------
             document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-7));
             document.getElementById('nextWeek').addEventListener('click', () => changeWeek(7));
+    
         } catch (error) {
             console.error("Błąd podczas renderowania kalendarza:", error);
             calendarContainer.innerHTML = '<p style="color: red;">Wystąpił krytyczny błąd podczas renderowania kalendarza.</p>';
