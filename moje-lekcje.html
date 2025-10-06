@@ -77,16 +77,24 @@
         .lesson-actions .btn-join { background-color: var(--primary-color); color: var(--text-dark); }
         .lesson-actions .btn-join:hover { background-color: var(--primary-hover-color); }
         
-        /* --- NOWY STYL DLA PRZYCISKU "PRZENIEŚ" --- */
         .lesson-actions .btn-reschedule {
-            background-color: #2196F3; /* Żywy niebieski */
+            background-color: #2196F3;
             color: white;
         }
         .lesson-actions .btn-reschedule:hover {
-            background-color: #1976D2; /* Ciemniejszy niebieski */
+            background-color: #1976D2;
+        }
+        
+        /* --- DODANO: Styl dla przycisku odsubskrybowania --- */
+        .lesson-actions .btn-unsubscribe {
+            background-color: #E53935; /* Czerwony */
+            color: white;
+        }
+        .lesson-actions .btn-unsubscribe:hover {
+            background-color: #C62828; /* Ciemniejszy czerwony */
         }
 
-        /* --- STYLE DLA PRZYPOMNIENIA O PŁATNOŚCI --- */
+
         .lesson-payment-info {
             background-color: #FFF8E1;
             color: #6D4C41;
@@ -236,12 +244,15 @@
                 const card = document.createElement('div');
                 card.className = 'lesson-card';
                 
-                let actionButtonHtml = '';
+                let confirmButtonHtml = '';
                 if (lesson.isNextLessonConfirmed) {
-                    actionButtonHtml = `<span class="confirmed-info">Najbliższa lekcja potwierdzona</span>`;
+                    confirmButtonHtml = `<span class="confirmed-info">Najbliższa lekcja potwierdzona</span>`;
                 } else {
-                    actionButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
+                    confirmButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
                 }
+
+                // --- ZMIANA: Dodano przycisk odsubskrybowania ---
+                const unsubscribeButtonHtml = `<button class="btn-unsubscribe" data-id="${lesson.id}">Odwołaj stały termin</button>`;
             
                 const contactLinkHtml = lesson.tutorContactLink 
                     ? `<a href="${lesson.tutorContactLink}" target="_blank" style="font-size: 0.9em; margin-left: 8px;">(Kontakt)</a>` 
@@ -253,10 +264,12 @@
                         <div><strong>Przedmiot:</strong> ${lesson.subject}</div>
                         <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
                     </div>
-                    <div class="lesson-actions">${actionButtonHtml}</div>
+                    <div class="lesson-actions">
+                        ${confirmButtonHtml}
+                        ${unsubscribeButtonHtml}
+                    </div>
                 `;
                 
-                // --- NOWA, ULEPSZONA LOGIKA KLIKNIĘCIA ---
                 const confirmButton = card.querySelector('.btn-confirm');
                 if (confirmButton) {
                     confirmButton.addEventListener('click', async () => {
@@ -264,7 +277,6 @@
                         confirmButton.disabled = true;
             
                         try {
-                            // Krok 1: Sprawdź dostępność w tle
                             const response = await fetch(`${API_BASE_URL}/api/check-cyclic-availability`, {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
@@ -273,22 +285,49 @@
                             const result = await response.json();
                             
                             if (response.ok && result.isAvailable) {
-                                // Krok 2a: Jeśli wolny, pokaż standardowe okno potwierdzenia
                                 showConfirmationStep(lesson);
                             } else {
-                                // Krok 2b: Jeśli zajęty, pokaż od razu okno konfliktu, przekazując token
                                 showConflictModal(result.message, result.managementToken);
                             }
                         } catch (error) {
                             alert("Wystąpił błąd podczas sprawdzania dostępności. Spróbuj ponownie.");
                         } finally {
-                            // Przywróć przycisk do stanu początkowego
                             confirmButton.textContent = 'Potwierdź najbliższą lekcję';
                             confirmButton.disabled = false;
                         }
                     });
                 }
-                // --- KONIEC NOWEJ LOGIKI ---
+
+                // --- DODANO: Obsługa kliknięcia przycisku odsubskrybowania ---
+                const unsubscribeButton = card.querySelector('.btn-unsubscribe');
+                if (unsubscribeButton) {
+                    unsubscribeButton.addEventListener('click', async () => {
+                        if (confirm("Czy na pewno chcesz na stałe odwołać ten termin? Tej operacji nie można cofnąć, a wszystkie przyszłe lekcje z tego cyklu zostaną usunięte.")) {
+                            unsubscribeButton.textContent = "Anulowanie...";
+                            unsubscribeButton.disabled = true;
+                            try {
+                                const response = await fetch(`${API_BASE_URL}/api/cancel-cyclic-reservation`, {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ cyclicReservationId: lesson.id })
+                                });
+
+                                if (!response.ok) {
+                                    const errorData = await response.json();
+                                    throw new Error(errorData.message || "Błąd serwera.");
+                                }
+                                
+                                alert("Stały termin został pomyślnie odwołany.");
+                                window.location.reload();
+
+                            } catch (error) {
+                                alert(`Wystąpił błąd: ${error.message}`);
+                                unsubscribeButton.textContent = "Odwołaj stały termin";
+                                unsubscribeButton.disabled = false;
+                            }
+                        }
+                    });
+                }
             
                 return card;
             }
@@ -403,15 +442,11 @@
                 
                 let buttonsHtml = '';
                 
-                // === ZMIANA JEST TUTAJ (Tekst przycisku) ===
                 if (token) {
-                    // Zmieniamy "Zarządzaj terminem" na bardziej bezpośrednie "Wybierz inny termin"
                     buttonsHtml = `<a href="${editUrl}" class="modal-btn primary">Wybierz inny termin</a>`;
                 }
                 
-                // Zmieniamy "OK" na "Zmień termin później"
                 buttonsHtml += `<button id="modalConflictOkBtn" class="modal-btn secondary">Zmienię później</button>`;
-                // === KONIEC ZMIANY ===
                 
                 modalButtons.innerHTML = buttonsHtml;
                 modalButtons.style.display = 'flex';
@@ -419,7 +454,6 @@
             
                 document.getElementById('modalConflictOkBtn').onclick = () => {
                     modalOverlay.classList.remove('active');
-                    // Przeładuj stronę, aby pokazać nowo utworzoną, "przeniesioną" lekcję
                     window.location.reload();
                 };
             }
