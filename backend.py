@@ -207,6 +207,33 @@ def initialize_driver_and_login():
     finally:
         print("--- Zakończono proces inicjalizacji przeglądarki (w ramach bloku finally). ---")
 
+@app.route('/api/cancel-cyclic-reservation', methods=['POST'])
+def cancel_cyclic_reservation():
+    try:
+        data = request.json
+        cyclic_reservation_id = data.get('cyclicReservationId')
+
+        if not cyclic_reservation_id:
+            abort(400, "Brak identyfikatora stałej rezerwacji.")
+
+        # Znajdź rekord stałej rezerwacji
+        record_to_cancel = cyclic_reservations_table.get(cyclic_reservation_id)
+        
+        if not record_to_cancel:
+            abort(404, "Nie znaleziono stałej rezerwacji o podanym ID.")
+
+        # Zaktualizuj rekord, ustawiając go jako nieaktywny (zamiast usuwać)
+        cyclic_reservations_table.update(record_to_cancel['id'], {"Aktywna": False})
+        
+        print(f"ANULOWANO STAŁY TERMIN: ID {record_to_cancel['id']} został oznaczony jako nieaktywny.")
+
+        return jsonify({"message": "Stały termin został pomyślnie odwołany."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd serwera podczas anulowania stałego terminu.")
+
+
 def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
     """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta, robiąc zrzuty ekranu."""
     driver = None
