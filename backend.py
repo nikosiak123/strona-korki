@@ -222,10 +222,11 @@ def cancel_cyclic_reservation():
         if not record_to_cancel:
             abort(404, "Nie znaleziono stałej rezerwacji o podanym ID.")
 
-        # Zaktualizuj rekord, ustawiając go jako nieaktywny (zamiast usuwać)
-        cyclic_reservations_table.update(record_to_cancel['id'], {"Aktywna": False})
+        # --- ZMIANA JEST TUTAJ ---
+        # Usuń rekord stałej rezerwacji zamiast go dezaktywować
+        cyclic_reservations_table.delete(record_to_cancel['id'])
         
-        print(f"ANULOWANO STAŁY TERMIN: ID {record_to_cancel['id']} został oznaczony jako nieaktywny.")
+        print(f"USUNIĘTO STAŁY TERMIN: Rekord o ID {record_to_cancel['id']} został trwale usunięty.")
 
         return jsonify({"message": "Stały termin został pomyślnie odwołany."})
 
