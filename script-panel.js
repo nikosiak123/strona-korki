@@ -143,9 +143,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lesson = typeof lessonOrIndex === 'number' ? upcomingLessons[lessonOrIndex] : lessonOrIndex;
         if (!lesson) return;
         
+        // --- NOWA LOGIKA PŁATNOŚCI ---
+        let paymentStatusHtml = '';
+        if (lesson.isTest && !lesson.isPaid) {
+            paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
+        } else if (lesson.isPaid) {
+            paymentStatusHtml = `<div class="modal-details-item"><strong>Płatność:</strong> <span style="color: green; font-weight: bold;">Opłacona</span></div>`;
+        } else {
+            paymentStatusHtml = `<div class="modal-details-item"><strong>Płatność:</strong> <span style="color: orange; font-weight: bold;">Oczekuje na płatność</span></div>`;
+        }
+
         modalDetailsContent.innerHTML = `
             <div class="modal-details-item"><strong>Uczeń:</strong> <span>${lesson.studentName || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Termin:</strong> <span>${lesson.date} o ${lesson.time}</span></div>
+            ${paymentStatusHtml} 
+            <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${lesson.subject || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${lesson.schoolType || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Poziom:</strong> <span>${lesson.schoolLevel || 'N/A'}</span></div>
@@ -162,9 +174,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (slot.studentContactLink) {
             contactLinkHtml = `<a href="${slot.studentContactLink}" target="_blank"> (Przejdź do profilu)</a>`;
         }
+        
+        // --- NOWA LOGIKA PŁATNOŚCI ---
+        let paymentStatusHtml = '';
+        if (slot.isTest && !slot.isPaid) {
+            paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
+        } else if (slot.isPaid) {
+            paymentStatusHtml = `<div class="modal-details-item"><strong>Płatność:</strong> <span style="color: green; font-weight: bold;">Opłacona</span></div>`;
+        } else {
+            paymentStatusHtml = `<div class="modal-details-item"><strong>Płatność:</strong> <span style="color: orange; font-weight: bold;">Oczekuje na płatność</span></div>`;
+        }
     
         let detailsHtml = `
             <div class="modal-details-item"><strong>Uczeń:</strong> <span>${slot.studentName || 'Brak danych'}${contactLinkHtml}</span></div>
+            ${paymentStatusHtml}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${slot.subject || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${slot.schoolType || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Poziom:</strong> <span>${slot.schoolLevel || 'N/A'}</span></div>
@@ -183,9 +207,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('closeActionModalBtn').onclick = () => actionModal.classList.remove('active');
         
         document.getElementById('rescheduleBtn').onclick = async () => {
-            // Placeholder for reschedule logic
+            // ... (reszta funkcji bez zmian)
         };
     }
+
 
     async function renderWeeklyCalendar(startDate) {
         calendarContainer.innerHTML = '<p>Ładowanie grafiku...</p>';
