@@ -401,19 +401,20 @@ def check_and_cancel_unpaid_lessons():
     warsaw_tz = pytz.timezone('Europe/Warsaw')
     current_local_time = datetime.now(warsaw_tz)
     
-    # Zmieniamy print na logging.debug, aby był domyślnie ukryty
     logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     try:
-        formula = f"AND({{Opłacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność')"
+        # --- ZMIANA JEST TUTAJ ---
+        # Dodajemy warunek, aby funkcja ignorowała lekcje testowe
+        formula = f"AND({{Opłacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność', {{JestTestowa}} != 1)"
         
         potential_lessons = reservations_table.all(formula=formula)
         
         if not potential_lessons:
-            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji.")
+            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji (innych niż testowe).")
             return
 
-        logging.debug(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji. Sprawdzam terminy płatności...")
+        logging.debug(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji (innych niż testowe). Sprawdzam terminy płatności...")
         
         lessons_to_cancel = []
         
@@ -432,14 +433,12 @@ def check_and_cancel_unpaid_lessons():
             
             if current_local_time > payment_deadline:
                 lessons_to_cancel.append(lesson)
-                # Ten log jest ważny, więc zostaje jako INFO
                 logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} zakwalifikowana do anulowania. Termin płatności: {payment_deadline.strftime('%Y-%m-%d %H:%M:%S')}")
 
         if not lessons_to_cancel:
             logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Żadna z lekcji nie przekroczyła terminu płatności.")
             return
 
-        # Te logi również są ważne, więc zostają jako INFO
         logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
         
         records_to_update = []
@@ -457,8 +456,8 @@ def check_and_cancel_unpaid_lessons():
         logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
 
     except Exception as e:
-        # Błędy są zawsze krytyczne
         logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
+
 
 def parse_time_range(time_range_str):
     try:
