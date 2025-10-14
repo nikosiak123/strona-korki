@@ -887,10 +887,13 @@ def get_schedule():
                 booked_slots[key] = {
                     "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
                     "studentName": student_name, 
-                    "studentContactLink": client_info.get('LINK'), # <-- DODAJ TĘ LINIĘ
+                    "studentContactLink": client_info.get('LINK'),
                     "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
-                    "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink')
+                    "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
+                    "isPaid": fields.get('Opłacona', False),      # <-- DODANO TĘ LINIĘ
+                    "isTest": fields.get('JestTestowa', False)    # <-- DODANO TĘ LINIĘ
                 }
+
 
         cyclic_reservations = cyclic_reservations_table.all(formula="{Aktywna}=1")
         for rec in cyclic_reservations:
