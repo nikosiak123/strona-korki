@@ -143,11 +143,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lesson = typeof lessonOrIndex === 'number' ? upcomingLessons[lessonOrIndex] : lessonOrIndex;
         if (!lesson) return;
 
-        console.log("Dane dla showLessonDetailsModal:", lesson); // <-- DODANY LOG
+        console.log("Dane dla showLessonDetailsModal:", lesson);
 
         let paymentStatusHtml = '';
-        if (lesson.isTest && !lesson.isPaid) {
-
         if (lesson.isTest && !lesson.isPaid) {
             paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
         } else if (lesson.isPaid) {
@@ -172,15 +170,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showActionModal(slot) {
         actionModalTitle.textContent = `Zarządzaj terminem (${slot.date} o ${slot.time})`;
-        console.log("Dane dla showActionModal (z kalendarza):", slot); // <-- DODANY LOG
-
+        
+        console.log("Dane dla showActionModal (z kalendarza):", slot);
         
         let contactLinkHtml = '';
         if (slot.studentContactLink) {
             contactLinkHtml = `<a href="${slot.studentContactLink}" target="_blank"> (Przejdź do profilu)</a>`;
         }
         
-        // --- NOWA LOGIKA PŁATNOŚCI ---
         let paymentStatusHtml = '';
         if (slot.isTest && !slot.isPaid) {
             paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
