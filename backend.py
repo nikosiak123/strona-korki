@@ -1116,7 +1116,8 @@ def create_reservation():
                 "Klient": client_uuid.strip(), "Korepetytor": tutor_for_reservation,
                 "Data": data['selectedDate'], "Godzina": data['selectedTime'],
                 "Przedmiot": data.get('subject'), "ManagementToken": management_token,
-                "Typ": "Jednorazowa", "Status": "Oczekuje na płatność", "TeamsLink": teams_link
+                "Typ": "Jednorazowa", "Status": "Oczekuje na płatność", "TeamsLink": teams_link,
+                "JestTestowa": is_test_lesson  # <-- DODANO TĘ LINIĘ
             }
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
