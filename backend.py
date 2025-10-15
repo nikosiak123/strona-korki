@@ -488,13 +488,35 @@ def find_reservation_by_token(token):
     if not token: return None
     return reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
 
+# W pliku backend.py
+
 def is_cancellation_allowed(record):
     fields = record.get('fields', {})
     lesson_date_str = fields.get('Data')
     lesson_time_str = fields.get('Godzina')
-    if not lesson_date_str or not lesson_time_str: return False
-    lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
-    return (lesson_datetime - datetime.now()) > timedelta(hours=12)
+    
+    # Pobieramy status lekcji testowej. Domyślnie False, jeśli pole nie istnieje.
+    is_test_lesson = fields.get('JestTestowa', False) 
+    
+    if not lesson_date_str or not lesson_time_str:
+        return False
+        
+    try:
+        # Pamiętaj, że datetime.now() domyślnie jest naiwne (bez strefy czasowej), 
+        # ale ponieważ Airtable Data/Godzina również jest naiwne, porównanie powinno działać.
+        lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        # Błąd formatu daty/czasu w rekordzie
+        return False
+        
+    time_remaining = lesson_datetime - datetime.now()
+    
+    # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 1 minuty przed rozpoczęciem.
+    if is_test_lesson:
+        return time_remaining > timedelta(minutes=1)
+    
+    # Warunek dla wszystkich innych lekcji: Obowiązuje standardowe 12 godzin.
+    return time_remaining > timedelta(hours=12)
 
 # --- Endpointy API ---
 @app.route('/api/check-cyclic-availability', methods=['POST'])
