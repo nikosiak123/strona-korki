@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zakręcone Korepetycje - Strona Główna</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .landing-container {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 3rem 2rem;
+            background-color: var(--container-bg-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            text-align: center;
+        }
+        .landing-container h1 {
+            font-size: 3rem;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+        .landing-container h2 {
+            font-size: 1.5rem;
+            color: var(--text-medium);
+            margin-bottom: 2rem;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .info-block {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+        }
+        .feature {
+            flex: 1 1 250px;
+            padding: 1.5rem;
+            border-radius: 12px;
+            background-color: #FAFAFA;
+            border: 1px solid var(--border-color);
+        }
+        .feature h3 {
+            color: var(--primary-color);
+            border-bottom: none;
+            font-size: 1.3rem;
+            margin-top: 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+            padding: 15px 35px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 2rem;
+        }
+        .cta-button:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .landing-container {
+                margin: 2rem 1rem;
+                padding: 2rem 1rem;
+                box-shadow: none;
+            }
+            .landing-container h1 { font-size: 2.5rem; }
+            .landing-container h2 { font-size: 1.2rem; }
+            .info-block { margin: 1.5rem 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/" style="font-weight: 700; font-size: 1.5rem; text-decoration: none; color: var(--text-dark);">Zakręcone Korepetycje</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="landing-container">
+            <h1>Zacznij zakręcone korepetycje już dziś!</h1>
+            <h2>Skuteczna nauka online z najlepszymi korepetytorami.</h2>
+
+            <a href="/rezerwacja-testowa.html" class="cta-button">
+                Zarezerwuj lekcję testową
+            </a>
+
+            <div class="info-block">
+                <div class="feature">
+                    <h3>Matematyka, Polski, Angielski</h3>
+                    <p>Wybierz jeden z popularnych przedmiotów i zacznij nadrabiać zaległości lub przygotowywać się do egzaminów.</p>
+                </div>
+                <div class="feature">
+                    <h3>Indywidualne podejście</h3>
+                    <p>Dopasowujemy metody nauczania do Twoich potrzeb, poziomu i tempa pracy. Nie zostajesz w tyle.</p>
+                </div>
+                <div class="feature">
+                    <h3>Wygoda i elastyczność</h3>
+                    <p>Ucz się w pełni online, oszczędzając czas na dojazdy. Rezerwuj terminy w dogodnych dla siebie godzinach.</p>
+                </div>
+            </div>
+            
+            <p style="color: var(--text-light); font-size: 0.9rem;">
+                Masz już wykupiony dostęp? <a href="/moje-lekcje.html" style="color: var(--primary-color); font-weight: 600;">Przejdź do Panelu Klienta</a>.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Zakręcone Korepetycje</p>
+    </footer>
+</body>
+</html>
