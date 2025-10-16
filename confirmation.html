@@ -87,7 +87,7 @@
                 detailsElement.textContent = `Termin: ${date} o godzinie ${time}`;
                 
                 // Wygeneruj i wyświetl link do panelu klienta
-                const dashboardUrl = `${window.location.origin}${window.location.pathname.replace('confirmation.html', 'moje-lekcje.html')}?clientID=${clientID}`;
+                const dashboardUrl = `${window.location.origin}/moje-lekcje.html?clientID=${clientID}`;
                 dashboardLink.href = dashboardUrl;
                 dashboardLink.textContent = dashboardUrl;
                 dashboardLinkContainer.style.display = 'block';
