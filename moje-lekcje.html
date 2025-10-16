@@ -200,7 +200,7 @@
                 return;
             }
 
-            newBookingLink.href = `rezerwacja-cykliczna.html?clientID=${clientID}`;
+            newBookingLink.href = `rezerwacja-stala.html?clientID=${clientID}`;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/get-client-dashboard?clientID=${clientID}`);
