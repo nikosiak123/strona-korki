@@ -1,1 +1,69 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regulamin - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .legal-container { 
+            max-width: 900px; 
+            margin: 2.5rem auto; 
+            padding: 2.5rem; 
+            background-color: var(--container-bg-color); 
+            border-radius: 16px; 
+            box-shadow: 0 8px 24px var(--shadow-color);
+        }
+        .legal-container h1 { font-size: 2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
+        .legal-container h2 { font-size: 1.5rem; margin-top: 2rem; }
+        .legal-container p, .legal-container ul { line-height: 1.8; color: var(--text-medium); margin-bottom: 1rem; }
+        .legal-container ul { padding-left: 20px; }
 
+        @media (max-width: 992px) {
+            .legal-container { margin: 0; border-radius: 0; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Regulamin Świadczenia Usług</h1>
+    </header>
+
+    <main>
+        <div class="legal-container">
+            <p style="text-align: right; font-size: 0.85rem; color: var(--text-light);">Data ostatniej aktualizacji: 15.01.2024</p>
+            
+            <h2>§1 Postanowienia ogólne</h2>
+            <p>Niniejszy Regulamin określa zasady świadczenia usług korepetycji online przez Zakręcone Korepetycje.</p>
+
+            <h2>§2 Rezerwacja i Płatności</h2>
+            <ul>
+                <li>Rezerwacja lekcji odbywa się poprzez formularz dostępny na stronie [zakrecone-korepetycje.pl/rezerwacja-testowa.html].</li>
+                <li>Lekcja jednorazowa lub testowa musi zostać opłacona najpóźniej 12 godzin przed jej rozpoczęciem, z wyjątkiem odrębnych ustaleń dla lekcji testowych.</li>
+                <li>Nieopłacone lekcje są automatycznie anulowane przez system po upływie terminu płatności (12h przed).</li>
+            </ul>
+
+            <h2>§3 Anulowanie i Zmiana Terminu</h2>
+            <ul>
+                <li>Klient ma prawo do odwołania lub zmiany terminu lekcji bez ponoszenia kosztów do 12 godzin przed jej rozpoczęciem.</li>
+                <li>Anulowanie lub zmiana terminu po upływie tego limitu (lub w przypadku nieobecności) skutkuje potrąceniem pełnej kwoty za lekcję.</li>
+                <li>Wyjątek: Lekcje testowe mogą być anulowane/zmieniane do 1 minuty przed rozpoczęciem.</li>
+            </ul>
+
+            <h2>§4 Dane Osobowe</h2>
+            <p>Administratorem danych osobowych jest Zakręcone Korepetycje. Szczegółowe zasady przetwarzania danych określa <a href="/polityka-prywatnosci.html">Polityka Prywatności</a>.</p>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Zakręcone Korepetycje</p>
+        <div class="footer-links">
+            <a href="/regulamin.html">Regulamin</a>
+            <a href="/polityka-prywatnosci.html">Polityka Prywatności</a>
+        </div>
+    </footer>
+</body>
+</html>
