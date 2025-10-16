@@ -9,6 +9,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Dodanie minimalnych stylów dla nawigacji wizytówki */
+        header nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        header nav a {
+            padding: 1rem 0;
+            margin-left: 1.5rem;
+        }
+        header nav a:first-child {
+            margin-left: 0;
+        }
+        /* Styl dla linków w nagłówku, aby nie kolidowały z style.css */
+        .nav-link {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-medium);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
         .landing-container {
             max-width: 900px;
             margin: 4rem auto;
@@ -66,6 +94,21 @@
             background-color: var(--primary-hover-color);
             transform: translateY(-2px);
         }
+        .footer-links {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .footer-links a {
+            color: #C0C0C0;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover {
+            color: white;
+        }
 
         @media (max-width: 768px) {
             .landing-container {
@@ -76,6 +119,8 @@
             .landing-container h1 { font-size: 2.5rem; }
             .landing-container h2 { font-size: 1.2rem; }
             .info-block { margin: 1.5rem 0; }
+            header nav { flex-direction: column; text-align: center; }
+            header nav a:not(:first-child) { margin: 0.5rem 0; }
         }
     </style>
 </head>
@@ -83,6 +128,11 @@
     <header>
         <nav>
             <a href="/" style="font-weight: 700; font-size: 1.5rem; text-decoration: none; color: var(--text-dark);">Zakręcone Korepetycje</a>
+            <div>
+                <a href="/rezerwacja-testowa.html" class="nav-link">Rezerwacja</a>
+                <a href="/regulamin.html" class="nav-link">Regulamin</a>
+                <a href="/polityka-prywatnosci.html" class="nav-link">Prywatność</a>
+            </div>
         </nav>
     </header>
 
@@ -118,6 +168,10 @@
 
     <footer>
         <p>&copy; 2023 Zakręcone Korepetycje</p>
+        <div class="footer-links">
+            <a href="/regulamin.html">Regulamin</a>
+            <a href="/polityka-prywatnosci.html">Polityka Prywatności</a>
+        </div>
     </footer>
 </body>
 </html>
