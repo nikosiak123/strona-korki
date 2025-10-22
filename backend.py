@@ -1186,7 +1186,7 @@ def create_reservation():
                 lesson_start_aware = warsaw_tz.localize(lesson_start_naive)
                 
                 # 2. Ustawienie uruchomienia na 90 minut po planowanym starcie
-                follow_up_time = lesson_start_aware + timedelta(minutes=90)
+                follow_up_time = lesson_start_aware + timedelta(minutes=62)
 
                 # 3. Dodanie zadania do schedulera
                 scheduler.add_job(
