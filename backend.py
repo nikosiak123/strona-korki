@@ -80,6 +80,34 @@ last_fetched_schedule = {}
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
+def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
+    """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
+    
+    if not MESSENGER_PAGE_TOKEN:
+        logging.warning("MESSENGER: Nie można wysłać follow-upu - brak tokena.")
+        return
+
+    # Pobieramy pełne dane klienta, aby upewnić się, że PSID jest poprawne
+    client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
+    psid = client_record['fields'].get('ClientID') if client_record else None
+
+    if not psid:
+        logging.error(f"MESSENGER: Nie znaleziono PSID dla ClientID: {client_id}. Anulowano wysyłkę follow-upu.")
+        return
+
+    dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+    
+    message_to_send = (
+        f"Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊\n\n"
+        f"Czy możemy liczyć na stałą współpracę? "
+        f"Pamiętaj, że możesz wygodnie zarezerwować stały termin lub wykupić pakiet w swoim panelu klienta:\n{dashboard_link}\n\n"
+        f"Jeśli masz pytania, po prostu odpowiedz na tę wiadomość."
+    )
+    
+    send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+    logging.info(f"MESSENGER: Wysłano wiadomość follow-up po lekcji testowej do {psid}.")
+
+
 
 def calculate_image_hash(image_source):
     try:
@@ -1047,8 +1075,10 @@ def get_schedule():
 @app.route('/api/create-reservation', methods=['POST'])
 def create_reservation():
     try:
-        # ... (cały początek funkcji aż do `reservations_table.create` jest bez zmian) ...
         data = request.json
+        # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
+        # Jeśli pole nie istnieje w zapytaniu (jak na stronie rezerwacji testowej), to NIE jest to isOneTime,
+        # co oznacza, że jest to rezerwacja testowa, a isCyclic = False.
         is_test_lesson = 'isOneTime' not in data
         is_cyclic = not data.get('isOneTime', False) if not is_test_lesson else False
         
@@ -1118,7 +1148,7 @@ def create_reservation():
             new_cyclic_reservation.update(extra_info)
             cyclic_reservations_table.create(new_cyclic_reservation)
 
-            # --- DODANO POWIADOMIENIE ---
+            # --- POWIADOMIENIE MESSENGER: CYKLICZNA ---
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
@@ -1127,7 +1157,7 @@ def create_reservation():
                     f"Pamiętaj, aby potwierdzać każdą nadchodzącą lekcję w swoim panelu klienta:\n{dashboard_link}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
-            # --- KONIEC DODAWANIA ---
+            # --- KONIEC POWIADOMIENIA ---
 
             return jsonify({"message": "Stały termin został pomyślnie zarezerwowany.", "clientID": client_uuid, "isCyclic": True})
 
@@ -1141,19 +1171,41 @@ def create_reservation():
                 "Data": data['selectedDate'], "Godzina": data['selectedTime'],
                 "Przedmiot": data.get('subject'), "ManagementToken": management_token,
                 "Typ": "Jednorazowa", "Status": "Oczekuje na płatność", "TeamsLink": teams_link,
-                "JestTestowa": is_test_lesson  # <-- DODANO TĘ LINIĘ
+                "JestTestowa": is_test_lesson
             }
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
+            
+            # --- DODANIE ZADANIA FOLLOW-UP DLA LEKCJI TESTOWEJ ---
             if is_test_lesson:
+                
+                # 1. Określenie czasu startu
+                lesson_datetime_str = f"{data['selectedDate']} {data['selectedTime']}"
+                lesson_start_naive = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
+                warsaw_tz = pytz.timezone('Europe/Warsaw')
+                lesson_start_aware = warsaw_tz.localize(lesson_start_naive)
+                
+                # 2. Ustawienie uruchomienia na 90 minut po planowanym starcie
+                follow_up_time = lesson_start_aware + timedelta(minutes=90)
+
+                # 3. Dodanie zadania do schedulera
+                scheduler.add_job(
+                    func=send_followup_message,
+                    trigger='date',
+                    run_date=follow_up_time,
+                    id=f'follow_up_{client_uuid}_{data["selectedDate"]}_{data["selectedTime"]}',
+                    args=[client_uuid, data['selectedDate'], data['selectedTime'], data['subject']]
+                )
+                logging.info(f"SCHEDULER: Zaplanowano follow-up dla {client_uuid} na {follow_up_time}.")
+
+                
+                # Uruchomienie wyszukiwarki profilu Facebook (w tle)
                 client_fields = client_record.get('fields', {})
-                # Pobieramy dane z odpowiednich kolumn
                 first_name_client = client_fields.get('ImięKlienta')
                 last_name_client = client_fields.get('NazwiskoKlienta')
                 profile_pic_client = client_fields.get('Zdjęcie')
     
                 if all([first_name_client, last_name_client, profile_pic_client]):
-                    # Uruchom proces wyszukiwania w osobnym wątku, aby nie blokować odpowiedzi
                     search_thread = threading.Thread(
                         target=find_profile_and_update_airtable,
                         args=(client_record['id'], first_name_client, last_name_client, profile_pic_client)
@@ -1163,7 +1215,8 @@ def create_reservation():
                 else:
                     print("--- OSTRZEŻENIE: Brak pełnych danych klienta (Imię/Nazwisko/Zdjęcie) do uruchomienia wyszukiwarki.")
 
-            # --- NOWA, UPROSZCZONA LOGIKA WYSYŁANIA POWIADOMIEŃ ---
+
+            # --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
@@ -1177,7 +1230,7 @@ def create_reservation():
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
             else:
                 print("!!! OSTRZEŻENIE: Nie wysłano wiadomości na Messengerze - brak tokena.")
-            # --- KONIEC NOWEJ LOGIKI ---
+            # --- KONIEC POWIADOMIENIA ---
             
             return jsonify({
                 "teamsUrl": teams_link, "managementToken": management_token,
@@ -1187,6 +1240,7 @@ def create_reservation():
     except Exception as e:
         traceback.print_exc()
         abort(500, "Błąd serwera podczas zapisu rezerwacji.")
+
 
 @app.route('/api/confirm-next-lesson', methods=['POST'])
 def confirm_next_lesson():
