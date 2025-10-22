@@ -99,9 +99,11 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     
     message_to_send = (
         f"Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊\n\n"
-        f"Czy możemy liczyć na stałą współpracę? "
-        f"Pamiętaj, że możesz wygodnie zarezerwować stały termin lub wykupić pakiet w swoim panelu klienta:\n{dashboard_link}\n\n"
-        f"Jeśli masz pytania, po prostu odpowiedz na tę wiadomość."
+        f"Zapraszamy do dalszej wspłópracy. Aby umówić się na stałę zajęcia wystarczy w panelu klienta nacisnąć przycisk 'Zarezerwuj stałe zajęcia'."
+        f"Dostęp do panelu klienta jest pod tym linkiem:\n{dashboard_link}\n\n"
+        f"Stałe zajęcia wymagają potwierdzenia lekcji w każdym tygodniu. Rezerwacja stałego terminu gwarantuje miejsce o wybranej godzinie w każdym tygodniu."
+        f"Jeśli chcesz zarezerwować jeszcze jedną jednorazową lekcję wystarczy, że podczas rezerwacji stałego terminu zaznaczysz checkbox 'To jest lekcja jednorazowa'."
+        f"Bardzo pomogło by nam jeśli wypełnią Państwo ankiete, zajmuje to mniej niż 30 sekund, a dla nas jest to ogromna pomoc https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ1Xh81-BZew/edit"
     )
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
