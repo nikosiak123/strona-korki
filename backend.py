@@ -1218,16 +1218,21 @@ def create_reservation():
                     print("--- OSTRZEŻENIE: Brak pełnych danych klienta (Imię/Nazwisko/Zdjęcie) do uruchomienia wyszukiwarki.")
 
 
-            # --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
+# --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
+            if is_test_lesson: wiadomosc = "Lekcje można opłacić do 5 minut po rozpoczęciu zajęć. W przypadku zrezygnowania z zajeć, bardzo prosimy o odwołanie ich w panelu klienta."
+                
+            else: wiadomosc = "Pamiętaj aby opłacić lekcję do 12h przed rozpoczęciem. Nieopłacona lekcja zostanie automatycznie odwołana."
+            
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
                 
                 message_to_send = (
                     f"Dziękujemy za rezerwację!\n\n"
-                    f"Twoja lekcja testowa z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
+                    f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
                     f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
-                    f"Możesz zarządzać wszystkimi swoimi lekcjami w osobistym panelu klienta pod adresem:\n{dashboard_link}"
+                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}"
+                    f"{wiadomosc}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
             else:
