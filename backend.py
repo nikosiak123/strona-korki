@@ -25,6 +25,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from PIL import Image
 import imagehash
+from flask import Flask, session, redirect, url_for, render_template_string
+from functools import wraps
 
 # --- Konfiguracja ---
 PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
@@ -53,6 +55,11 @@ cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABL
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
+app.secret_key = 'twoj_super_tajny_klucz_do_sesji'
+
+ADMIN_PASSWORD = "Nikotyna123"
+
+
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
     with open('/home/nikodnaj3/strona/config.json', 'r', encoding='utf-8') as f:
@@ -80,6 +87,16 @@ last_fetched_schedule = {}
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
+# backend.py (po definicji app)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
