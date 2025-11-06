@@ -54,6 +54,7 @@ MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
 try:
+    # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
     with open('/home/nikodnaj3/strona/config.json', 'r', encoding='utf-8') as f:
         bot_config = json.load(f)
         MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
@@ -75,49 +76,10 @@ LEVEL_MAPPING = {
 }
 last_fetched_schedule = {}
 
+# --- Funkcje pomocnicze ---
 # ================================================
-# === SEKCJA CACHE'OWANIA DANYCH W PAMIĘCI RAM ===
+# === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
-cached_tutors_map = {}
-cached_clients_map = {}
-last_tutors_fetch_time = None
-last_clients_fetch_time = None
-CACHE_DURATION_SECONDS = 300 # 5 minut
-
-def refresh_tutors_cache():
-    """Odświeża cache z danymi korepetytorów."""
-    global cached_tutors_map, last_tutors_fetch_time
-    try:
-        logging.info("CACHE: Rozpoczynam odświeżanie cache korepetytorów...")
-        all_tutors_records = tutors_table.all()
-        # Zapisujemy pełne rekordy, aby mieć dostęp do wszystkich pól
-        cached_tutors_map = {
-            tutor['fields'].get('Imię i Nazwisko'): tutor['fields']
-            for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
-        }
-        last_tutors_fetch_time = datetime.now()
-        logging.info(f"CACHE: Cache korepetytorów odświeżony ({len(cached_tutors_map)} wpisów).")
-    except Exception as e:
-        logging.error(f"CACHE: Błąd podczas odświeżania cache korepetytorów: {e}")
-
-def refresh_clients_cache():
-    """Odświeża cache z danymi klientów."""
-    global cached_clients_map, last_clients_fetch_time
-    try:
-        logging.info("CACHE: Rozpoczynam odświeżanie cache klientów...")
-        all_clients_records = clients_table.all()
-        # Zapisujemy pełne rekordy, aby mieć dostęp do wszystkich pól
-        cached_clients_map = {
-            rec['fields'].get('ClientID'): rec
-            for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
-        }
-        last_clients_fetch_time = datetime.now()
-        logging.info(f"CACHE: Cache klientów odświeżony ({len(cached_clients_map)} wpisów).")
-    except Exception as e:
-        logging.error(f"CACHE: Błąd podczas odświeżania cache klientów: {e}")
-
-# --- Funkcje pomocnicze (bez zmian) ---
-# ... (Wszystkie funkcje pomocnicze od send_followup_message do is_cancellation_allowed pozostają bez zmian) ...
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
@@ -274,6 +236,35 @@ def initialize_driver_and_login():
         return None
     finally:
         print("--- Zakończono proces inicjalizacji przeglądarki (w ramach bloku finally). ---")
+
+@app.route('/api/cancel-cyclic-reservation', methods=['POST'])
+def cancel_cyclic_reservation():
+    try:
+        data = request.json
+        cyclic_reservation_id = data.get('cyclicReservationId')
+
+        if not cyclic_reservation_id:
+            abort(400, "Brak identyfikatora stałej rezerwacji.")
+
+        # Znajdź rekord stałej rezerwacji
+        record_to_cancel = cyclic_reservations_table.get(cyclic_reservation_id)
+        
+        if not record_to_cancel:
+            abort(404, "Nie znaleziono stałej rezerwacji o podanym ID.")
+
+        # --- ZMIANA JEST TUTAJ ---
+        # Usuń rekord stałej rezerwacji zamiast go dezaktywować
+        cyclic_reservations_table.delete(record_to_cancel['id'])
+        
+        print(f"USUNIĘTO STAŁY TERMIN: Rekord o ID {record_to_cancel['id']} został trwale usunięty.")
+
+        return jsonify({"message": "Stały termin został pomyślnie odwołany."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd serwera podczas anulowania stałego terminu.")
+
+
 def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
     """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta, robiąc zrzuty ekranu."""
     driver = None
@@ -527,6 +518,8 @@ def find_reservation_by_token(token):
     if not token: return None
     return reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
 
+# W pliku backend.py
+
 def is_cancellation_allowed(record):
     fields = record.get('fields', {})
     lesson_date_str = fields.get('Data')
@@ -556,33 +549,6 @@ def is_cancellation_allowed(record):
     return time_remaining > timedelta(hours=12)
 
 # --- Endpointy API ---
-# ... (Wszystkie endpointy od /api/check-cyclic-availability do /api/reschedule-reservation pozostają bez zmian) ...
-@app.route('/api/cancel-cyclic-reservation', methods=['POST'])
-def cancel_cyclic_reservation():
-    try:
-        data = request.json
-        cyclic_reservation_id = data.get('cyclicReservationId')
-
-        if not cyclic_reservation_id:
-            abort(400, "Brak identyfikatora stałej rezerwacji.")
-
-        # Znajdź rekord stałej rezerwacji
-        record_to_cancel = cyclic_reservations_table.get(cyclic_reservation_id)
-        
-        if not record_to_cancel:
-            abort(404, "Nie znaleziono stałej rezerwacji o podanym ID.")
-
-        # --- ZMIANA JEST TUTAJ ---
-        # Usuń rekord stałej rezerwacji zamiast go dezaktywować
-        cyclic_reservations_table.delete(record_to_cancel['id'])
-        
-        print(f"USUNIĘTO STAŁY TERMIN: Rekord o ID {record_to_cancel['id']} został trwale usunięty.")
-
-        return jsonify({"message": "Stały termin został pomyślnie odwołany."})
-
-    except Exception as e:
-        traceback.print_exc()
-        abort(500, "Wystąpił błąd serwera podczas anulowania stałego terminu.")
 @app.route('/api/check-cyclic-availability', methods=['POST'])
 def check_cyclic_availability():
     """Sprawdza dostępność i w razie konfliktu tworzy tymczasowy rekord do zarządzania."""
@@ -912,6 +878,10 @@ def block_single_slot():
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany statusu terminu.")
         
+# Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)
+
+# Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)
+
 @app.route('/api/get-schedule')
 def get_schedule():
     global last_fetched_schedule
@@ -1378,6 +1348,100 @@ def confirm_next_lesson():
         print("!!! KRYTYCZNY BŁĄD w confirm_next_lesson !!!")
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas potwierdzania lekcji.")
+        
+@app.route('/api/get-client-dashboard')
+def get_client_dashboard():
+    try:
+        client_id = request.args.get('clientID')
+        if not client_id: 
+            abort(400, "Brak identyfikatora klienta.")
+        
+        client_id = client_id.strip()
+        
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
+        if not client_record: 
+            abort(404, "Nie znaleziono klienta.")
+        client_name = client_record['fields'].get('Imię', 'Uczniu')
+
+        all_tutors_records = tutors_table.all()
+        tutor_links_map = {
+            tutor['fields'].get('Imię i Nazwisko'): tutor['fields'].get('LINK')
+            for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
+        }
+
+        all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
+        
+        upcoming = []
+        past = []
+        for record in all_reservations:
+            fields = record.get('fields', {})
+            if 'Data' not in fields or 'Godzina' not in fields: 
+                continue
+            
+            lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
+            status = fields.get('Status', 'N/A')
+            
+            lesson_data = {
+                "date": fields.get('Data'),
+                "time": fields.get('Godzina'),
+                "tutor": fields.get('Korepetytor', 'N/A'),
+                "subject": fields.get('Przedmiot', 'N/A'),
+                "managementToken": fields.get('ManagementToken'),
+                "status": status,
+                "teamsLink": fields.get('TeamsLink'),
+                "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
+                "isPaid": fields.get('Opłacona', False),
+                # === KLUCZOWA POPRAWKA JEST TUTAJ ===
+                "Typ": fields.get('Typ')
+                # === KONIEC POPRAWKI ===
+            }
+            
+            inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
+            if lesson_datetime < datetime.now() or status in inactive_statuses:
+                past.append(lesson_data)
+            else:
+                upcoming.append(lesson_data)
+        
+        upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
+        past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
+        
+        cyclic_lessons = []
+        cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
+        
+        today = datetime.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
+
+        for record in cyclic_records:
+            fields = record.get('fields', {})
+            is_next_lesson_confirmed_this_week = False
+            for lesson in upcoming:
+                lesson_date = datetime.strptime(lesson['date'], '%Y-%m-%d').date()
+                if lesson.get('Typ') == 'Cykliczna' and start_of_week <= lesson_date <= end_of_week:
+                    is_next_lesson_confirmed_this_week = True
+                    break
+
+            tutor_name = fields.get('Korepetytor')
+            cyclic_lessons.append({
+                "id": record['id'],
+                "dayOfWeek": fields.get('DzienTygodnia'),
+                "time": fields.get('Godzina'),
+                "tutor": tutor_name,
+                "subject": fields.get('Przedmiot'),
+                "isNextLessonConfirmed": is_next_lesson_confirmed_this_week,
+                "tutorContactLink": tutor_links_map.get(tutor_name)
+            })
+
+        return jsonify({
+            "clientName": client_name,
+            "cyclicLessons": cyclic_lessons,
+            "upcomingLessons": upcoming,
+            "pastLessons": past
+        })
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Wystąpił błąd podczas pobierania danych panelu klienta.")
+
 @app.route('/api/get-reservation-details')
 def get_reservation_details():
     try:
@@ -1513,151 +1577,10 @@ def reschedule_reservation():
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
 
-
-# ========================================================
-# === ZMODYFIKOWANA FUNKCJA get_client_dashboard Z CACHE ===
-# ========================================================
-@app.route('/api/get-client-dashboard')
-def get_client_dashboard():
-    global cached_clients_map, cached_tutors_map, last_clients_fetch_time, last_tutors_fetch_time
-    
-    try:
-        client_id = request.args.get('clientID')
-        if not client_id: 
-            abort(400, "Brak identyfikatora klienta.")
-        client_id = client_id.strip()
-
-        # --- Użycie cache dla klientów ---
-        if not cached_clients_map or not last_clients_fetch_time or (datetime.now() - last_clients_fetch_time).total_seconds() > CACHE_DURATION_SECONDS:
-            refresh_clients_cache()
-        
-        client_record_from_cache = cached_clients_map.get(client_id)
-        
-        if not client_record_from_cache:
-            logging.warning(f"CACHE MISS: Klient {client_id} nie znaleziony w cache, odpytuję Airtable...")
-            client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
-            if not client_record: 
-                abort(404, "Nie znaleziono klienta.")
-            # Zaktualizuj cache o nowego klienta
-            cached_clients_map[client_id] = client_record
-            client_name = client_record['fields'].get('Imię', 'Uczniu')
-        else:
-            client_name = client_record_from_cache['fields'].get('Imię', 'Uczniu')
-
-        # --- Użycie cache dla korepetytorów ---
-        if not cached_tutors_map or not last_tutors_fetch_time or (datetime.now() - last_tutors_fetch_time).total_seconds() > CACHE_DURATION_SECONDS:
-            refresh_tutors_cache()
-
-        tutor_links_map = {name: data.get('LINK') for name, data in cached_tutors_map.items()}
-
-        # Zapytania o rezerwacje są dynamiczne i muszą pozostać
-        all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
-        
-        upcoming = []
-        past = []
-        for record in all_reservations:
-            fields = record.get('fields', {})
-            if 'Data' not in fields or 'Godzina' not in fields: 
-                continue
-            
-            lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
-            status = fields.get('Status', 'N/A')
-            
-            lesson_data = {
-                "date": fields.get('Data'),
-                "time": fields.get('Godzina'),
-                "tutor": fields.get('Korepetytor', 'N/A'),
-                "subject": fields.get('Przedmiot', 'N/A'),
-                "managementToken": fields.get('ManagementToken'),
-                "status": status,
-                "teamsLink": fields.get('TeamsLink'),
-                "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
-                "isPaid": fields.get('Opłacona', False),
-                "Typ": fields.get('Typ')
-            }
-            
-            inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
-            if lesson_datetime < datetime.now() or status in inactive_statuses:
-                past.append(lesson_data)
-            else:
-                upcoming.append(lesson_data)
-        
-        upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
-        past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
-        
-        cyclic_lessons = []
-        cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
-        
-        today = datetime.now().date()
-        start_of_week = today - timedelta(days=today.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
-
-        for record in cyclic_records:
-            fields = record.get('fields', {})
-            is_next_lesson_confirmed_this_week = False
-            for lesson in upcoming:
-                lesson_date = datetime.strptime(lesson['date'], '%Y-%m-%d').date()
-                if lesson.get('Typ') == 'Cykliczna' and start_of_week <= lesson_date <= end_of_week:
-                    is_next_lesson_confirmed_this_week = True
-                    break
-
-            tutor_name = fields.get('Korepetytor')
-            cyclic_lessons.append({
-                "id": record['id'],
-                "dayOfWeek": fields.get('DzienTygodnia'),
-                "time": fields.get('Godzina'),
-                "tutor": tutor_name,
-                "subject": fields.get('Przedmiot'),
-                "isNextLessonConfirmed": is_next_lesson_confirmed_this_week,
-                "tutorContactLink": tutor_links_map.get(tutor_name)
-            })
-
-        return jsonify({
-            "clientName": client_name,
-            "cyclicLessons": cyclic_lessons,
-            "upcomingLessons": upcoming,
-            "pastLessons": past
-        })
-    except Exception as e:
-        traceback.print_exc()
-        abort(500, "Wystąpił błąd podczas pobierania danych panelu klienta.")
-
-
-# ============================================
-# === ZMODYFIKOWANY BLOK __main__ Z CACHE ===
-# ============================================
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-    logging.info("Aplikacja startuje, inicjalizuję cache...")
-    refresh_tutors_cache()
-    refresh_clients_cache()
-    logging.info("Inicjalizacja cache zakończona.")
-
-    scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Warsaw'))
-    
-    scheduler.add_job(
-        func=check_and_cancel_unpaid_lessons, 
-        trigger="interval", 
-        minutes=1,
-        id='cancel_unpaid_lessons'
-    )
-    
-    scheduler.add_job(
-        func=refresh_tutors_cache, 
-        trigger="interval", 
-        minutes=5, 
-        id='refresh_tutors_cache'
-    )
-    scheduler.add_job(
-        func=refresh_clients_cache, 
-        trigger="interval", 
-        minutes=5, 
-        id='refresh_clients_cache'
-    )
-    
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
     scheduler.start()
-    
+    # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
-    
     app.run(port=5000, debug=True)
