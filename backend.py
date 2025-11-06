@@ -80,6 +80,40 @@ last_fetched_schedule = {}
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
+# Dodaj na początku pliku
+cached_tutors_map = {}
+cached_clients_map = {}
+last_tutors_fetch_time = None
+last_clients_fetch_time = None
+CACHE_DURATION_SECONDS = 300 # 5 minut
+
+def refresh_tutors_cache():
+    global cached_tutors_map, last_tutors_fetch_time
+    print("Odświeżam cache korepetytorów...")
+    all_tutors_records = tutors_table.all()
+    cached_tutors_map = {
+        tutor['fields'].get('Imię i Nazwisko'): tutor['fields'].get('LINK')
+        for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
+    }
+    last_tutors_fetch_time = datetime.now()
+    print(f"Cache korepetytorów odświeżony ({len(cached_tutors_map)} wpisów).")
+
+def refresh_clients_cache():
+    global cached_clients_map, last_clients_fetch_time
+    print("Odświeżam cache klientów...")
+    all_clients_records = clients_table.all()
+    cached_clients_map = {
+        rec['fields'].get('ClientID'): {
+            'name': rec['fields'].get('Imię', 'Uczeń'),
+            'link': rec['fields'].get('LINK'),
+            'record_id': rec['id'] # Dodaj ID rekordu, jeśli używasz go w update
+        }
+        for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
+    }
+    last_clients_fetch_time = datetime.now()
+    print(f"Cache klientów odświeżony ({len(cached_clients_map)} wpisów).")
+
+
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
@@ -1351,24 +1385,49 @@ def confirm_next_lesson():
         
 @app.route('/api/get-client-dashboard')
 def get_client_dashboard():
+    # Deklaracja użycia zmiennych globalnych
+    global cached_clients_map, cached_tutors_map, last_clients_fetch_time, last_tutors_fetch_time
+    
     try:
         client_id = request.args.get('clientID')
         if not client_id: 
             abort(400, "Brak identyfikatora klienta.")
         
         client_id = client_id.strip()
+
+        # --- Użycie cache dla klientów ---
+        # Sprawdź, czy cache jest pusty lub nieaktualny
+        if not cached_clients_map or not last_clients_fetch_time or (datetime.now() - last_clients_fetch_time).total_seconds() > CACHE_DURATION_SECONDS:
+            refresh_clients_cache()
+
+        # Spróbuj pobrać klienta z cache
+        client_info_from_cache = cached_clients_map.get(client_id)
         
-        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
-        if not client_record: 
-            abort(404, "Nie znaleziono klienta.")
-        client_name = client_record['fields'].get('Imię', 'Uczniu')
+        if not client_info_from_cache:
+            # Jeśli klienta nie ma w cache (może to nowy klient), pobierz go bezpośrednio
+            logging.warning(f"CACHE MISS: Klient {client_id} nie znaleziony w cache, odpytuję Airtable...")
+            client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
+            if not client_record: 
+                abort(404, "Nie znaleziono klienta.")
+            client_name = client_record['fields'].get('Imię', 'Uczniu')
+            # Zaktualizuj cache o nowego klienta, aby uniknąć kolejnego zapytania
+            cached_clients_map[client_id] = {
+                'name': client_record['fields'].get('Imię', 'Uczeń'),
+                'link': client_record['fields'].get('LINK'),
+                'record_id': client_record['id']
+            }
+        else:
+            # Jeśli klient jest w cache, użyj danych
+            client_name = client_info_from_cache.get('name', 'Uczniu')
 
-        all_tutors_records = tutors_table.all()
-        tutor_links_map = {
-            tutor['fields'].get('Imię i Nazwisko'): tutor['fields'].get('LINK')
-            for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
-        }
-
+        # --- Użycie cache dla korepetytorów ---
+        # Sprawdź, czy cache jest pusty lub nieaktualny
+        if not cached_tutors_map or not last_tutors_fetch_time or (datetime.now() - last_tutors_fetch_time).total_seconds() > CACHE_DURATION_SECONDS:
+            refresh_tutors_cache()
+        tutor_links_map = cached_tutors_map
+        
+        # --- Reszta logiki pozostaje taka sama, ale już bez kosztownych zapytań ---
+        # Zapytania o rezerwacje są dynamiczne, więc muszą pozostać
         all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
         
         upcoming = []
@@ -1391,9 +1450,7 @@ def get_client_dashboard():
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
                 "isPaid": fields.get('Opłacona', False),
-                # === KLUCZOWA POPRAWKA JEST TUTAJ ===
                 "Typ": fields.get('Typ')
-                # === KONIEC POPRAWKI ===
             }
             
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
@@ -1578,9 +1635,44 @@ def reschedule_reservation():
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
 
 if __name__ == '__main__':
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
+    # Ustawienie logowania, aby widzieć komunikaty z cache
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Inicjalizacja cache od razu przy starcie aplikacji
+    logging.info("Aplikacja startuje, inicjalizuję cache...")
+    refresh_tutors_cache()
+    refresh_clients_cache()
+    logging.info("Inicjalizacja cache zakończona.")
+
+    # Inicjalizacja schedulera
+    scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Warsaw'))
+    
+    # Istniejące zadanie do anulowania nieopłaconych lekcji
+    scheduler.add_job(
+        func=check_and_cancel_unpaid_lessons, 
+        trigger="interval", 
+        minutes=1,
+        id='cancel_unpaid_lessons'
+    )
+    
+    # NOWE zadania do cyklicznego odświeżania cache
+    scheduler.add_job(
+        func=refresh_tutors_cache, 
+        trigger="interval", 
+        minutes=5, 
+        id='refresh_tutors_cache'
+    )
+    scheduler.add_job(
+        func=refresh_clients_cache, 
+        trigger="interval", 
+        minutes=5, 
+        id='refresh_clients_cache'
+    )
+    
     scheduler.start()
+    
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
+    
+    # Uruchomienie aplikacji Flask
     app.run(port=5000, debug=True)
