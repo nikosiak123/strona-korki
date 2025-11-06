@@ -75,7 +75,13 @@ LEVEL_MAPPING = {
     "technikum_rozszerzony": ["liceum_rozszerzenie"]
 }
 last_fetched_schedule = {}
+logging.basicConfig(level=logging.DEBUG) 
 
+# Ustawienie loggerów dla bibliotek na niższy poziom, żeby nie zaśmiecały logów
+# (Opcjonalnie, ale może być pomocne, jeśli chcesz mniej szczegółowe logi)
+logging.getLogger("pyairtable").setLevel(logging.INFO)
+logging.getLogger("requests").setLevel(logging.INFO)
+logging.getLogger("urllib3").setLevel(logging.INFO)
 # --- Funkcje pomocnicze ---
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
