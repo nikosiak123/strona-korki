@@ -75,13 +75,20 @@ LEVEL_MAPPING = {
     "technikum_rozszerzony": ["liceum_rozszerzenie"]
 }
 last_fetched_schedule = {}
-logging.basicConfig(level=logging.DEBUG) 
+logging.basicConfig(level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-# Ustawienie loggerów dla bibliotek na niższy poziom, żeby nie zaśmiecały logów
-# (Opcjonalnie, ale może być pomocne, jeśli chcesz mniej szczegółowe logi)
-logging.getLogger("pyairtable").setLevel(logging.INFO)
-logging.getLogger("requests").setLevel(logging.INFO)
-logging.getLogger("urllib3").setLevel(logging.INFO)
+# Obniżenie poziomu logowania dla innych, bardziej "hałaśliwych" bibliotek,
+# aby skupić się na zapytaniach HTTP i logach Flask.
+logging.getLogger('werkzeug').setLevel(logging.INFO)
+logging.getLogger('apscheduler').setLevel(logging.INFO)
+logging.getLogger('tzlocal').setLevel(logging.INFO)
+
+# KLUCZOWE LINIE: Włącz logowanie na poziomie DEBUG dla urllib3 i requests
+# To pokaże: status połączenia, wysyłane nagłówki, retries i błędy 429.
+logging.getLogger('urllib3.connectionpool').setLevel(logging.DEBUG) 
+logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.DEBUG)
+logging.getLogger('pyairtable').setLevel(logging.DEBUG) 
 # --- Funkcje pomocnicze ---
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
