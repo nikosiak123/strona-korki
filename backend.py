@@ -25,10 +25,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from PIL import Image
 import imagehash
-from flask import Flask, session, redirect, url_for, render_template_string
-from functools import wraps
-from flask import render_template # Dodaj ten import na górze
-import sqlite3 # Dodaj ten import na górze
 
 # --- Konfiguracja ---
 PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
@@ -57,8 +53,6 @@ cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABL
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
-
-
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
     with open('/home/nikodnaj3/strona/config.json', 'r', encoding='utf-8') as f:
@@ -73,8 +67,6 @@ except Exception as e:
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = 'twoj_super_tajny_klucz_do_sesji' # <--- PRZENIEŚ TĘ LINIĘ TUTAJ
-ADMIN_PASSWORD = "Nikotyna123"
 
 WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
 LEVEL_MAPPING = {
@@ -88,16 +80,6 @@ last_fetched_schedule = {}
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
-# backend.py (po definicji app)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'logged_in' not in session:
-            return redirect(url_for('login', next=request.url))
-        return f(*args, **kwargs)
-    return decorated_function
-
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
@@ -254,23 +236,6 @@ def initialize_driver_and_login():
         return None
     finally:
         print("--- Zakończono proces inicjalizacji przeglądarki (w ramach bloku finally). ---")
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    if request.method == 'POST':
-        if request.form['password'] == ADMIN_PASSWORD:
-            session['logged_in'] = True
-            return redirect(url_for('admin_dashboard'))
-        else:
-            error = 'Nieprawidłowe hasło'
-    return render_template('login.html', error=error)
-
-@app.route('/logout')
-def logout():
-    session.pop('logged_in', None)
-    return redirect(url_for('login'))
-
 
 @app.route('/api/cancel-cyclic-reservation', methods=['POST'])
 def cancel_cyclic_reservation():
@@ -1611,80 +1576,6 @@ def reschedule_reservation():
     except Exception as e:
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
-
-
-
-def get_db_connection():
-    """Funkcja pomocnicza do łączenia z bazą danych"""
-    conn = sqlite3.connect('baza.db')
-    conn.row_factory = sqlite3.Row # To pozwala na dostęp do kolumn po nazwie
-    return conn
-
-@app.route('/baza-danych')
-@login_required # <-- TUTAJ DZIAŁA NASZA OCHRONA
-def admin_dashboard():
-    conn = get_db_connection()
-    # Przykład: pobieramy wszystkich klientów
-    klienci = conn.execute('SELECT * FROM klienci').fetchall()
-    # Przykład: pobieramy wszystkie rezerwacje
-    rezerwacje = conn.execute('SELECT * FROM rezerwacje').fetchall()
-    conn.close()
-    
-    # Wyświetlamy dane używając prostego szablonu HTML bezpośrednio w kodzie
-    # W bardziej złożonym przypadku stworzylibyśmy plik templates/dashboard.html
-    
-    html = """
-    <!doctype html>
-    <title>Panel Administracyjny</title>
-    <style>
-        body { font-family: sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
-    <h1>Panel Administracyjny</h1>
-    <p><a href="/logout">Wyloguj</a></p>
-
-    <h2>Klienci</h2>
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Client ID (PSID)</th>
-            <th>Imię</th>
-            <th>Nazwisko</th>
-        </tr>
-        {% for klient in klienci %}
-        <tr>
-            <td>{{ klient['id'] }}</td>
-            <td>{{ klient['client_id'] }}</td>
-            <td>{{ klient['imie'] }}</td>
-            <td>{{ klient['nazwisko'] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <h2>Rezerwacje</h2>
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Klient ID</th>
-            <th>Data</th>
-            <th>Godzina</th>
-            <th>Status</th>
-        </tr>
-        {% for rezerwacja in rezerwacje %}
-        <tr>
-            <td>{{ rezerwacja['id'] }}</td>
-            <td>{{ rezerwacja['klient_id'] }}</td>
-            <td>{{ rezerwacja['data'] }}</td>
-            <td>{{ rezerwacja['godzina'] }}</td>
-            <td>{{ rezerwacja['status'] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    """
-    # render_template_string pozwala użyć składni Jinja2 bez tworzenia pliku
-    return render_template_string(html, klienci=klienci, rezerwacje=rezerwacje)
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
