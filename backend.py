@@ -57,9 +57,6 @@ cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABL
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
-app.secret_key = 'twoj_super_tajny_klucz_do_sesji'
-
-ADMIN_PASSWORD = "Nikotyna123"
 
 
 try:
@@ -76,6 +73,8 @@ except Exception as e:
 
 app = Flask(__name__)
 CORS(app)
+app.secret_key = 'twoj_super_tajny_klucz_do_sesji' # <--- PRZENIEŚ TĘ LINIĘ TUTAJ
+ADMIN_PASSWORD = "Nikotyna123"
 
 WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
 LEVEL_MAPPING = {
