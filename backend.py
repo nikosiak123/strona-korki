@@ -3,9 +3,8 @@ import json
 import uuid
 import traceback
 import threading
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, session
 from flask_cors import CORS
-from pyairtable import Api
 from datetime import datetime, timedelta
 from datetime import time as dt_time
 import time
@@ -32,23 +31,22 @@ PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
 COOKIES_FILE = "/var/www/korki/cookies.pkl"
 HASH_DIFFERENCE_THRESHOLD = 10
 
-AIRTABLE_API_KEY = "patcSdupvwJebjFDo.7e15a93930d15261989844687bcb15ac5c08c84a29920c7646760bc6f416146d"
-AIRTABLE_BASE_ID = "appTjrMTVhYBZDPw9"
-TUTORS_TABLE_NAME = "Korepetytorzy"
-RESERVATIONS_TABLE_NAME = "Rezerwacje"
-CLIENTS_TABLE_NAME = "Klienci"
-CYCLIC_RESERVATIONS_TABLE_NAME = "StaleRezerwacje"
+# Import lokalnej bazy danych SQLite zamiast Airtable
+from database import DatabaseTable, init_database
+
+# Inicjalizacja tabel bazy danych
+tutors_table = DatabaseTable('Korepetytorzy')
+reservations_table = DatabaseTable('Rezerwacje')
+clients_table = DatabaseTable('Klienci')
+cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 
 MS_TENANT_ID = "58928953-69aa-49da-b96c-100396a3caeb"
 MS_CLIENT_ID = "8bf9be92-1805-456a-9162-ffc7cda3b794"
 MS_CLIENT_SECRET = "MQ~8Q~VD9sI3aB19_Drwqndp4j5V_WAjmwK3yaQD"
 MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
 
-api = Api(AIRTABLE_API_KEY)
-tutors_table = api.table(AIRTABLE_BASE_ID, TUTORS_TABLE_NAME)
-reservations_table = api.table(AIRTABLE_BASE_ID, RESERVATIONS_TABLE_NAME)
-clients_table = api.table(AIRTABLE_BASE_ID, CLIENTS_TABLE_NAME)
-cyclic_reservations_table = api.table(AIRTABLE_BASE_ID, CYCLIC_RESERVATIONS_TABLE_NAME)
+# Hasło do panelu administratora
+ADMIN_PASSWORD = "szlafrok"
 
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
@@ -66,6 +64,7 @@ except Exception as e:
     print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
 WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
@@ -85,10 +84,8 @@ logging.getLogger('apscheduler').setLevel(logging.INFO)
 logging.getLogger('tzlocal').setLevel(logging.INFO)
 
 # KLUCZOWE LINIE: Włącz logowanie na poziomie DEBUG dla urllib3 i requests
-# To pokaże: status połączenia, wysyłane nagłówki, retries i błędy 429.
 logging.getLogger('urllib3.connectionpool').setLevel(logging.DEBUG) 
 logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.DEBUG)
-logging.getLogger('pyairtable').setLevel(logging.DEBUG) 
 # --- Funkcje pomocnicze ---
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
@@ -1589,6 +1586,117 @@ def reschedule_reservation():
     except Exception as e:
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
+
+# ===================================
+# ENDPOINTY PANELU ADMINISTRACYJNEGO
+# ===================================
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    """Logowanie do panelu administracyjnego."""
+    password = request.json.get('password')
+    if password == ADMIN_PASSWORD:
+        session['admin_logged_in'] = True
+        return jsonify({"success": True, "message": "Zalogowano pomyślnie."})
+    else:
+        return jsonify({"success": False, "message": "Nieprawidłowe hasło."}), 401
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    """Wylogowanie z panelu administracyjnego."""
+    session.pop('admin_logged_in', None)
+    return jsonify({"success": True, "message": "Wylogowano."})
+
+@app.route('/api/admin/check-auth', methods=['GET'])
+def admin_check_auth():
+    """Sprawdza czy użytkownik jest zalogowany."""
+    is_logged_in = session.get('admin_logged_in', False)
+    return jsonify({"authenticated": is_logged_in})
+
+def require_admin():
+    """Dekorator sprawdzający autoryzację admina."""
+    if not session.get('admin_logged_in', False):
+        abort(403, "Brak autoryzacji.")
+
+@app.route('/api/admin/tables', methods=['GET'])
+def get_all_tables():
+    """Zwraca listę wszystkich tabel."""
+    require_admin()
+    tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    return jsonify({"tables": tables})
+
+@app.route('/api/admin/table/<table_name>', methods=['GET'])
+def get_table_data(table_name):
+    """Pobiera wszystkie dane z danej tabeli."""
+    require_admin()
+    
+    allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    if table_name not in allowed_tables:
+        abort(404, "Tabela nie istnieje.")
+    
+    table = DatabaseTable(table_name)
+    records = table.all()
+    
+    return jsonify({"records": records})
+
+@app.route('/api/admin/table/<table_name>/record', methods=['POST'])
+def create_table_record(table_name):
+    """Tworzy nowy rekord w tabeli."""
+    require_admin()
+    
+    allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    if table_name not in allowed_tables:
+        abort(404, "Tabela nie istnieje.")
+    
+    fields = request.json.get('fields', {})
+    if not fields:
+        abort(400, "Brak danych do utworzenia rekordu.")
+    
+    table = DatabaseTable(table_name)
+    try:
+        new_record = table.create(fields)
+        return jsonify({"success": True, "record": new_record})
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, f"Błąd podczas tworzenia rekordu: {str(e)}")
+
+@app.route('/api/admin/table/<table_name>/record/<record_id>', methods=['PUT'])
+def update_table_record(table_name, record_id):
+    """Aktualizuje rekord w tabeli."""
+    require_admin()
+    
+    allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    if table_name not in allowed_tables:
+        abort(404, "Tabela nie istnieje.")
+    
+    fields = request.json.get('fields', {})
+    if not fields:
+        abort(400, "Brak danych do aktualizacji.")
+    
+    table = DatabaseTable(table_name)
+    try:
+        updated_record = table.update(record_id, fields)
+        return jsonify({"success": True, "record": updated_record})
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, f"Błąd podczas aktualizacji rekordu: {str(e)}")
+
+@app.route('/api/admin/table/<table_name>/record/<record_id>', methods=['DELETE'])
+def delete_table_record(table_name, record_id):
+    """Usuwa rekord z tabeli."""
+    require_admin()
+    
+    allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    if table_name not in allowed_tables:
+        abort(404, "Tabela nie istnieje.")
+    
+    table = DatabaseTable(table_name)
+    try:
+        table.delete(record_id)
+        return jsonify({"success": True, "message": "Rekord został usunięty."})
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, f"Błąd podczas usuwania rekordu: {str(e)}")
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()

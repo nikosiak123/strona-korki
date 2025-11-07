@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administracyjny - Baza Danych</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        
+        .login-box {
+            max-width: 400px;
+            margin: 5rem auto;
+            padding: 2rem;
+            background-color: var(--container-bg-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .login-box button:hover {
+            background-color: var(--primary-hover-color);
+        }
+        
+        .error-message {
+            color: #D32F2F;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .admin-panel {
+            display: none;
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .logout-btn {
+            padding: 8px 16px;
+            background-color: #E0E0E0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .logout-btn:hover {
+            background-color: #BDBDBD;
+        }
+        
+        .table-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .table-btn {
+            padding: 10px 20px;
+            background-color: #E0E0E0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .table-btn:hover {
+            background-color: #BDBDBD;
+        }
+        
+        .table-btn.active {
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+        }
+        
+        .action-buttons {
+            margin-bottom: 1.5rem;
+        }
+        
+        .add-record-btn {
+            padding: 10px 20px;
+            background-color: var(--available-text-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .add-record-btn:hover {
+            background-color: #2E7D32;
+        }
+        
+        .records-table {
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+        
+        .records-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .records-table th {
+            background-color: #F5F5F5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .records-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .records-table tr:hover {
+            background-color: #FAFAFA;
+        }
+        
+        .record-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .edit-btn, .delete-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .edit-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .edit-btn:hover {
+            background-color: #1976D2;
+        }
+        
+        .delete-btn {
+            background-color: #E53935;
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background-color: #C62828;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .save-btn {
+            background-color: var(--available-text-color);
+            color: white;
+        }
+        
+        .save-btn:hover {
+            background-color: #2E7D32;
+        }
+        
+        .cancel-btn {
+            background-color: #E0E0E0;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #BDBDBD;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-medium);
+        }
+        
+        .no-records {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-medium);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Panel Administracyjny - Baza Danych</h1>
+    </header>
+
+    <main>
+        <!-- Ekran logowania -->
+        <div id="loginScreen" class="login-box">
+            <h2>Zaloguj się</h2>
+            <input type="password" id="passwordInput" placeholder="Hasło" />
+            <button id="loginBtn">Zaloguj</button>
+            <p id="loginError" class="error-message">Nieprawidłowe hasło</p>
+        </div>
+
+        <!-- Panel administracyjny -->
+        <div id="adminPanel" class="admin-panel">
+            <div class="admin-container">
+                <div class="admin-header">
+                    <h2>Zarządzanie bazą danych</h2>
+                    <button id="logoutBtn" class="logout-btn">Wyloguj</button>
+                </div>
+
+                <div class="table-selector">
+                    <button class="table-btn" data-table="Klienci">Klienci</button>
+                    <button class="table-btn" data-table="Korepetytorzy">Korepetytorzy</button>
+                    <button class="table-btn" data-table="Rezerwacje">Rezerwacje</button>
+                    <button class="table-btn" data-table="StaleRezerwacje">Stałe Rezerwacje</button>
+                </div>
+
+                <div id="tableContent">
+                    <p class="no-records">Wybierz tabelę, aby zobaczyć dane</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal do edycji/dodawania rekordu -->
+        <div id="recordModal" class="modal">
+            <div class="modal-content">
+                <h3 id="modalTitle">Edytuj rekord</h3>
+                <div id="modalForm"></div>
+                <div class="modal-buttons">
+                    <button id="saveRecordBtn" class="save-btn">Zapisz</button>
+                    <button id="cancelModalBtn" class="cancel-btn">Anuluj</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE_URL = '';
+        let currentTable = null;
+        let currentRecord = null;
+        let currentMode = 'edit'; // 'edit' lub 'add'
+
+        // Sprawdź autoryzację przy załadowaniu strony
+        document.addEventListener('DOMContentLoaded', async () => {
+            const response = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
+            const data = await response.json();
+            
+            if (data.authenticated) {
+                showAdminPanel();
+            }
+        });
+
+        // Logowanie
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const password = document.getElementById('passwordInput').value;
+            const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password})
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                showAdminPanel();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        });
+
+        // Enter na logowaniu
+        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('loginBtn').click();
+            }
+        });
+
+        // Wylogowanie
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch(`${API_BASE_URL}/api/admin/logout`, {method: 'POST'});
+            location.reload();
+        });
+
+        function showAdminPanel() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+        }
+
+        // Wybór tabeli
+        document.querySelectorAll('.table-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTable = btn.dataset.table;
+                await loadTableData(currentTable);
+            });
+        });
+
+        async function loadTableData(tableName) {
+            const content = document.getElementById('tableContent');
+            content.innerHTML = '<p class="loading">Ładowanie...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/table/${tableName}`);
+                const data = await response.json();
+
+                if (data.records.length === 0) {
+                    content.innerHTML = `
+                        <div class="action-buttons">
+                            <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
+                        </div>
+                        <p class="no-records">Brak rekordów w tej tabeli</p>
+                    `;
+                    return;
+                }
+
+                const fields = Object.keys(data.records[0].fields);
+                let tableHTML = `
+                    <div class="action-buttons">
+                        <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
+                    </div>
+                    <div class="records-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    ${fields.map(f => `<th>${f}</th>`).join('')}
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                data.records.forEach(record => {
+                    tableHTML += `<tr>
+                        <td>${record.id}</td>
+                        ${fields.map(f => {
+                            let value = record.fields[f];
+                            if (Array.isArray(value)) value = value.join(', ');
+                            if (typeof value === 'boolean') value = value ? 'Tak' : 'Nie';
+                            if (value === null || value === undefined) value = '';
+                            return `<td>${String(value).substring(0, 50)}</td>`;
+                        }).join('')}
+                        <td class="record-actions">
+                            <button class="edit-btn" onclick='editRecord(${JSON.stringify(record)})'>Edytuj</button>
+                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">Usuń</button>
+                        </td>
+                    </tr>`;
+                });
+
+                tableHTML += `</tbody></table></div>`;
+                content.innerHTML = tableHTML;
+            } catch (error) {
+                content.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
+            }
+        }
+
+        function openAddModal() {
+            currentMode = 'add';
+            currentRecord = null;
+            document.getElementById('modalTitle').textContent = 'Dodaj nowy rekord';
+            generateModalForm({fields: {}});
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        function editRecord(record) {
+            currentMode = 'edit';
+            currentRecord = record;
+            document.getElementById('modalTitle').textContent = 'Edytuj rekord';
+            generateModalForm(record);
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        function generateModalForm(record) {
+            const formContainer = document.getElementById('modalForm');
+            const fields = record.fields || getDefaultFields(currentTable);
+            
+            let formHTML = '';
+            for (const [key, value] of Object.entries(fields)) {
+                const inputValue = Array.isArray(value) ? JSON.stringify(value) : (value || '');
+                formHTML += `
+                    <div class="form-group">
+                        <label>${key}</label>
+                        <input type="text" name="${key}" value="${inputValue}" />
+                    </div>
+                `;
+            }
+            
+            formContainer.innerHTML = formHTML;
+        }
+
+        function getDefaultFields(tableName) {
+            const defaults = {
+                'Klienci': {ClientID: '', Imie: '', Nazwisko: '', LINK: ''},
+                'Korepetytorzy': {TutorID: '', ImieNazwisko: '', Poniedzialek: '', Przedmioty: '[]', PoziomNauczania: '[]'},
+                'Rezerwacje': {Klient: '', Korepetytor: '', Data: '', Godzina: '', Przedmiot: '', Status: 'Oczekuje na płatność'},
+                'StaleRezerwacje': {Klient_ID: '', Korepetytor: '', DzienTygodnia: '', Godzina: '', Przedmiot: '', Aktywna: true}
+            };
+            return defaults[tableName] || {};
+        }
+
+        document.getElementById('saveRecordBtn').addEventListener('click', async () => {
+            const formData = {};
+            document.querySelectorAll('#modalForm input').forEach(input => {
+                let value = input.value;
+                
+                // Próba parsowania JSON dla tablic
+                if (value.startsWith('[') || value.startsWith('{')) {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {}
+                }
+                
+                // Konwersja boolean
+                if (value === 'true') value = true;
+                if (value === 'false') value = false;
+                
+                formData[input.name] = value;
+            });
+
+            try {
+                let response;
+                if (currentMode === 'add') {
+                    response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({fields: formData})
+                    });
+                } else {
+                    response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${currentRecord.id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({fields: formData})
+                    });
+                }
+
+                if (response.ok) {
+                    document.getElementById('recordModal').classList.remove('active');
+                    await loadTableData(currentTable);
+                } else {
+                    alert('Błąd podczas zapisywania rekordu');
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        });
+
+        document.getElementById('cancelModalBtn').addEventListener('click', () => {
+            document.getElementById('recordModal').classList.remove('active');
+        });
+
+        async function deleteRecord(recordId) {
+            if (!confirm('Czy na pewno chcesz usunąć ten rekord?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await loadTableData(currentTable);
+                } else {
+                    alert('Błąd podczas usuwania rekordu');
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

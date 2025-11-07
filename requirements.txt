@@ -1,5 +1,9 @@
 Flask
 flask-cors
-pyairtable
 requests
 gunicorn
+APScheduler
+pytz
+Pillow
+selenium
+imagehash
