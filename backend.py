@@ -791,7 +791,7 @@ def add_adhoc_slot():
             abort(400, "Brak wymaganych danych.")
 
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
-        if not tutor_record or tutor_record['fields'].get('Imię i Nazwisko') != tutor_name:
+        if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
         
         new_available_slot = {
@@ -828,8 +828,8 @@ def get_tutor_schedule():
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
     fields = tutor_record.get('fields', {})
     return jsonify({
-        "Imię i Nazwisko": fields.get("Imię i Nazwisko"), "Poniedziałek": fields.get("Poniedziałek", ""),"Wtorek": fields.get("Wtorek", ""),
-        "Środa": fields.get("Środa", ""), "Czwartek": fields.get("Czwartek", ""),"Piątek": fields.get("Piątek", ""),
+        "Imię i Nazwisko": fields.get("ImieNazwisko"), "Poniedziałek": fields.get("Poniedzialek", ""),"Wtorek": fields.get("Wtorek", ""),
+        "Środa": fields.get("Sroda", ""), "Czwartek": fields.get("Czwartek", ""),"Piątek": fields.get("Piatek", ""),
         "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", "")
     })
 
@@ -859,7 +859,7 @@ def block_single_slot():
 
         # Weryfikacja korepetytora (bez zmian)
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
-        if not tutor_record or tutor_record['fields'].get('Imię i Nazwisko') != tutor_name:
+        if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
         
         # ### NOWA, ULEPSZONA LOGIKA ###
@@ -912,7 +912,7 @@ def get_schedule():
 
         # ... (sekcja filtrowania korepetytorów pozostaje bez zmian) ...
         if tutor_name_filter:
-            found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('Imię i Nazwisko') == tutor_name_filter), None)
+            found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('ImieNazwisko') == tutor_name_filter), None)
             if found_tutor: filtered_tutors.append(found_tutor)
         else:
             if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
@@ -985,7 +985,7 @@ def get_schedule():
         available_slots = []
         for template in filtered_tutors:
             fields = template.get('fields', {})
-            tutor_name = fields.get('Imię i Nazwisko')
+            tutor_name = fields.get('ImieNazwisko')
             if not tutor_name: continue
             
             for day_offset in range(7):
@@ -1041,7 +1041,7 @@ def get_schedule():
             # Zakładamy, że w filtered_tutors jest tylko jeden korepetytor
             for template in filtered_tutors:
                 fields = template.get('fields', {})
-                tutor_name = fields.get('Imię i Nazwisko')
+                tutor_name = fields.get('ImieNazwisko')
                 if not tutor_name: continue
                 for day_offset in range(7):
                     current_date = start_date + timedelta(days=day_offset)
@@ -1122,7 +1122,7 @@ def create_reservation():
             available_tutors_for_slot = []
             for tutor_template in all_tutors_templates:
                 fields = tutor_template.get('fields', {})
-                tutor_name = fields.get('Imię i Nazwisko')
+                tutor_name = fields.get('ImieNazwisko')
                 required_level_tags = []
                 if school_type_for_search == 'szkola_podstawowa': required_level_tags = LEVEL_MAPPING.get(school_type_for_search, [])
                 elif (school_type_for_search in ['liceum', 'technikum']) and school_level_for_search:
@@ -1375,8 +1375,8 @@ def get_client_dashboard():
 
         all_tutors_records = tutors_table.all()
         tutor_links_map = {
-            tutor['fields'].get('Imię i Nazwisko'): tutor['fields'].get('LINK')
-            for tutor in all_tutors_records if 'Imię i Nazwisko' in tutor.get('fields', {})
+            tutor['fields'].get('ImieNazwisko'): tutor['fields'].get('LINK')
+            for tutor in all_tutors_records if 'ImieNazwisko' in tutor.get('fields', {})
         }
 
         all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
@@ -1473,7 +1473,7 @@ def get_reservation_details():
         tutor_name = fields.get('Korepetytor')
         tutor_contact_link = None
         if tutor_name:
-            tutor_record = tutors_table.first(formula=f"{{Imię i Nazwisko}} = '{tutor_name}'")
+            tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
             if tutor_record:
                 tutor_contact_link = tutor_record.get('fields', {}).get('LINK')
 
