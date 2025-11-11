@@ -1421,16 +1421,27 @@ def get_client_dashboard():
         cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
         
         today = datetime.now().date()
-        start_of_week = today - timedelta(days=today.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
 
         for record in cyclic_records:
             fields = record.get('fields', {})
-            is_next_lesson_confirmed_this_week = False
+            day_name = fields.get('DzienTygodnia')
+            lesson_time = fields.get('Godzina')
+            
+            # Oblicz datę najbliższej lekcji dla tego cyklu
+            day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+            days_ahead = day_num - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            next_lesson_date = today + timedelta(days=days_ahead)
+            
+            # Sprawdź, czy istnieje potwierdzona lekcja dla tego konkretnego dnia i godziny
+            is_next_lesson_confirmed = False
             for lesson in upcoming:
                 lesson_date = datetime.strptime(lesson['date'], '%Y-%m-%d').date()
-                if lesson.get('Typ') == 'Cykliczna' and start_of_week <= lesson_date <= end_of_week:
-                    is_next_lesson_confirmed_this_week = True
+                if (lesson.get('Typ') == 'Cykliczna' and 
+                    lesson_date == next_lesson_date and 
+                    lesson.get('time') == lesson_time):
+                    is_next_lesson_confirmed = True
                     break
 
             tutor_name = fields.get('Korepetytor')
@@ -1440,7 +1451,7 @@ def get_client_dashboard():
                 "time": fields.get('Godzina'),
                 "tutor": tutor_name,
                 "subject": fields.get('Przedmiot'),
-                "isNextLessonConfirmed": is_next_lesson_confirmed_this_week,
+                "isNextLessonConfirmed": is_next_lesson_confirmed,
                 "tutorContactLink": tutor_links_map.get(tutor_name)
             })
 
