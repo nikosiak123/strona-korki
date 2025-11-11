@@ -446,7 +446,7 @@ def check_and_cancel_unpaid_lessons():
     try:
         # --- ZMIANA JEST TUTAJ ---
         # Dodajemy warunek, aby funkcja ignorowała lekcje testowe
-        formula = f"AND({{Opłacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność', {{JestTestowa}} != 1)"
+        formula = f"AND({{Oplacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność', {{JestTestowa}} != 1)"
         
         potential_lessons = reservations_table.all(formula=formula)
         
@@ -630,8 +630,8 @@ def mark_lesson_as_paid():
 
         # Przygotuj dane do aktualizacji w Airtable
         update_data = {
-            "Opłacona": True,
-            "Status": "Opłacona" 
+            "Oplacona": True,
+            "Status": "Opłacona"
         }
         reservations_table.update(record_to_update['id'], update_data)
         
@@ -690,7 +690,7 @@ def get_tutor_lessons():
                 'studentName': client_info.get('name', 'Brak danych'),
                 'studentContactLink': client_info.get('link'), # <-- Dodajemy link do danych
                 'subject': fields.get('Przedmiot'),
-                'schoolType': fields.get('TypSzkoły'),
+                'schoolType': fields.get('TypSzkoly'),
                 'schoolLevel': fields.get('Poziom'),
                 'schoolClass': fields.get('Klasa'),
                 'teamsLink': fields.get('TeamsLink')
@@ -951,9 +951,9 @@ def get_schedule():
                     "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
                     "studentName": student_name, 
                     "studentContactLink": client_info.get('LINK'),
-                    "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
+                    "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
-                    "isPaid": fields.get('Opłacona', False),      # <-- DODANO TĘ LINIĘ
+                    "isPaid": fields.get('Oplacona', False),      # <-- DODANO TĘ LINIĘ
                     "isTest": fields.get('JestTestowa', False)    # <-- DODANO TĘ LINIĘ
                 }
 
@@ -974,7 +974,7 @@ def get_schedule():
                             student_name = all_clients.get(client_uuid, {}).get('Imie', 'Uczeń')
                             booked_slots[key] = {
                                 "status": "cyclic_reserved", "studentName": f"{student_name} (Cykliczne)",
-                                "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
+                                "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                                 "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa')
                             }
             except ValueError: pass
@@ -1148,7 +1148,7 @@ def create_reservation():
             tutor_for_reservation = available_tutors_for_slot[0]
 
         extra_info = {
-            "TypSzkoły": data.get('schoolType'), "Poziom": data.get('schoolLevel'), "Klasa": data.get('schoolClass')
+            "TypSzkoly": data.get('schoolType'), "Poziom": data.get('schoolLevel'), "Klasa": data.get('schoolClass')
         }
 
         if is_cyclic:
@@ -1215,9 +1215,9 @@ def create_reservation():
                 
                 # Uruchomienie wyszukiwarki profilu Facebook (w tle)
                 client_fields = client_record.get('fields', {})
-                first_name_client = client_fields.get('ImięKlienta')
+                first_name_client = client_fields.get('ImieKlienta')
                 last_name_client = client_fields.get('NazwiskoKlienta')
-                profile_pic_client = client_fields.get('Zdjęcie')
+                profile_pic_client = client_fields.get('Zdjecie')
     
                 if all([first_name_client, last_name_client, profile_pic_client]):
                     search_thread = threading.Thread(
@@ -1324,7 +1324,7 @@ def confirm_next_lesson():
             "Typ": "Cykliczna",
             "Status": "Oczekuje na płatność",
             "TeamsLink": teams_link,
-            "TypSzkoły": fields.get('TypSzkoły'),
+            "TypSzkoly": fields.get('TypSzkoly'),
             "Poziom": fields.get('Poziom'),
             "Klasa": fields.get('Klasa')
         }
@@ -1402,7 +1402,7 @@ def get_client_dashboard():
                 "status": status,
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
-                "isPaid": fields.get('Opłacona', False),
+                "isPaid": fields.get('Oplacona', False),
                 # === KLUCZOWA POPRAWKA JEST TUTAJ ===
                 "Typ": fields.get('Typ')
                 # === KONIEC POPRAWKI ===
@@ -1547,7 +1547,7 @@ def reschedule_reservation():
         if cyclic_reservations_table.first(formula=cyclic_check_formula):
             abort(409, "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny.")
             
-        was_paid = original_fields.get('Opłacona', False)
+        was_paid = original_fields.get('Oplacona', False)
         new_status = 'Oczekuje na płatność'
 
         # Sprawdzamy, czy oryginalna lekcja była opłacona (na podstawie checkboxa lub statusu)
@@ -1563,9 +1563,9 @@ def reschedule_reservation():
             "Przedmiot": original_fields.get('Przedmiot'),
             "Typ": original_fields.get('Typ', 'Jednorazowa'),
             "Status": new_status,
-            "Opłacona": was_paid,
+            "Oplacona": was_paid,
             "ManagementToken": str(uuid.uuid4()),
-            "TypSzkoły": original_fields.get('TypSzkoły'),
+            "TypSzkoly": original_fields.get('TypSzkoly'),
             "Poziom": original_fields.get('Poziom'),
             "Klasa": original_fields.get('Klasa'),
             "TeamsLink": original_fields.get('TeamsLink')
