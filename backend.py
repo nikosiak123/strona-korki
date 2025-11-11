@@ -828,8 +828,8 @@ def get_tutor_schedule():
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
     fields = tutor_record.get('fields', {})
     return jsonify({
-        "Imię i Nazwisko": fields.get("ImieNazwisko"), "Poniedziałek": fields.get("Poniedzialek", ""),"Wtorek": fields.get("Wtorek", ""),
-        "Środa": fields.get("Sroda", ""), "Czwartek": fields.get("Czwartek", ""),"Piątek": fields.get("Piatek", ""),
+        "Imię i Nazwisko": fields.get("ImieNazwisko"), "Poniedzialek": fields.get("Poniedzialek", ""),"Wtorek": fields.get("Wtorek", ""),
+        "Sroda": fields.get("Sroda", ""), "Czwartek": fields.get("Czwartek", ""),"Piatek": fields.get("Piatek", ""),
         "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", "")
     })
 
