@@ -492,15 +492,37 @@
 
         function generateModalForm(record) {
             const formContainer = document.getElementById('modalForm');
-            const fields = record.fields || getDefaultFields(currentTable);
+            let fields = record.fields || getDefaultFields(currentTable);
+            
+            // Sortuj pola w odpowiedniej kolejności dla Korepetytorzy
+            let sortedKeys = Object.keys(fields);
+            if (currentTable === 'Korepetytorzy') {
+                const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedzialek', 'Wtorek', 'Sroda', 'Czwartek', 'Piatek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
+                sortedKeys = correctOrder.filter(f => sortedKeys.includes(f));
+                // Dodaj pozostałe pola, których nie ma w correctOrder
+                sortedKeys.push(...Object.keys(fields).filter(f => !correctOrder.includes(f)));
+            }
             
             let formHTML = '';
-            for (const [key, value] of Object.entries(fields)) {
-                const inputValue = Array.isArray(value) ? JSON.stringify(value) : (value || '');
+            for (const key of sortedKeys) {
+                let value = fields[key];
+                // Poprawne wyświetlanie wartości - escape HTML i zamień tablice na JSON
+                let inputValue = '';
+                if (Array.isArray(value)) {
+                    inputValue = JSON.stringify(value);
+                } else if (typeof value === 'boolean') {
+                    inputValue = value ? 'true' : 'false';
+                } else if (value !== null && value !== undefined) {
+                    inputValue = String(value);
+                }
+                
+                // Escape cudzysłowów w wartości
+                const escapedValue = inputValue.replace(/"/g, '&quot;');
+                
                 formHTML += `
                     <div class="form-group">
                         <label>${key}</label>
-                        <input type="text" name="${key}" value="${inputValue}" />
+                        <input type="text" name="${key}" value="${escapedValue}" />
                     </div>
                 `;
             }
