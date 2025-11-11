@@ -819,7 +819,7 @@ def verify_client():
     if not client_id: abort(400, "Brak identyfikatora klienta.")
     client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
     if not client_record: abort(404, "Klient o podanym identyfikatorze nie istnieje.")
-    return jsonify({"firstName": client_record['fields'].get('Imię'), "lastName": client_record['fields'].get('Nazwisko')})
+    return jsonify({"firstName": client_record['fields'].get('Imie'), "lastName": client_record['fields'].get('Nazwisko')})
 
 @app.route('/api/get-tutor-schedule')
 def get_tutor_schedule():
@@ -943,9 +943,9 @@ def get_schedule():
             key = (fields.get('Korepetytor'), fields.get('Data'), fields.get('Godzina'))
             status = fields.get('Status')
             if status != 'Dostępny':
-                student_name = all_clients.get(fields.get('Klient'), {}).get('Imię', 'Uczeń')
+                student_name = all_clients.get(fields.get('Klient'), {}).get('Imie', 'Uczeń')
                 client_info = all_clients.get(fields.get('Klient'), {})
-                student_name = client_info.get('Imię', 'Uczeń')
+                student_name = client_info.get('Imie', 'Uczeń')
                 
                 booked_slots[key] = {
                     "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
@@ -971,7 +971,7 @@ def get_schedule():
                     if current_date.weekday() == day_num:
                         key = (fields.get('Korepetytor'), current_date.strftime('%Y-%m-%d'), fields.get('Godzina'))
                         if key not in booked_slots:
-                            student_name = all_clients.get(client_uuid, {}).get('Imię', 'Uczeń')
+                            student_name = all_clients.get(client_uuid, {}).get('Imie', 'Uczeń')
                             booked_slots[key] = {
                                 "status": "cyclic_reserved", "studentName": f"{student_name} (Cykliczne)",
                                 "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoły'),
@@ -1106,13 +1106,13 @@ def create_reservation():
         last_name_from_form = data.get('lastName')
         
         client_update_data = {}
-        if first_name_from_form: client_update_data['Imię'] = first_name_from_form
+        if first_name_from_form: client_update_data['Imie'] = first_name_from_form
         if last_name_from_form: client_update_data['Nazwisko'] = last_name_from_form
 
         if client_update_data:
             clients_table.update(client_record['id'], client_update_data)
         
-        first_name = first_name_from_form or client_record['fields'].get('Imię')
+        first_name = first_name_from_form or client_record['fields'].get('Imie')
         
         tutor_for_reservation = data['tutor']
         if tutor_for_reservation == 'Dowolny dostępny':
@@ -1282,7 +1282,7 @@ def confirm_next_lesson():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid}'")
         if not client_record: 
             abort(404, "Powiązany klient nie istnieje.")
-        first_name = client_record['fields'].get('Imię')
+        first_name = client_record['fields'].get('Imie')
 
         day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
         today = datetime.now().date()
@@ -1373,7 +1373,7 @@ def get_client_dashboard():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
         if not client_record: 
             abort(404, "Nie znaleziono klienta.")
-        client_name = client_record['fields'].get('Imię', 'Uczniu')
+        client_name = client_record['fields'].get('Imie', 'Uczniu')
 
         all_tutors_records = tutors_table.all()
         tutor_links_map = {
@@ -1470,7 +1470,7 @@ def get_reservation_details():
         if client_uuid:
             client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid}'")
             if client_record:
-                student_name = client_record.get('fields', {}).get('Imię', 'N/A')
+                student_name = client_record.get('fields', {}).get('Imie', 'N/A')
 
         tutor_name = fields.get('Korepetytor')
         tutor_contact_link = None
