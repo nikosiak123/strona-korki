@@ -795,6 +795,7 @@ def add_adhoc_slot():
             abort(403, "Brak uprawnień.")
         
         new_available_slot = {
+            "Klient": "DOSTEPNY",  # Placeholder dla slotu bez klienta
             "Korepetytor": tutor_name,
             "Data": date,
             "Godzina": time,
@@ -875,6 +876,7 @@ def block_single_slot():
         else:
             # Jeśli nic nie istnieje - tworzymy blokadę (robimy sobie wolne)
             new_block = {
+                "Klient": "BLOKADA",  # Placeholder dla blokady bez klienta
                 "Korepetytor": tutor_name,
                 "Data": date,
                 "Godzina": time,
