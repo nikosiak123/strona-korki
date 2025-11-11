@@ -137,12 +137,13 @@
             width: 100%;
             background-color: white;
             border-radius: 8px;
-            overflow: hidden;
+            overflow-x: auto;
             box-shadow: 0 2px 8px var(--shadow-color);
         }
         
         .records-table table {
             width: 100%;
+            min-width: 1200px;
             border-collapse: collapse;
         }
         
@@ -424,7 +425,15 @@
                     return;
                 }
 
-                const fields = Object.keys(data.records[0].fields);
+                // Sortuj kolumny w odpowiedniej kolejności
+                let fields = Object.keys(data.records[0].fields);
+                if (tableName === 'Korepetytorzy') {
+                    const dayOrder = ['Czwartek', 'Poniedzialek', 'Wtorek', 'Sroda', 'Piatek', 'Sobota', 'Niedziela'];
+                    const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedzialek', 'Wtorek', 'Sroda', 'Czwartek', 'Piatek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
+                    fields = correctOrder.filter(f => fields.includes(f));
+                    // Dodaj pozostałe pola, których nie ma w correctOrder
+                    fields.push(...Object.keys(data.records[0].fields).filter(f => !correctOrder.includes(f)));
+                }
                 let tableHTML = `
                     <div class="action-buttons">
                         <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
