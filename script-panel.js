@@ -267,6 +267,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
                     const block = document.createElement('div');
                     block.className = 'time-block';
+                    
+                    // Sprawdź czy termin jest w przeszłości
+                    const slotDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
+                    const isPast = slotDateTime < new Date();
+                    
                     if (slotData) {
                         switch(slotData.status) {
                             case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
@@ -276,6 +281,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             default: block.classList.add('unavailable'); block.textContent = "Zajęty"; block.style.cursor = 'not-allowed';
                         }
                     } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
+                    
+                    // Dodaj klasę 'past' jeśli termin był w przeszłości
+                    if (isPast) {
+                        block.classList.add('past');
+                    }
+                    
                     cell.appendChild(block);
                 });
                 masterTime.setMinutes(masterTime.getMinutes() + 70);
@@ -301,6 +312,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const slotData = scheduleMap[formattedDate] ? scheduleMap[formattedDate][timeSlot] : null;
                         const block = document.createElement('div');
                         block.className = 'time-block';
+                        
+                        // Sprawdź czy termin jest w przeszłości
+                        const slotDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
+                        const isPast = slotDateTime < new Date();
                         
                         if (slotData) {
                             switch(slotData.status) {
@@ -335,6 +350,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             block.textContent = `${timeSlot} - Niedostępny (poza grafikiem)`;
                             block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
                         }
+                        
+                        // Dodaj klasę 'past' jeśli termin był w przeszłości
+                        if (isPast) {
+                            block.classList.add('past');
+                        }
+                        
                         dayHtmlContent += block.outerHTML;
                     });
                     
