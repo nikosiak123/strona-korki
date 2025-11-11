@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
     const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
+    const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
     const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
@@ -63,9 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         daysOfWeekShort.forEach(dayShort => {
             const start = document.querySelector(`input[name="${dayShort}_start"]`).value;
             const end = document.querySelector(`input[name="${dayShort}_end"]`).value;
-            // Mapujemy z powrotem na pełną nazwę do wysłania
-            const dayFullName = daysOfWeek[daysOfWeekShort.indexOf(dayShort)];
-            scheduleData[dayFullName] = (start && end) ? `${start}-${end}` : "";
+            // Mapujemy na nazwę API (bez polskich znaków)
+            const dayAPIName = daysOfWeekAPI[daysOfWeekShort.indexOf(dayShort)];
+            scheduleData[dayAPIName] = (start && end) ? `${start}-${end}` : "";
         });
 
         try {
@@ -428,8 +429,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `${hour}:${minute}`;
         };
         daysOfWeekShort.forEach(dayShort => { // Iterujemy po skróconych nazwach
-            const dayFullName = daysOfWeek[daysOfWeekShort.indexOf(dayShort)]; // Pobieramy pełną nazwę do pobrania danych
-            const timeRange = data[dayFullName] || "";
+            const dayAPIName = daysOfWeekAPI[daysOfWeekShort.indexOf(dayShort)]; // Pobieramy nazwę API do pobrania danych
+            const timeRange = data[dayAPIName] || "";
             const [startTime = '', endTime = ''] = timeRange.split('-');
             const row = document.createElement('div');
             row.className = 'day-row';
