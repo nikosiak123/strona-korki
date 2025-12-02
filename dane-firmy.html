@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dane Firmy - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .legal-container { 
+            max-width: 900px; 
+            margin: 2.5rem auto; 
+            padding: 2.5rem; 
+            background-color: var(--container-bg-color); 
+            border-radius: 16px; 
+            box-shadow: 0 8px 24px var(--shadow-color);
+        }
+        .legal-container h1 { font-size: 2rem; margin-bottom: 1rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
+        .legal-container h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .legal-container p, .legal-container ul { line-height: 1.8; color: var(--text-medium); margin-bottom: 1rem; }
+        .legal-container ul { padding-left: 20px; }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+        .info-box strong {
+            color: var(--text-dark);
+        }
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+        .pricing-table th,
+        .pricing-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .pricing-table th {
+            background-color: var(--primary-color);
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+        .pricing-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .pricing-table td:last-child {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 992px) {
+            .legal-container { margin: 0; border-radius: 0; box-shadow: none; }
+            .pricing-table { font-size: 0.9rem; }
+            .pricing-table th,
+            .pricing-table td { padding: 0.75rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dane Firmy</h1>
+    </header>
+
+    <main>
+        <div class="legal-container">
+            <p style="text-align: right; font-size: 0.85rem; color: var(--text-light);">Data ostatniej aktualizacji: 02.12.2024</p>
+            
+            <h2>Informacje o przedsiębiorcy</h2>
+            <div class="info-box">
+                <p><strong>Pełna nazwa firmy:</strong> Edu Paweł Najechalski</p>
+                <p><strong>Właściciel:</strong> Paweł Najechalski</p>
+                <p><strong>NIP:</strong> 5671120946</p>
+                <p><strong>REGON:</strong> 541259874</p>
+                <p><strong>Obywatelstwo:</strong> polskie</p>
+            </div>
+
+            <h2>Adres siedziby</h2>
+            <div class="info-box">
+                <p><strong>Stałe miejsce wykonywania działalności gospodarczej:</strong></p>
+                <p>ul. Wał Miedzeszyński 42d<br>
+                04-987 Warszawa<br>
+                pow. Warszawa, gm. Warszawa<br>
+                woj. MAZOWIECKIE<br>
+                Polska</p>
+                
+                <p style="margin-top: 1rem;"><strong>Adres do doręczeń:</strong></p>
+                <p>Paweł Najechalski<br>
+                ul. Wał Miedzeszyński 42d<br>
+                04-987 Warszawa<br>
+                Polska</p>
+            </div>
+
+            <h2>Cennik usług korepetycji</h2>
+            <p>Usługa korepetycji trwa 60 minut (godzinę zegarową). Ceny za pojedynczą lekcję:</p>
+            
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th>Poziom nauczania</th>
+                        <th>Cena za lekcję (60 min)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Szkoła Podstawowa</td>
+                        <td>65 zł</td>
+                    </tr>
+                    <tr>
+                        <td>Szkoła średnia (klasy niematuralne, poziom podstawowy)</td>
+                        <td>70 zł</td>
+                    </tr>
+                    <tr>
+                        <td>Szkoła średnia (klasy niematuralne, poziom rozszerzony)</td>
+                        <td>75 zł</td>
+                    </tr>
+                    <tr>
+                        <td>Szkoła średnia (klasa maturalna, podstawa i rozszerzenie)</td>
+                        <td>80 zł</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Dostępność usług</h2>
+            <p>Usługi korepetycji online są dostępne zgodnie z bieżącym harmonogramem korepetytorów. Dostępność terminów można sprawdzić w systemie rezerwacji. Lekcje odbywają się online za pośrednictwem platformy Microsoft Teams.</p>
+            <p>Status dostępności poszczególnych terminów jest aktualizowany na bieżąco w systemie rezerwacji.</p>
+
+            <h2>Termin realizacji usługi</h2>
+            <p>Usługa korepetycji jest świadczona w uzgodnionym terminie zarezerwowanym przez Klienta w systemie. Każda lekcja trwa 60 minut zgodnie z zarezerwowanym terminem.</p>
+            <p>Po dokonaniu rezerwacji i opłaceniu lekcji, Klient otrzymuje link do spotkania Microsoft Teams, które odbędzie się w wybranym przez Klienta terminie.</p>
+
+            <h2>Prawo odstąpienia od umowy</h2>
+            <p>Zgodnie z przepisami ustawy o prawach konsumenta, Klient będący konsumentem ma prawo odstąpić od umowy w terminie <strong>14 dni</strong> bez podania przyczyny.</p>
+            <p><strong>Termin odstąpienia:</strong> Termin 14-dniowy liczy się od dnia zawarcia umowy (dokonania rezerwacji i opłaty).</p>
+            
+            <div class="info-box">
+                <p><strong>WAŻNE:</strong> Prawo odstąpienia od umowy <strong>nie przysługuje</strong> w przypadku umów o świadczenie usług, jeżeli przedsiębiorca wykonał w pełni usługę za wyraźną zgodą konsumenta, który został poinformowany przed rozpoczęciem świadczenia, że po spełnieniu świadczenia przez przedsiębiorcę utraci prawo odstąpienia od umowy.</p>
+                <p>W przypadku usług korepetycji, jeśli lekcja została już przeprowadzona, Klient traci prawo odstąpienia od umowy dotyczącej tej konkretnej lekcji.</p>
+            </div>
+
+            <p><strong>Jak odstąpić od umowy:</strong></p>
+            <ul>
+                <li>Oświadczenie o odstąpieniu można złożyć poprzez kontakt za pośrednictwem systemu lub wiadomości na Facebooku.</li>
+                <li>W oświadczeniu należy zawrzeć: imię i nazwisko, datę rezerwacji, oraz informację o odstąpieniu od umowy.</li>
+                <li>Zwrot płatności nastąpi niezwłocznie, nie później niż w ciągu 14 dni od otrzymania oświadczenia o odstąpieniu.</li>
+            </ul>
+
+            <h2>Procedura reklamacyjna</h2>
+            <p>W przypadku problemów z realizacją usługi, Klient ma prawo złożyć reklamację.</p>
+            
+            <p><strong>Jak złożyć reklamację:</strong></p>
+            <ul>
+                <li>Reklamację można zgłosić poprzez kontakt za pośrednictwem systemu lub wiadomości na Facebooku.</li>
+                <li>Reklamacja powinna zawierać: imię i nazwisko, datę i godzinę lekcji, której dotyczy reklamacja, oraz opis problemu.</li>
+                <li>Reklamację można złożyć w terminie 30 dni od daty lekcji.</li>
+            </ul>
+
+            <p><strong>Rozpatrzenie reklamacji:</strong></p>
+            <ul>
+                <li>Reklamacje są rozpatrywane w terminie 14 dni od daty otrzymania zgłoszenia.</li>
+                <li>Odpowiedź na reklamację zostanie przesłana na adres kontaktowy podany przez Klienta.</li>
+                <li>W przypadku uznania reklamacji, Klient otrzyma zwrot płatności lub możliwość bezpłatnej lekcji wyrównawczej - w zależności od charakteru problemu.</li>
+            </ul>
+
+            <div class="info-box">
+                <p><strong>Podstawy prawne do reklamacji:</strong></p>
+                <p>Reklamacje są rozpatrywane na podstawie przepisów Kodeksu Cywilnego dotyczących rękojmi i niezgodności świadczenia z umową.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Zakręcone Korepetycje</p>
+        <div class="footer-links">
+            <a href="/regulamin.html">Regulamin</a>
+            <a href="/polityka-prywatnosci.html">Polityka Prywatności</a>
+            <a href="/dane-firmy.html">Dane Firmy</a>
+        </div>
+    </footer>
+</body>
+</html>
