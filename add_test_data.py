@@ -43,11 +43,11 @@ def add_test_data():
         {
             'TutorID': 'tutor001',
             'ImieNazwisko': 'Piotr Wiśniewski',
-            'Poniedzialek': '14:00-20:00',
+            'Poniedziałek': '14:00-20:00',
             'Wtorek': '14:00-20:00',
-            'Sroda': '14:00-20:00',
+            'Środa': '14:00-20:00',
             'Czwartek': '14:00-20:00',
-            'Piatek': '14:00-20:00',
+            'Piątek': '14:00-20:00',
             'Przedmioty': ['Matematyka', 'Fizyka'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa', 'liceum_rozszerzenie'],
             'LINK': 'https://facebook.com/piotr.wisniewski'
@@ -55,9 +55,9 @@ def add_test_data():
         {
             'TutorID': 'tutor002',
             'ImieNazwisko': 'Maria Kowalczyk',
-            'Poniedzialek': '16:00-21:00',
-            'Sroda': '16:00-21:00',
-            'Piatek': '16:00-21:00',
+            'Poniedziałek': '16:00-21:00',
+            'Środa': '16:00-21:00',
+            'Piątek': '16:00-21:00',
             'Przedmioty': ['Polski', 'Angielski'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa'],
             'LINK': 'https://facebook.com/maria.kowalczyk'

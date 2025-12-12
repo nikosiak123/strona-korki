@@ -67,7 +67,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
-WEEKDAY_MAP = { 0: "Poniedzialek", 1: "Wtorek", 2: "Sroda", 3: "Czwartek", 4: "Piatek", 5: "Sobota", 6: "Niedziela" }
+WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
 LEVEL_MAPPING = {
     "szkola_podstawowa": ["podstawowka"], "liceum_podstawowy": ["liceum_podstawa"],
     "technikum_podstawowy": ["liceum_podstawa"], "liceum_rozszerzony": ["liceum_rozszerzenie"],
