@@ -1366,12 +1366,15 @@ def get_client_dashboard():
     try:
         client_id = request.args.get('clientID')
         if not client_id: 
+            logging.error("Dashboard: Brak identyfikatora klienta.")
             abort(400, "Brak identyfikatora klienta.")
         
         client_id = client_id.strip()
+        logging.debug(f"Dashboard: Przetwarzanie dla ClientID: {client_id}")
         
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
         if not client_record: 
+            logging.error(f"Dashboard: Nie znaleziono klienta dla ClientID: {client_id}")
             abort(404, "Nie znaleziono klienta.")
         client_name = client_record['fields'].get('Imie', 'Uczniu')
 
@@ -1382,15 +1385,29 @@ def get_client_dashboard():
         }
 
         all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
+        logging.debug(f"Dashboard: Znaleziono {len(all_reservations)} rezerwacji dla klienta.")
         
         upcoming = []
         past = []
+        
+        # --- BLOK ZWIĘKSZONEGO LOGOWANIA DLA REZERWACJI ---
         for record in all_reservations:
+            record_id = record.get('id', 'N/A')
             fields = record.get('fields', {})
+            
             if 'Data' not in fields or 'Godzina' not in fields: 
+                logging.warning(f"Dashboard: Pominięto rezerwację ID: {record_id} - brak pól Data lub Godzina.")
                 continue
             
-            lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
+            try:
+                # W tym miejscu najczęściej występuje błąd 500 (ValueError)
+                lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
+                logging.debug(f"Dashboard: Pomyślnie sparsowano datę dla rekordu ID: {record_id} ({fields['Data']} {fields['Godzina']}).")
+            except ValueError as e:
+                logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=True)
+                # Kontynuujemy do następnego rekordu, żeby nie zepsuć całej strony (jeśli chcemy, żeby się ładowała)
+                continue 
+            
             status = fields.get('Status', 'N/A')
             
             lesson_data = {
@@ -1403,9 +1420,7 @@ def get_client_dashboard():
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
                 "isPaid": fields.get('Oplacona', False),
-                # === KLUCZOWA POPRAWKA JEST TUTAJ ===
                 "Typ": fields.get('Typ')
-                # === KONIEC POPRAWKI ===
             }
             
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
@@ -1413,36 +1428,62 @@ def get_client_dashboard():
                 past.append(lesson_data)
             else:
                 upcoming.append(lesson_data)
-        
-        upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
-        past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
-        
+        # --- KONIEC BLOKU ZWIĘKSZONEGO LOGOWANIA ---
+
+        # --- BLOK ZWIĘKSZONEGO LOGOWANIA DLA SORTOWANIA ---
+        try:
+            upcoming.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"))
+            past.sort(key=lambda x: datetime.strptime(f"{x['date']} {x['time']}", "%Y-%m-%d %H:%M"), reverse=True)
+            logging.debug("Dashboard: Pomyślnie posortowano rezerwacje.")
+        except Exception as e:
+            logging.error(f"Dashboard: BŁĄD KRYTYCZNY podczas sortowania rezerwacji. Wyjątek: {e}", exc_info=True)
+            # Używamy 'pass', aby zignorować błąd sortowania, jeśli dane są problematyczne,
+            # co pozwoli załadować stronę nawet z nieposortowanymi listami.
+            pass
+        # --- KONIEC BLOKU ZWIĘKSZONEGO LOGOWANIA DLA SORTOWANIA ---
+
         cyclic_lessons = []
         cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
+        logging.debug(f"Dashboard: Znaleziono {len(cyclic_records)} rezerwacji stałych.")
         
         today = datetime.now().date()
 
         for record in cyclic_records:
+            record_id_cyclic = record.get('id', 'N/A')
             fields = record.get('fields', {})
             day_name = fields.get('DzienTygodnia')
             lesson_time = fields.get('Godzina')
             
-            # Oblicz datę najbliższej lekcji dla tego cyklu
-            day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+            if not day_name or not lesson_time:
+                logging.warning(f"Dashboard: Pominięto rezerwację stałą ID: {record_id_cyclic} - brak Dnia Tygodnia lub Godziny.")
+                continue
+            
+            try:
+                day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+            except ValueError:
+                logging.warning(f"Dashboard: Pominięto rezerwację stałą ID: {record_id_cyclic} - nieprawidłowa nazwa dnia tygodnia: {day_name}.")
+                continue
+                
             days_ahead = day_num - today.weekday()
             if days_ahead <= 0:
                 days_ahead += 7
             next_lesson_date = today + timedelta(days=days_ahead)
             
-            # Sprawdź, czy istnieje potwierdzona lekcja dla tego konkretnego dnia i godziny
             is_next_lesson_confirmed = False
             for lesson in upcoming:
-                lesson_date = datetime.strptime(lesson['date'], '%Y-%m-%d').date()
-                if (lesson.get('Typ') == 'Cykliczna' and 
-                    lesson_date == next_lesson_date and 
-                    lesson.get('time') == lesson_time):
-                    is_next_lesson_confirmed = True
-                    break
+                try:
+                    lesson_date_str = lesson.get('date')
+                    if not lesson_date_str:
+                        continue
+                    lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
+                    if (lesson.get('Typ') == 'Cykliczna' and 
+                        lesson_date == next_lesson_date and 
+                        lesson.get('time') == lesson_time):
+                        is_next_lesson_confirmed = True
+                        break
+                except (ValueError, TypeError):
+                    logging.warning(f"Dashboard: Błąd parsowania daty w `upcoming` przy sprawdzaniu potwierdzenia rezerwacji stałej. Dane: {lesson}")
+                    continue
 
             tutor_name = fields.get('Korepetytor')
             cyclic_lessons.append({
@@ -1455,6 +1496,7 @@ def get_client_dashboard():
                 "tutorContactLink": tutor_links_map.get(tutor_name)
             })
 
+        logging.info(f"Dashboard: Pomyślnie wygenerowano dane dla panelu klienta {client_id}.")
         return jsonify({
             "clientName": client_name,
             "cyclicLessons": cyclic_lessons,
@@ -1462,7 +1504,8 @@ def get_client_dashboard():
             "pastLessons": past
         })
     except Exception as e:
-        traceback.print_exc()
+        # Ten blok łapie błąd 500 i loguje pełny traceback
+        logging.error(f"!!! KRYTYCZNY BŁĄD w get_client_dashboard dla clientID {request.args.get('clientID', 'N/A')} !!!", exc_info=True)
         abort(500, "Wystąpił błąd podczas pobierania danych panelu klienta.")
 
 @app.route('/api/get-reservation-details')
