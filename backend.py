@@ -512,13 +512,22 @@ def normalize_tutor_field(raw_value):
     """
     Normalize a tutor field (Przedmioty or PoziomNauczania) that can be a list or string.
     Returns a list of lowercase, trimmed strings.
+    
+    Args:
+        raw_value: Can be a list, JSON string, CSV string, or None.
+    
+    Examples:
+        ['Math', 'Physics'] -> ['math', 'physics']
+        '["Math", "Physics"]' -> ['math', 'physics']
+        'Math, Physics' -> ['math', 'physics']
+        None -> []
     """
     if isinstance(raw_value, list):
-        return [s.strip().lower() for s in raw_value]
+        return [s.strip().lower() for s in raw_value if isinstance(s, str)]
     elif isinstance(raw_value, str):
         try:
             parsed = json.loads(raw_value)
-            return [s.strip().lower() for s in parsed]
+            return [s.strip().lower() for s in parsed if isinstance(s, str)]
         except (json.JSONDecodeError, TypeError):
             return [s.strip().lower() for s in raw_value.split(',') if s.strip()]
     else:
