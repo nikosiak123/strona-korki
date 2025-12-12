@@ -50,6 +50,7 @@ def init_database():
             Przedmioty TEXT,
             PoziomNauczania TEXT,
             LINK TEXT,
+            LimitGodzinTygodniowo INTEGER DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -101,6 +102,14 @@ def init_database():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_rezerwacje_data ON Rezerwacje(Data)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_rezerwacje_token ON Rezerwacje(ManagementToken)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_stale_klient ON StaleRezerwacje(Klient_ID)')
+    
+    # Migracja: Dodaj kolumnę LimitGodzinTygodniowo, jeśli nie istnieje
+    try:
+        cursor.execute("SELECT LimitGodzinTygodniowo FROM Korepetytorzy LIMIT 1")
+    except sqlite3.OperationalError:
+        print("Migracja: Dodawanie kolumny LimitGodzinTygodniowo do tabeli Korepetytorzy...")
+        cursor.execute("ALTER TABLE Korepetytorzy ADD COLUMN LimitGodzinTygodniowo INTEGER DEFAULT NULL")
+        print("✓ Kolumna LimitGodzinTygodniowo dodana pomyślnie.")
     
     conn.commit()
     conn.close()

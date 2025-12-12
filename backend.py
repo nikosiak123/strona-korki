@@ -553,6 +553,47 @@ def find_reservation_by_token(token):
     if not token: return None
     return reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
 
+# === Funkcje pomocnicze dla limitu godzin tygodniowo ===
+
+def get_week_start(date):
+    """Zwraca poniedziałek dla podanej daty."""
+    return date - timedelta(days=date.weekday())
+
+def get_tutor_hours_for_week(tutor_name, week_start_date):
+    """
+    Liczy sumę godzin korepetytora w tygodniu od week_start_date (poniedziałek).
+    
+    Args:
+        tutor_name: Imię i nazwisko korepetytora
+        week_start_date: Data poniedziałku (datetime.date)
+    
+    Returns:
+        int: Liczba godzin (każda lekcja = 1 godzina)
+    """
+    week_end_date = week_start_date + timedelta(days=7)
+    
+    # Formaty dat dla SQLite (YYYY-MM-DD)
+    start_str = week_start_date.strftime('%Y-%m-%d')
+    end_str = week_end_date.strftime('%Y-%m-%d')
+    
+    # Formuła zlicza lekcje z statusami "opłaconych" (nie liczy przeniesionych, anulowanych, etc.)
+    formula = f"""AND(
+        {{Korepetytor}} = '{tutor_name}',
+        IS_AFTER({{Data}}, DATETIME_PARSE('{(week_start_date - timedelta(days=1)).strftime('%Y-%m-%d')}', 'YYYY-MM-DD')),
+        IS_BEFORE({{Data}}, DATETIME_PARSE('{end_str}', 'YYYY-MM-DD')),
+        OR({{Status}} = 'Opłacona', {{Status}} = 'Oczekuje na płatność')
+    )"""
+    
+    lessons = reservations_table.all(formula=formula)
+    return len(lessons)  # Każda lekcja = 1h
+
+def check_if_client_has_cyclic_with_tutor(client_id, tutor_name):
+    """Sprawdza, czy klient ma aktywne stałe zajęcia z korepetytorem."""
+    formula = f"AND({{Klient_ID}} = '{client_id}', {{Korepetytor}} = '{tutor_name}', {{Aktywna}} = 1)"
+    return cyclic_reservations_table.first(formula=formula) is not None
+
+# === Koniec funkcji pomocniczych ===
+
 # W pliku backend.py
 
 def is_cancellation_allowed(record):
@@ -941,7 +982,24 @@ def get_schedule():
 
         if tutor_name_filter:
             found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('ImieNazwisko') == tutor_name_filter), None)
-            if found_tutor: filtered_tutors.append(found_tutor)
+            if found_tutor:
+                # Sprawdzenie limitu godzin tygodniowo
+                fields = found_tutor.get('fields', {})
+                tutor_name = fields.get('ImieNazwisko')
+                tutor_limit = fields.get('LimitGodzinTygodniowo')
+                
+                if tutor_limit is not None:
+                    week_start = get_week_start(start_date)
+                    current_hours = get_tutor_hours_for_week(tutor_name, week_start)
+                    
+                    if current_hours >= tutor_limit:
+                        # Korepetytor przekroczył limit - pomijamy go w grafiku
+                        pass
+                    else:
+                        filtered_tutors.append(found_tutor)
+                else:
+                    # Brak limitu - dodaj korepetytora
+                    filtered_tutors.append(found_tutor)
         else:
             if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
             
@@ -958,6 +1016,7 @@ def get_schedule():
 
             for tutor in all_tutors_templates:
                 fields = tutor.get('fields', {})
+                tutor_name = fields.get('ImieNazwisko')
                 
                 # --- ULEPSZONA LOGIKA: Obsługa list i stringów ---
                 tutor_subjects = normalize_tutor_field(fields.get('Przedmioty', []))
@@ -966,6 +1025,17 @@ def get_schedule():
 
                 # Teraz porównanie jest bezpieczne i niezależne od wielkości liter
                 if all(tag in tutor_levels for tag in required_level_tags) and subject in tutor_subjects:
+                    # Sprawdzenie limitu godzin tygodniowo
+                    tutor_limit = fields.get('LimitGodzinTygodniowo')
+                    
+                    if tutor_limit is not None:
+                        week_start = get_week_start(start_date)
+                        current_hours = get_tutor_hours_for_week(tutor_name, week_start)
+                        
+                        if current_hours >= tutor_limit:
+                            # Korepetytor przekroczył limit - pomijamy go w grafiku
+                            continue
+                    
                     filtered_tutors.append(tutor)
         
         booked_slots = {}
@@ -1176,6 +1246,26 @@ def create_reservation():
         extra_info = {
             "TypSzkoly": data.get('schoolType'), "Poziom": data.get('schoolLevel'), "Klasa": data.get('schoolClass')
         }
+
+        # Sprawdzenie limitu godzin dla korepetytora
+        tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_for_reservation}'")
+        if tutor_record:
+            tutor_limit = tutor_record['fields'].get('LimitGodzinTygodniowo')
+            
+            if tutor_limit is not None:
+                lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
+                week_start = get_week_start(lesson_date)
+                current_hours = get_tutor_hours_for_week(tutor_for_reservation, week_start)
+                
+                # Blokada dla nowych rezerwacji cyklicznych
+                if is_cyclic and current_hours >= tutor_limit:
+                    abort(409, f"Korepetytor osiągnął limit godzin ({tutor_limit}h) w tym tygodniu.")
+                
+                # Blokada dla jednorazowych - TYLKO jeśli uczeń nie ma stałych zajęć
+                if not is_cyclic and current_hours >= tutor_limit:
+                    has_cyclic = check_if_client_has_cyclic_with_tutor(client_uuid, tutor_for_reservation)
+                    if not has_cyclic:
+                        abort(409, f"Korepetytor osiągnął limit godzin ({tutor_limit}h) w tym tygodniu.")
 
         if is_cyclic:
             lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
@@ -1779,6 +1869,69 @@ def delete_table_record(table_name, record_id):
     except Exception as e:
         traceback.print_exc()
         abort(500, f"Błąd podczas usuwania rekordu: {str(e)}")
+
+@app.route('/api/update-tutor-weekly-limit', methods=['POST'])
+def update_tutor_weekly_limit():
+    """Aktualizuje limit godzin tygodniowo dla korepetytora."""
+    try:
+        data = request.json
+        tutor_id = data.get('tutorID')
+        weekly_limit = data.get('weeklyLimit')  # None lub int
+        
+        if not tutor_id:
+            abort(400, "Brak tutorID.")
+        
+        # Weryfikacja korepetytora
+        tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+        if not tutor_record:
+            abort(404, "Nie znaleziono korepetytora.")
+        
+        # Walidacja limitu (0-168 godzin lub None)
+        if weekly_limit is not None:
+            if not isinstance(weekly_limit, int) or weekly_limit < 0 or weekly_limit > 168:
+                abort(400, "Limit musi być liczbą od 0 do 168 lub null (brak limitu).")
+        
+        # Aktualizacja
+        tutors_table.update(tutor_record['id'], {'LimitGodzinTygodniowo': weekly_limit})
+        
+        return jsonify({
+            "message": "Limit godzin został zaktualizowany.",
+            "weeklyLimit": weekly_limit
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Błąd podczas aktualizacji limitu godzin.")
+
+@app.route('/api/get-tutor-weekly-hours')
+def get_tutor_weekly_hours():
+    """Zwraca aktualny stan godzin korepetytora w bieżącym tygodniu."""
+    try:
+        tutor_name = request.args.get('tutorName')
+        if not tutor_name:
+            abort(400, "Brak tutorName.")
+        
+        # Pobierz limit
+        tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
+        if not tutor_record:
+            abort(404, "Nie znaleziono korepetytora.")
+        
+        tutor_limit = tutor_record['fields'].get('LimitGodzinTygodniowo')
+        
+        # Oblicz zajęte godziny w bieżącym tygodniu
+        today = datetime.now().date()
+        week_start = get_week_start(today)
+        current_hours = get_tutor_hours_for_week(tutor_name, week_start)
+        
+        return jsonify({
+            "currentHours": current_hours,
+            "weeklyLimit": tutor_limit,
+            "hasLimit": tutor_limit is not None
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, "Błąd podczas pobierania danych o godzinach.")
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()

@@ -481,4 +481,83 @@ document.addEventListener('DOMContentLoaded', async () => {
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(d.setDate(diff));
     }
+    
+    // === Funkcje dla limitu godzin tygodniowo ===
+    
+    async function loadWeeklyHoursStatus() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/get-tutor-weekly-hours?tutorName=${encodeURIComponent(tutorName)}`);
+            const data = await response.json();
+            
+            const statusDiv = document.getElementById('weeklyHoursStatus');
+            
+            if (data.hasLimit) {
+                const percentage = Math.min((data.currentHours / data.weeklyLimit) * 100, 100);
+                let color = '#28a745'; // zielony
+                if (percentage >= 100) color = '#dc3545'; // czerwony
+                else if (percentage >= 80) color = '#ffc107'; // pomarańczowy
+                
+                statusDiv.innerHTML = `
+                    <h4>Status godzin w tym tygodniu (poniedziałek-niedziela)</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="background: ${color}; width: ${percentage}%">
+                            ${data.currentHours}h / ${data.weeklyLimit}h
+                        </div>
+                    </div>
+                    <p style="margin-top: 10px; color: #6c757d;">
+                        ${data.currentHours >= data.weeklyLimit ? 
+                            '⚠️ Osiągnięto limit! Grafik nie jest widoczny dla nowych uczniów.' : 
+                            `✅ Pozostało: ${data.weeklyLimit - data.currentHours}h`}
+                    </p>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <p style="color: #6c757d;"><strong>Brak ustawionego limitu godzin</strong> - grafik zawsze widoczny (∞)</p>
+                    <p>Zajęte w tym tygodniu: <strong>${data.currentHours} godz.</strong></p>
+                `;
+            }
+        } catch (error) {
+            console.error('Błąd pobierania statusu godzin:', error);
+            document.getElementById('weeklyHoursStatus').innerHTML = '<p style="color: red;">Błąd ładowania danych.</p>';
+        }
+    }
+    
+    // Zapisanie limitu
+    document.getElementById('saveLimitBtn')?.addEventListener('click', async () => {
+        const limitInput = document.getElementById('weeklyLimit');
+        const limit = limitInput.value.trim() === '' ? null : parseInt(limitInput.value);
+        
+        if (limit !== null && (limit < 0 || limit > 168)) {
+            alert('Limit musi być liczbą od 0 do 168 lub pozostaw puste dla braku limitu.');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/update-tutor-weekly-limit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tutorID: tutorID,
+                    weeklyLimit: limit
+                })
+            });
+            
+            if (response.ok) {
+                alert('Limit godzin został zaktualizowany!');
+                loadWeeklyHoursStatus(); // Odśwież status
+                limitInput.value = ''; // Wyczyść pole
+            } else {
+                const error = await response.json();
+                alert(`Błąd: ${error.message || 'Nie udało się zapisać limitu'}`);
+            }
+        } catch (error) {
+            console.error('Błąd zapisu limitu:', error);
+            alert('Wystąpił błąd podczas zapisu.');
+        }
+    });
+    
+    // Załaduj status przy starcie strony
+    if (tutorName) {
+        loadWeeklyHoursStatus();
+    }
 });
