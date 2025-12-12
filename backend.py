@@ -508,6 +508,31 @@ def parse_time_range(time_range_str):
         return start_time, end_time
     except ValueError: return None, None
 
+def normalize_tutor_field(raw_value):
+    """
+    Normalize a tutor field (Przedmioty or PoziomNauczania) that can be a list or string.
+    Returns a list of lowercase, trimmed strings.
+    
+    Args:
+        raw_value: Can be a list, JSON string, CSV string, or None.
+    
+    Examples:
+        ['Math', 'Physics'] -> ['math', 'physics']
+        '["Math", "Physics"]' -> ['math', 'physics']
+        'Math, Physics' -> ['math', 'physics']
+        None -> []
+    """
+    if isinstance(raw_value, list):
+        return [s.strip().lower() for s in raw_value if isinstance(s, str)]
+    elif isinstance(raw_value, str):
+        try:
+            parsed = json.loads(raw_value)
+            return [s.strip().lower() for s in parsed if isinstance(s, str)]
+        except (json.JSONDecodeError, TypeError):
+            return [s.strip().lower() for s in raw_value.split(',') if s.strip()]
+    else:
+        return []
+
 def generate_teams_meeting_link(meeting_subject):
     token_url = f"https://login.microsoftonline.com/{MS_TENANT_ID}/oauth2/v2.0/token"
     token_data = {'grant_type': 'client_credentials', 'client_id': MS_CLIENT_ID, 'client_secret': MS_CLIENT_SECRET, 'scope': 'https://graph.microsoft.com/.default'}
@@ -934,22 +959,9 @@ def get_schedule():
             for tutor in all_tutors_templates:
                 fields = tutor.get('fields', {})
                 
-                # --- ZMIANA: Nowa logika parsowania i konwersji na małe litery ---
-                tutor_subjects_str = fields.get('Przedmioty', '[]')
-                tutor_levels_str = fields.get('PoziomNauczania', '[]')
-                
-                try:
-                    # Próbujemy sparsować JSON i od razu zamieniamy na małe litery
-                    parsed_subjects = json.loads(tutor_subjects_str) if tutor_subjects_str else []
-                    tutor_subjects = [s.strip().lower() for s in parsed_subjects]
-
-                    parsed_levels = json.loads(tutor_levels_str) if tutor_levels_str else []
-                    tutor_levels = [l.strip().lower() for l in parsed_levels]
-
-                except (json.JSONDecodeError, TypeError):
-                    # Zabezpieczenie dla starego formatu ("Matematyka, Fizyka")
-                    tutor_subjects = [s.strip().lower() for s in tutor_subjects_str.split(',')]
-                    tutor_levels = [l.strip().lower() for l in tutor_levels_str.split(',')]
+                # --- ULEPSZONA LOGIKA: Obsługa list i stringów ---
+                tutor_subjects = normalize_tutor_field(fields.get('Przedmioty', []))
+                tutor_levels = normalize_tutor_field(fields.get('PoziomNauczania', []))
                 # --- KONIEC ZMIAN ---
 
                 # Teraz porównanie jest bezpieczne i niezależne od wielkości liter
@@ -1142,8 +1154,13 @@ def create_reservation():
                     if school_level_for_search == 'rozszerzony':
                         key_rozszerzenie = f"{school_type_for_search}_rozszerzony"
                         required_level_tags.extend(LEVEL_MAPPING.get(key_rozszerzenie, []))
-                teaches_this_level = all(tag in fields.get('PoziomNauczania', []) for tag in required_level_tags)
-                teaches_this_subject = subject_for_search in fields.get('Przedmioty', [])
+                
+                # Normalize fields to handle both list and string types
+                tutor_levels = normalize_tutor_field(fields.get('PoziomNauczania', []))
+                tutor_subjects = normalize_tutor_field(fields.get('Przedmioty', []))
+                
+                teaches_this_level = all(tag in tutor_levels for tag in required_level_tags)
+                teaches_this_subject = subject_for_search in tutor_subjects
                 if teaches_this_level and teaches_this_subject:
                     day_of_week_name = WEEKDAY_MAP[start_date_for_search.weekday()]
                     time_range_str = fields.get(day_of_week_name)
