@@ -282,6 +282,15 @@ class DatabaseTable:
                     except:
                         pass
             
+            # OR({Status} = 'Value1', {Status} = 'Value2')
+            or_status_match = re.search(r"OR\(\{Status\}\s*=\s*'([^']+)',\s*\{Status\}\s*=\s*'([^']+)'\)", formula)
+            if or_status_match:
+                status1 = or_status_match.group(1)
+                status2 = or_status_match.group(2)
+                record_status = fields.get('Status')
+                if record_status not in [status1, status2]:
+                    keep = False
+            
             if keep:
                 filtered.append(record)
         
