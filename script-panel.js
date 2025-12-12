@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderStaticScheduleForm(data);
         await fetchAndRenderUpcomingLessons(tutorName);
         await renderWeeklyCalendar(currentWeekStart);
+        // Załaduj status godzin tygodniowo
+        loadWeeklyHoursStatus();
 
         loadingState.style.display = 'none';
         contentDiv.style.display = 'block';
@@ -555,9 +557,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('Wystąpił błąd podczas zapisu.');
         }
     });
-    
-    // Załaduj status przy starcie strony
-    if (tutorName) {
-        loadWeeklyHoursStatus();
-    }
 });
