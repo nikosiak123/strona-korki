@@ -53,7 +53,7 @@ MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
-    with open('/home/nikodnaj3/strona/config.json', 'r', encoding='utf-8') as f:
+    with open('/home/korepetytor2/strona/config.json', 'r', encoding='utf-8') as f:
         bot_config = json.load(f)
         MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
     if MESSENGER_PAGE_TOKEN:
