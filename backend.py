@@ -906,18 +906,20 @@ def get_schedule():
         
         school_type = request.args.get('schoolType')
         school_level = request.args.get('schoolLevel')
-        subject = request.args.get('subject')
+        
+        # --- ZMIANA: Konwersja na małe litery od razu po pobraniu ---
+        subject = request.args.get('subject', '').lower()
         tutor_name_filter = request.args.get('tutorName')
 
         all_tutors_templates = tutors_table.all()
         filtered_tutors = []
 
-        # ... (sekcja filtrowania korepetytorów pozostaje bez zmian) ...
         if tutor_name_filter:
             found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('ImieNazwisko') == tutor_name_filter), None)
             if found_tutor: filtered_tutors.append(found_tutor)
         else:
             if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
+            
             required_level_tags = []
             if school_type == 'szkola_podstawowa': required_level_tags = LEVEL_MAPPING.get(school_type, [])
             elif (school_type in ['liceum', 'technikum']) and school_level:
@@ -926,13 +928,34 @@ def get_schedule():
                 if school_level == 'rozszerzony':
                     key_rozszerzenie = f"{school_type}_rozszerzony"
                     required_level_tags.extend(LEVEL_MAPPING.get(key_rozszerzenie, []))
+            
             if not required_level_tags: return jsonify([])
+
             for tutor in all_tutors_templates:
                 fields = tutor.get('fields', {})
-                if all(tag in fields.get('PoziomNauczania', []) for tag in required_level_tags) and subject in fields.get('Przedmioty', []):
+                
+                # --- ZMIANA: Nowa logika parsowania i konwersji na małe litery ---
+                tutor_subjects_str = fields.get('Przedmioty', '[]')
+                tutor_levels_str = fields.get('PoziomNauczania', '[]')
+                
+                try:
+                    # Próbujemy sparsować JSON i od razu zamieniamy na małe litery
+                    parsed_subjects = json.loads(tutor_subjects_str) if tutor_subjects_str else []
+                    tutor_subjects = [s.strip().lower() for s in parsed_subjects]
+
+                    parsed_levels = json.loads(tutor_levels_str) if tutor_levels_str else []
+                    tutor_levels = [l.strip().lower() for l in parsed_levels]
+
+                except (json.JSONDecodeError, TypeError):
+                    # Zabezpieczenie dla starego formatu ("Matematyka, Fizyka")
+                    tutor_subjects = [s.strip().lower() for s in tutor_subjects_str.split(',')]
+                    tutor_levels = [l.strip().lower() for l in tutor_levels_str.split(',')]
+                # --- KONIEC ZMIAN ---
+
+                # Teraz porównanie jest bezpieczne i niezależne od wielkości liter
+                if all(tag in tutor_levels for tag in required_level_tags) and subject in tutor_subjects:
                     filtered_tutors.append(tutor)
         
-        # ... (sekcja zbierania informacji o zajętych slotach pozostaje bez zmian) ...
         booked_slots = {}
         all_clients = {rec['fields'].get('ClientID'): rec['fields'] for rec in clients_table.all() if 'ClientID' in rec.get('fields', {})}
         formula_reservations = f"AND(IS_AFTER({{Data}}, DATETIME_PARSE('{start_date - timedelta(days=1)}', 'YYYY-MM-DD')), IS_BEFORE({{Data}}, DATETIME_PARSE('{end_date}', 'YYYY-MM-DD')))"
@@ -953,8 +976,8 @@ def get_schedule():
                     "studentContactLink": client_info.get('LINK'),
                     "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
-                    "isPaid": fields.get('Oplacona', False),      # <-- DODANO TĘ LINIĘ
-                    "isTest": fields.get('JestTestowa', False)    # <-- DODANO TĘ LINIĘ
+                    "isPaid": fields.get('Oplacona', False),
+                    "isTest": fields.get('JestTestowa', False)
                 }
 
 
@@ -979,11 +1002,9 @@ def get_schedule():
                             }
             except ValueError: pass
         
-        # Stała "główna" siatka godzin dla wszystkich
         master_start_time = dt_time(8, 0)
-        master_end_time = dt_time(22, 0) # Siatka generowana do tej godziny
+        master_end_time = dt_time(22, 0)
 
-        # Generujemy wszystkie możliwe sloty na podstawie szablonów i filtrujemy je
         available_slots = []
         for template in filtered_tutors:
             fields = template.get('fields', {})
@@ -995,19 +1016,15 @@ def get_schedule():
                 time_range_str = fields.get(WEEKDAY_MAP[current_date.weekday()])
                 if not time_range_str: continue
                 
-                # Godziny pracy korepetytora w tym dniu
                 start_work_time, end_work_time = parse_time_range(time_range_str)
                 if not start_work_time or not end_work_time: continue
                 
-                # Zaczynamy iterację od początku stałej siatki
                 current_slot_datetime = datetime.combine(current_date, master_start_time)
                 end_datetime_limit = datetime.combine(current_date, master_end_time)
 
                 while current_slot_datetime < end_datetime_limit:
                     current_time_only = current_slot_datetime.time()
                     
-                    # Sprawdź, czy aktualny slot z "głównej" siatki mieści się w godzinach pracy korepetytora
-                    # Warunek: slot musi się zacząć i skończyć (po 60 min) w ramach godzin pracy
                     if start_work_time <= current_time_only and \
                        (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
                         
@@ -1015,7 +1032,6 @@ def get_schedule():
                         current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
                         key = (tutor_name, current_date_str, slot_time_str)
 
-                        # Sprawdź, czy nie jest zablokowany (dla listy wolnych terminów)
                         if key not in booked_slots:
                             available_slots.append({
                                 'tutor': tutor_name,
@@ -1024,10 +1040,8 @@ def get_schedule():
                                 'status': 'available'
                             })
                     
-                    # Zawsze przesuwaj się o 70 minut w ramach "głównej" siatki
                     current_slot_datetime += timedelta(minutes=70)
         
-        # Dodaj jednorazowe dostępne terminy (one nie muszą pasować do siatki)
         for record in reservations:
             fields = record.get('fields', {})
             if fields.get('Status') == 'Dostępny':
@@ -1037,10 +1051,7 @@ def get_schedule():
                 })
             
         if tutor_name_filter:
-            # ### TUTAJ NASTĄPIŁA KLUCZOWA ZMIANA ###
-            # Dla panelu korepetytora budujemy PEŁNY grafik, używając tej samej logiki "głównej siatki"
             final_schedule = []
-            # Zakładamy, że w filtered_tutors jest tylko jeden korepetytor
             for template in filtered_tutors:
                 fields = template.get('fields', {})
                 tutor_name = fields.get('ImieNazwisko')
@@ -1058,7 +1069,6 @@ def get_schedule():
                     while current_slot_datetime < end_datetime_limit:
                         current_time_only = current_slot_datetime.time()
 
-                        # Sprawdzamy, czy slot z "głównej siatki" mieści się w godzinach pracy
                         if start_work_time <= current_time_only and \
                            (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
 
@@ -1074,17 +1084,16 @@ def get_schedule():
                             
                             final_schedule.append(slot_info)
 
-                        # Zawsze przesuwamy się w ramach tej samej siatki
                         current_slot_datetime += timedelta(minutes=70)
             return jsonify(final_schedule)
         else:
-            # Dla stron rezerwacji zwracamy tylko listę wolnych slotów
             last_fetched_schedule = available_slots
             return jsonify(available_slots)
 
     except Exception as e:
         traceback.print_exc()
         abort(500, "Wewnętrzny błąd serwera.")
+
 
 @app.route('/api/create-reservation', methods=['POST'])
 def create_reservation():
