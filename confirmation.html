@@ -77,6 +77,7 @@
             const isCyclic = params.get('isCyclic') === 'true';
             const isTest = params.get('isTest') === 'true';
             const tutorName = params.get('tutorName');
+            const managementToken = params.get('token');
             
             // Odwołania do elementów
             const detailsElement = document.getElementById('reservationDetails');
@@ -139,9 +140,31 @@
                     document.getElementById('paymentInfo').innerHTML = infoText;
                     document.getElementById('paymentInfo').style.display = 'block';
                 });
-                document.getElementById('payNowBtn').addEventListener('click', () => {
-                    document.getElementById('paymentInfo').innerHTML = "Funkcjonalność płatności online zostanie dodana wkrótce.";
-                    document.getElementById('paymentInfo').style.display = 'block';
+                
+                document.getElementById('payNowBtn')?.addEventListener('click', async () => {
+                    const btn = document.getElementById('payNowBtn');
+                    btn.textContent = 'Przygotowuję...';
+                    btn.disabled = true;
+
+                    try {
+                        const response = await fetch('/api/initiate-payment', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ managementToken: managementToken })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || "Błąd serwera.");
+                        }
+                        
+                        const data = await response.json();
+                        window.location.href = data.paymentUrl;
+                    } catch (error) {
+                        alert('Błąd: ' + error.message);
+                        btn.textContent = 'Opłać teraz (BLIK)';
+                        btn.disabled = false;
+                    }
                 });
 
             } else {

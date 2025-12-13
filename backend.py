@@ -48,6 +48,14 @@ MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
 # Hasło do panelu administratora
 ADMIN_PASSWORD = "szlafrok"
 
+# Konfiguracja Przelewy24 (SANDBOX)
+P24_MERCHANT_ID = 361049
+P24_POS_ID = 361049
+P24_CRC_KEY = "d88e6d2dbb9a6217"
+P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01"
+P24_SANDBOX = True
+P24_API_URL = "https://sandbox.przelewy24.pl"
+
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
@@ -594,6 +602,31 @@ def check_if_client_has_cyclic_with_tutor(client_id, tutor_name):
 
 # === Koniec funkcji pomocniczych ===
 
+# === Funkcje płatności Przelewy24 ===
+
+def calculate_lesson_price(school_type, school_level=None, school_class=None):
+    """
+    Oblicza cenę lekcji na podstawie typu szkoły, poziomu i klasy.
+    Zwraca cenę w groszach.
+    """
+    if school_type == 'szkola_podstawowa':
+        return 6500
+    if school_class and 'matura' in str(school_class).lower():
+        return 8000
+    if school_level == 'rozszerzony':
+        return 7500
+    return 7000
+
+def generate_p24_sign(session_id, merchant_id, amount, currency, crc):
+    """
+    Generuje podpis SHA-384 dla Przelewy24.
+    """
+    import hashlib
+    sign_string = f"{session_id}|{merchant_id}|{amount}|{currency}|{crc}"
+    return hashlib.sha384(sign_string.encode('utf-8')).hexdigest()
+
+# === Koniec funkcji płatności ===
+
 # W pliku backend.py
 
 def is_cancellation_allowed(record):
@@ -719,6 +752,120 @@ def mark_lesson_as_paid():
     except Exception as e:
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas oznaczania lekcji jako opłaconej.")
+
+@app.route('/api/initiate-payment', methods=['POST'])
+def initiate_payment():
+    """Inicjuje płatność w systemie Przelewy24."""
+    try:
+        data = request.json
+        token = data.get('managementToken')
+        
+        if not token:
+            abort(400, "Brak tokena zarządzającego.")
+        
+        # Znajdź lekcję
+        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{token}'")
+        if not lesson:
+            abort(404, "Lekcja nie znaleziona")
+        
+        fields = lesson['fields']
+        
+        # Oblicz cenę
+        amount = calculate_lesson_price(
+            fields.get('TypSzkoly'), 
+            fields.get('Poziom'), 
+            fields.get('Klasa')
+        )
+        
+        # Przygotuj sesję dla P24
+        session_id = token[:40]  # P24 wymaga max 100 znaków
+        sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
+        
+        # Przygotuj payload dla P24
+        payload = {
+            "merchantId": P24_MERCHANT_ID,
+            "posId": P24_POS_ID,
+            "sessionId": session_id,
+            "amount": amount,
+            "currency": "PLN",
+            "description": f"Lekcja {fields.get('Przedmiot')}",
+            "email": "klient@example.com",
+            "urlReturn": f"https://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token={token}",
+            "urlStatus": "https://zakręcone-korepetycje.pl/api/payment-notification",
+            "sign": sign
+        }
+        
+        # Wyślij request do P24
+        response = requests.post(
+            f"{P24_API_URL}/api/v1/transaction/register", 
+            json=payload, 
+            auth=(str(P24_POS_ID), P24_API_KEY)
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            p24_token = result['data']['token']
+            payment_url = f"{P24_API_URL}/trnRequest/{p24_token}"
+            return jsonify({"paymentUrl": payment_url})
+        else:
+            logging.error(f"P24 Error: {response.status_code} - {response.text}")
+            abort(500, "Błąd inicjalizacji płatności")
+    
+    except Exception as e:
+        logging.error(f"Payment initiation error: {e}", exc_info=True)
+        abort(500, "Błąd inicjalizacji płatności")
+
+@app.route('/api/payment-notification', methods=['POST'])
+def payment_notification():
+    """Webhook do otrzymywania powiadomień o płatnościach z Przelewy24."""
+    try:
+        data = request.form
+        session_id = data.get('sessionId')
+        
+        logging.info(f"Otrzymano powiadomienie P24: {data}")
+        
+        # Weryfikuj podpis
+        sign = generate_p24_sign(
+            session_id, 
+            int(data.get('merchantId')), 
+            int(data.get('amount')), 
+            data.get('currency'), 
+            P24_CRC_KEY
+        )
+        
+        if sign != data.get('sign'):
+            logging.error("P24: Nieprawidłowy podpis!")
+            abort(403, "Nieprawidłowy podpis")
+        
+        # Znajdź lekcję po session_id (który jest tokenem zarządzającym)
+        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{session_id}'")
+        
+        if lesson:
+            # Aktualizuj status lekcji
+            reservations_table.update(lesson['id'], {
+                "Oplacona": True, 
+                "Status": "Opłacona"
+            })
+            
+            logging.info(f"Lekcja {lesson['id']} została opłacona przez P24")
+            
+            # Wyślij powiadomienie Messenger
+            if MESSENGER_PAGE_TOKEN:
+                fields = lesson['fields']
+                msg = (
+                    f"✅ Płatność przyjęta!\n"
+                    f"Lekcja {fields.get('Przedmiot')} w dniu {fields.get('Data')} "
+                    f"została opłacona."
+                )
+                send_messenger_confirmation(fields.get('Klient'), msg, MESSENGER_PAGE_TOKEN)
+        else:
+            logging.warning(f"Nie znaleziono lekcji dla session_id: {session_id}")
+        
+        return "OK", 200
+    
+    except Exception as e:
+        logging.error(f"Payment notification error: {e}", exc_info=True)
+        return "ERROR", 500
 
 @app.route('/api/get-tutor-lessons')
 def get_tutor_lessons():
