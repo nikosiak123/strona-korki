@@ -590,10 +590,7 @@ def generate_teams_meeting_link(meeting_subject):
         meeting_payload = {
             "startDateTime": start_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             "endDateTime": end_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-            "subject": meeting_subject,
-            "participants": {
-                "attendees": []
-            }
+            "subject": meeting_subject
         }
         
         meeting_r = requests.post(meetings_url, headers=headers, json=meeting_payload, timeout=10)
