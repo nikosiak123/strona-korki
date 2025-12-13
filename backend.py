@@ -429,10 +429,10 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
         logging.warning("MESSENGER: Błąd wysyłania - brak PSID, treści lub tokenu.")
         return
     
-    # FIX: Walidacja PSID - prawdziwe PSID ma 15-17 cyfr
+    # FIX: Walidacja PSID - pomiń krótkie i testowe identyfikatory
     psid_str = str(psid).strip()
     if len(psid_str) < 10 or psid_str in ['123456789', 'test', 'DOSTEPNY', 'BLOKADA']:
-        logging.warning(f"MESSENGER: Pominięto wysyłkę do testowego/nieprawidłowego PSID: {psid}")
+        logging.warning(f"MESSENGER: Pominięto wysyłkę do testowego/nieprawidłowego PSID: {psid_str[:5]}...")
         return
 
     params = {"access_token": page_access_token}
@@ -586,7 +586,7 @@ def generate_teams_meeting_link(meeting_subject):
         start_time = datetime.utcnow() + timedelta(minutes=5)
         end_time = start_time + timedelta(hours=1)
         
-        # FIX: Poprawiony format daty z .000Z i dodane participants
+        # FIX: Poprawiony format daty z .000Z
         meeting_payload = {
             "startDateTime": start_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             "endDateTime": end_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
