@@ -60,16 +60,26 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Pobierz token z URL i przekieruj do panelu
+        document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             const token = params.get('token');
+            const dashboardLink = document.getElementById('dashboardLink');
             
             if (token) {
-                // Możemy dodać clientID do linku jeśli mamy go zapisanego
-                // Na razie kierujemy do głównej strony panelu
-                const dashboardLink = document.getElementById('dashboardLink');
-                // Link zostanie użyty jako jest - użytkownik będzie musiał się zalogować
+                try {
+                    // Pobierz szczegóły lekcji aby uzyskać clientID
+                    const response = await fetch(`/api/get-reservation-details?token=${token}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.clientID) {
+                            // Zaktualizuj link do panelu z clientID
+                            dashboardLink.href = `/moje-lekcje.html?clientID=${data.clientID}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Nie udało się pobrać danych rezerwacji:', error);
+                    // Link pozostaje bez parametrów
+                }
             }
         });
     </script>

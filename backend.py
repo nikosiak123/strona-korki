@@ -793,13 +793,8 @@ def initiate_payment():
             fields.get('Klasa')
         )
         
-        # Przygotuj sesję dla P24 - użyj hash tokena jako session_id
-        # aby uniknąć kolizji i zachować możliwość odnalezienia rezerwacji
-        session_id = hashlib.sha256(token.encode()).hexdigest()[:40]
-        sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
-        
-        # Zapisz mapowanie session_id -> token w bazie (w przyszłości)
-        # Na razie użyjemy samego tokena jako session_id
+        # Przygotuj sesję dla P24 - użyj tokena jako session_id
+        # P24 akceptuje do 100 znaków, UUID ma 36 znaków
         session_id = token[:100] if len(token) <= 100 else token[:100]
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
         
