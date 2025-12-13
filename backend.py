@@ -3,6 +3,7 @@ import json
 import uuid
 import traceback
 import threading
+import hashlib
 from flask import Flask, jsonify, request, abort, session
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -49,6 +50,8 @@ MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
 ADMIN_PASSWORD = "szlafrok"
 
 # Konfiguracja Przelewy24 (SANDBOX)
+# UWAGA: W produkcji te wartości powinny być w zmiennych środowiskowych
+# Obecne wartości są dla środowiska testowego (sandbox)
 P24_MERCHANT_ID = 361049
 P24_POS_ID = 361049
 P24_CRC_KEY = "d88e6d2dbb9a6217"
@@ -621,7 +624,6 @@ def generate_p24_sign(session_id, merchant_id, amount, currency, crc):
     """
     Generuje podpis SHA-384 dla Przelewy24.
     """
-    import hashlib
     sign_string = f"{session_id}|{merchant_id}|{amount}|{currency}|{crc}"
     return hashlib.sha384(sign_string.encode('utf-8')).hexdigest()
 
@@ -770,6 +772,20 @@ def initiate_payment():
         
         fields = lesson['fields']
         
+        # Pobierz email klienta (lub użyj domyślnego jeśli brak)
+        client_id = fields.get('Klient')
+        client_email = "klient@example.com"  # Domyślny
+        
+        if client_id:
+            client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
+            if client_record:
+                # Spróbuj pobrać email z różnych pól
+                client_email = (
+                    client_record['fields'].get('Email') or 
+                    client_record['fields'].get('email') or 
+                    "klient@example.com"
+                )
+        
         # Oblicz cenę
         amount = calculate_lesson_price(
             fields.get('TypSzkoly'), 
@@ -777,8 +793,14 @@ def initiate_payment():
             fields.get('Klasa')
         )
         
-        # Przygotuj sesję dla P24
-        session_id = token[:40]  # P24 wymaga max 100 znaków
+        # Przygotuj sesję dla P24 - użyj hash tokena jako session_id
+        # aby uniknąć kolizji i zachować możliwość odnalezienia rezerwacji
+        session_id = hashlib.sha256(token.encode()).hexdigest()[:40]
+        sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
+        
+        # Zapisz mapowanie session_id -> token w bazie (w przyszłości)
+        # Na razie użyjemy samego tokena jako session_id
+        session_id = token[:100] if len(token) <= 100 else token[:100]
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
         
         # Przygotuj payload dla P24
@@ -789,7 +811,7 @@ def initiate_payment():
             "amount": amount,
             "currency": "PLN",
             "description": f"Lekcja {fields.get('Przedmiot')}",
-            "email": "klient@example.com",
+            "email": client_email,
             "urlReturn": f"https://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token={token}",
             "urlStatus": "https://zakręcone-korepetycje.pl/api/payment-notification",
             "sign": sign
@@ -822,7 +844,12 @@ def payment_notification():
         data = request.form
         session_id = data.get('sessionId')
         
-        logging.info(f"Otrzymano powiadomienie P24: {data}")
+        # Walidacja session_id - powinien być UUID lub format tokena
+        if not session_id or len(session_id) > 100:
+            logging.error(f"P24: Nieprawidłowy session_id: {session_id}")
+            abort(400, "Nieprawidłowy session_id")
+        
+        logging.info(f"Otrzymano powiadomienie P24: sessionId={session_id}")
         
         # Weryfikuj podpis
         sign = generate_p24_sign(
@@ -837,8 +864,12 @@ def payment_notification():
             logging.error("P24: Nieprawidłowy podpis!")
             abort(403, "Nieprawidłowy podpis")
         
+        # Sanitize session_id przed użyciem w formule (dodatkowe zabezpieczenie)
+        # UUID format: tylko znaki alfanumeryczne i myślniki
+        safe_session_id = ''.join(c for c in session_id if c.isalnum() or c == '-')
+        
         # Znajdź lekcję po session_id (który jest tokenem zarządzającym)
-        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{session_id}'")
+        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{safe_session_id}'")
         
         if lesson:
             # Aktualizuj status lekcji
@@ -859,7 +890,7 @@ def payment_notification():
                 )
                 send_messenger_confirmation(fields.get('Klient'), msg, MESSENGER_PAGE_TOKEN)
         else:
-            logging.warning(f"Nie znaleziono lekcji dla session_id: {session_id}")
+            logging.warning(f"Nie znaleziono lekcji dla session_id: {safe_session_id}")
         
         return "OK", 200
     
