@@ -426,25 +426,35 @@ def find_profile_and_update_airtable(record_id, first_name, last_name, profile_p
 def send_messenger_confirmation(psid, message_text, page_access_token):
     """Wysyła wiadomość potwierdzającą na Messengerze."""
     if not all([psid, message_text, page_access_token]):
-        print("!!! MESSENGER: Błąd wysyłania - brak PSID, treści lub tokenu.")
+        logging.warning("MESSENGER: Błąd wysyłania - brak PSID, treści lub tokenu.")
+        return
+    
+    # FIX: Walidacja PSID - prawdziwe PSID ma 15-17 cyfr
+    psid_str = str(psid).strip()
+    if len(psid_str) < 10 or psid_str in ['123456789', 'test', 'DOSTEPNY', 'BLOKADA']:
+        logging.warning(f"MESSENGER: Pominięto wysyłkę do testowego/nieprawidłowego PSID: {psid}")
         return
 
     params = {"access_token": page_access_token}
     payload = {
-        "recipient": {"id": psid},
+        "recipient": {"id": psid_str},
         "message": {"text": message_text},
         "messaging_type": "MESSAGE_TAG",
         "tag": "POST_PURCHASE_UPDATE"
     }
     
     try:
-        print(f"--- MESSENGER: Próba wysłania potwierdzenia do PSID {psid}...")
-        r = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
+        logging.info(f"MESSENGER: Próba wysłania wiadomości do PSID {psid_str[:5]}...")
+        r = requests.post("https://graph.facebook.com/v19.0/me/messages", 
+                         params=params, 
+                         json=payload, 
+                         timeout=30)
         r.raise_for_status()
-        print(f"--- MESSENGER: Pomyślnie wysłano potwierdzenie do {psid}.")
+        logging.info(f"MESSENGER: Wysłano wiadomość do {psid_str[:5]}...")
     except requests.exceptions.RequestException as e:
-        print(f"!!! MESSENGER: Błąd podczas wysyłania wiadomości do {psid}: {e}")
-        print(f"    Odpowiedź serwera: {e.response.text if e.response else 'Brak'}")
+        logging.error(f"MESSENGER: Błąd wysyłki do {psid_str[:5]}...: {e}")
+        if e.response:
+            logging.error(f"MESSENGER: Odpowiedź: {e.response.text}")
 
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
@@ -545,20 +555,65 @@ def normalize_tutor_field(raw_value):
         return []
 
 def generate_teams_meeting_link(meeting_subject):
-    token_url = f"https://login.microsoftonline.com/{MS_TENANT_ID}/oauth2/v2.0/token"
-    token_data = {'grant_type': 'client_credentials', 'client_id': MS_CLIENT_ID, 'client_secret': MS_CLIENT_SECRET, 'scope': 'https://graph.microsoft.com/.default'}
-    token_r = requests.post(token_url, data=token_data)
-    if token_r.status_code != 200: return None
-    access_token = token_r.json().get('access_token')
-    if not access_token: return None
-    meetings_url = f"https://graph.microsoft.com/v1.0/users/{MEETING_ORGANIZER_USER_ID}/onlineMeetings"
-    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
-    start_time = datetime.utcnow() + timedelta(minutes=5)
-    end_time = start_time + timedelta(hours=1)
-    meeting_payload = {"subject": meeting_subject, "startDateTime": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'), "endDateTime": end_time.strftime('%Y-%m-%dT%H:%M:%SZ'), "lobbyBypassSettings": {"scope": "everyone"}, "allowedPresenters": "everyone"}
-    meeting_r = requests.post(meetings_url, headers=headers, data=json.dumps(meeting_payload))
-    if meeting_r.status_code == 201: return meeting_r.json().get('joinUrl')
-    return None
+    """Generuje link do spotkania Microsoft Teams."""
+    try:
+        # Pobierz token dostępu
+        token_url = f"https://login.microsoftonline.com/{MS_TENANT_ID}/oauth2/v2.0/token"
+        token_data = {
+            'grant_type': 'client_credentials',
+            'client_id': MS_CLIENT_ID,
+            'client_secret': MS_CLIENT_SECRET,
+            'scope': 'https://graph.microsoft.com/.default'
+        }
+        
+        token_r = requests.post(token_url, data=token_data, timeout=10)
+        if token_r.status_code != 200:
+            logging.error(f"MS Teams token error {token_r.status_code}: {token_r.text}")
+            return None
+        
+        access_token = token_r.json().get('access_token')
+        if not access_token:
+            logging.error("MS Teams: Brak access_token w odpowiedzi")
+            return None
+        
+        # Utwórz spotkanie
+        meetings_url = f"https://graph.microsoft.com/v1.0/users/{MEETING_ORGANIZER_USER_ID}/onlineMeetings"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        start_time = datetime.utcnow() + timedelta(minutes=5)
+        end_time = start_time + timedelta(hours=1)
+        
+        # FIX: Poprawiony format daty z .000Z i dodane participants
+        meeting_payload = {
+            "startDateTime": start_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            "endDateTime": end_time.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            "subject": meeting_subject,
+            "participants": {
+                "attendees": []
+            }
+        }
+        
+        meeting_r = requests.post(meetings_url, headers=headers, json=meeting_payload, timeout=10)
+        
+        if meeting_r.status_code == 201:
+            # FIX: Zmieniono z 'joinUrl' na 'joinWebUrl'
+            join_url = meeting_r.json().get('joinWebUrl')
+            if join_url:
+                logging.info(f"MS Teams: Utworzono spotkanie - {meeting_subject}")
+                return join_url
+            else:
+                logging.error("MS Teams: Brak joinWebUrl w odpowiedzi")
+                return None
+        else:
+            logging.error(f"MS Teams meeting error {meeting_r.status_code}: {meeting_r.text}")
+            return None
+    
+    except Exception as e:
+        logging.error(f"MS Teams exception: {e}", exc_info=True)
+        return None
 
 def find_reservation_by_token(token):
     if not token: return None
