@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Płatność przyjęta - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .confirmation-container {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 2rem;
+            text-align: center;
+            background-color: var(--container-bg-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px var(--shadow-color);
+        }
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .confirmation-container h1 {
+            font-size: 2rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+        .confirmation-container p {
+            font-size: 1.1rem;
+            color: var(--text-medium);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .btn-dashboard {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: var(--text-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+        .btn-dashboard:hover {
+            background: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="confirmation-container">
+        <div class="success-icon">✅</div>
+        <h1>Płatność przyjęta!</h1>
+        <p>Dziękujemy! Twoja lekcja została opłacona i jest w pełni potwierdzona.</p>
+        <p>Informacje o lekcji oraz link do spotkania znajdziesz w swoim panelu klienta.</p>
+        <a href="/moje-lekcje.html" id="dashboardLink" class="btn-dashboard">Przejdź do panelu</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            const dashboardLink = document.getElementById('dashboardLink');
+            
+            if (token) {
+                try {
+                    // Pobierz szczegóły lekcji aby uzyskać clientID
+                    const response = await fetch(`/api/get-reservation-details?token=${token}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.clientID) {
+                            // Zaktualizuj link do panelu z clientID
+                            dashboardLink.href = `/moje-lekcje.html?clientID=${data.clientID}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Nie udało się pobrać danych rezerwacji:', error);
+                    // Link pozostaje bez parametrów
+                }
+            }
+        });
+    </script>
+</body>
+</html>
