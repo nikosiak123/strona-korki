@@ -41,6 +41,13 @@
             <a id="dashboardLink" href="#">...</a>
         </div>
 
+        <!-- Sekcja kontaktu z korepetytorem dla lekcji testowej -->
+        <div id="tutorContactSection" style="display: none; margin-top: 1.5rem; padding: 1rem; background-color: #FFF8E1; border-left: 4px solid #FFA726; border-radius: 8px;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ WAŻNE:</p>
+            <p>Przed lekcją skontaktuj się z korepetytorem:</p>
+            <a id="tutorContactLink" href="#" target="_blank" style="font-weight: 700; color: #1976D2;">Przejdź do profilu korepetytora</a>
+        </div>
+
         <!-- Blok płatności dla lekcji testowej/jednorazowej -->
         <div id="paymentBlock" style="display: none;">
             <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
@@ -69,6 +76,7 @@
             const clientID = params.get('clientID');
             const isCyclic = params.get('isCyclic') === 'true';
             const isTest = params.get('isTest') === 'true';
+            const tutorName = params.get('tutorName');
             
             // Odwołania do elementów
             const detailsElement = document.getElementById('reservationDetails');
@@ -76,6 +84,8 @@
             const teamsLinkElement = document.getElementById('teamsLink');
             const dashboardLinkContainer = document.getElementById('managementLinkContainer');
             const dashboardLink = document.getElementById('dashboardLink');
+            const tutorContactSection = document.getElementById('tutorContactSection');
+            const tutorContactLink = document.getElementById('tutorContactLink');
             
             const paymentBlock = document.getElementById('paymentBlock');
             const cyclicBlock = document.getElementById('cyclicInfoBlock');
@@ -105,6 +115,20 @@
                         teamsLinkElement.textContent = "Kliknij, aby dołączyć do spotkania";
                     }
                     paymentBlock.style.display = 'block';
+                }
+
+                // Pobierz dane korepetytora dla lekcji testowej
+                if (isTest && tutorName) {
+                    const encodedTutorName = encodeURIComponent(tutorName);
+                    fetch(`/api/get-tutor-by-name?tutorName=${encodedTutorName}`)
+                        .then(response => response.json())
+                        .then(tutorData => {
+                            if (tutorData.contactLink) {
+                                tutorContactLink.href = tutorData.contactLink;
+                                tutorContactSection.style.display = 'block';
+                            }
+                        })
+                        .catch(err => console.error('Nie udało się pobrać danych korepetytora:', err));
                 }
 
                 // Logika przycisków płatności

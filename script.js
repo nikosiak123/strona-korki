@@ -490,7 +490,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         token: result.managementToken,
                         clientID: result.clientID,
                         isTest: result.isTest,
-                        isCyclic: result.isCyclic
+                        isCyclic: result.isCyclic,
+                        tutorName: result.tutorName
                     });
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {

@@ -900,6 +900,21 @@ def get_tutor_schedule():
         "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", "")
     })
 
+@app.route('/api/get-tutor-by-name')
+def get_tutor_by_name():
+    tutor_name = request.args.get('tutorName')
+    if not tutor_name:
+        abort(400, "Brak tutorName.")
+    
+    tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
+    if not tutor_record:
+        abort(404, "Nie znaleziono korepetytora.")
+    
+    return jsonify({
+        "name": tutor_record['fields'].get('ImieNazwisko'),
+        "contactLink": tutor_record['fields'].get('LINK')
+    })
+
 @app.route('/api/update-tutor-schedule', methods=['POST'])
 def update_tutor_schedule():
     data = request.json
@@ -1355,11 +1370,24 @@ def create_reservation():
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
                 
+                # Pobierz link do korepetytora
+                tutor_contact_link = None
+                if is_test_lesson:
+                    tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_for_reservation}'")
+                    tutor_contact_link = tutor_record['fields'].get('LINK') if tutor_record else None
+                
                 message_to_send = (
                     f"Dziękujemy za rezerwację!\n\n"
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
                     f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
-                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}"
+                )
+                
+                # Dodaj informację o kontakcie z korepetytorem dla lekcji testowej
+                if tutor_contact_link:
+                    message_to_send += f"⚠️ PAMIĘTAJ aby skontaktować się z korepetytorem przed lekcją:\n{tutor_contact_link}\n\n"
+                
+                message_to_send += (
+                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n\n"
                     f"{wiadomosc}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -1369,7 +1397,8 @@ def create_reservation():
             
             return jsonify({
                 "teamsUrl": teams_link, "managementToken": management_token,
-                "clientID": client_uuid, "isCyclic": False, "isTest": is_test_lesson
+                "clientID": client_uuid, "isCyclic": False, "isTest": is_test_lesson,
+                "tutorName": tutor_for_reservation
             })
 
     except Exception as e:
