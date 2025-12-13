@@ -906,8 +906,8 @@ def get_tutor_by_name():
     if not tutor_name:
         abort(400, "Brak tutorName.")
     
-    # Sanitize input by stripping whitespace and escaping single quotes
-    tutor_name = tutor_name.strip().replace("'", "\\'")
+    # Sanitize input by stripping whitespace
+    tutor_name = tutor_name.strip()
     
     tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
     if not tutor_record:
