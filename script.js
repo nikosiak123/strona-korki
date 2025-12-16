@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooseTutorCheckbox = document.getElementById('chooseTutorCheckbox');
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
-    const termsCheckbox = document.getElementById('termsCheckbox');
+    // Privacy policy checkbox removed
+    // const termsCheckbox = document.getElementById('termsCheckbox');
     
     // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
@@ -92,8 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isClassValid = classGroup.style.display === 'none' || schoolClassSelect.checkValidity();
         let isLevelValid = levelGroup.style.display === 'none' || schoolLevelSelect.checkValidity();
         let isTutorValid = tutorGroup.style.display === 'none' || (tutorSelect.value !== "");
-        let isTermsAccepted = termsCheckbox && termsCheckbox.checked;
-        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && isTermsAccepted && selectedSlotId !== null);
+        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && selectedSlotId !== null);
     }
     
     function showStatus(message, type) {
@@ -453,9 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         reservationForm.addEventListener('input', checkFormValidity);
         
-        if (termsCheckbox) {
-            termsCheckbox.addEventListener('change', checkFormValidity);
-        }
+        // Privacy policy checkbox removed - no longer needed
 
         reserveButton.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -474,7 +472,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: document.getElementById('termsCheckbox')?.checked || false
+                privacyPolicyAccepted: true  // Automatyczna akceptacja
             };
             
             reserveButton.disabled = true;

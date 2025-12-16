@@ -1440,13 +1440,9 @@ def create_reservation():
         logging.info("="*60)
         # === KONIEC LOGÓW ===
         
-        # Walidacja akceptacji polityki prywatności
-        privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
-        if privacy_policy_accepted is not True:
-            logging.warning(f"ODRZUCONO: privacyPolicyAccepted = {privacy_policy_accepted}")
-            return jsonify({
-                "error": "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji."
-            }), 400
+        # Opcjonalnie - log wartości dla debugowania
+        privacy_policy_accepted = data.get('privacyPolicyAccepted', True)
+        logging.info(f"privacyPolicyAccepted: {privacy_policy_accepted}")
         
         # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
         # Jeśli pole nie istnieje w zapytaniu (jak na stronie rezerwacji testowej), to NIE jest to isOneTime,
