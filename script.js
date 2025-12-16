@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: termsCheckbox ? termsCheckbox.checked : false
+                privacyPolicyAccepted: document.getElementById('termsCheckbox')?.checked || false
             };
             
             reserveButton.disabled = true;

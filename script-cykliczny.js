@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: termsCheckboxCyclic ? termsCheckboxCyclic.checked : false
+                privacyPolicyAccepted: document.getElementById('termsCheckboxCyclic')?.checked || false
             };
             
             if (typeof isOneTimeCheckbox !== 'undefined') {
