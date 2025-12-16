@@ -1432,7 +1432,7 @@ def create_reservation():
         
         # Walidacja akceptacji polityki prywatności
         privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
-        if not privacy_policy_accepted:
+        if privacy_policy_accepted is not True:
             abort(400, "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji.")
         
         # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
