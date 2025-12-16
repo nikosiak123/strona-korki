@@ -1434,7 +1434,7 @@ def create_reservation():
         privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
         if privacy_policy_accepted is not True:
             return jsonify({
-                "error": "Musisz zaakceptować politykę prywatności, aby dokonać rezerwację."
+                "error": "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji."
             }), 400
         
         # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
