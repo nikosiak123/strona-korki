@@ -22,3 +22,6 @@ Thumbs.db
 
 # Screenshots from Facebook automation
 screenshots/
+
+# Test files
+test-checkbox.html
