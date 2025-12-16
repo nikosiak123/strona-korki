@@ -17,8 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooseTutorCheckbox = document.getElementById('chooseTutorCheckbox');
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
-    // Privacy policy checkbox removed
-    // const termsCheckbox = document.getElementById('termsCheckbox');
     
     // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
@@ -452,8 +450,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         reservationForm.addEventListener('input', checkFormValidity);
-        
-        // Privacy policy checkbox removed - no longer needed
 
         reserveButton.addEventListener('click', async (e) => {
             e.preventDefault();

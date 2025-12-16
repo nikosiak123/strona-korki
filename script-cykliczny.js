@@ -26,9 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
     
-    // Polityka prywatności (checkbox removed)
-    // const termsCheckboxCyclic = document.getElementById('termsCheckboxCyclic');
-    
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
@@ -529,8 +526,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 2. Input tekstu
         reservationForm.addEventListener('input', checkFormValidity);
-        
-        // Privacy policy checkbox removed - no longer needed
 
         // 4. Przycisk Rezerwacji
         reserveButton.addEventListener('click', async (e) => {
