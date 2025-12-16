@@ -492,6 +492,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             showStatus('Trwa rezerwacja...', 'info');
             
             console.log("Dane wysyłane do backendu:", formData); 
+            console.log("Wartość checkboxa przed wysłaniem:", document.getElementById('termsCheckboxCyclic')?.checked);
+            console.log("Pełny JSON:", JSON.stringify(formData, null, 2));
         
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {

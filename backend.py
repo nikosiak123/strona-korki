@@ -1430,9 +1430,20 @@ def create_reservation():
     try:
         data = request.json
         
+        # === DODAJ LOGI DIAGNOSTYCZNE ===
+        logging.info("="*60)
+        logging.info("OTRZYMANO ZAPYTANIE /api/create-reservation")
+        logging.info(f"Pełne dane z request.json: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        logging.info(f"Typ pola 'privacyPolicyAccepted': {type(data.get('privacyPolicyAccepted'))}")
+        logging.info(f"Wartość pola 'privacyPolicyAccepted': {data.get('privacyPolicyAccepted')}")
+        logging.info(f"Czy 'privacyPolicyAccepted' jest True: {data.get('privacyPolicyAccepted') is True}")
+        logging.info("="*60)
+        # === KONIEC LOGÓW ===
+        
         # Walidacja akceptacji polityki prywatności
         privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
         if privacy_policy_accepted is not True:
+            logging.warning(f"ODRZUCONO: privacyPolicyAccepted = {privacy_policy_accepted}")
             return jsonify({
                 "error": "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji."
             }), 400
