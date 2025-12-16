@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
+    const termsCheckboxCyclic = document.getElementById('termsCheckboxCyclic');
     
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
@@ -93,7 +94,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isClassValid = classGroup.style.display === 'none' || schoolClassSelect.checkValidity();
         let isLevelValid = levelGroup.style.display === 'none' || schoolLevelSelect.checkValidity();
         let isTutorValid = tutorGroup.style.display === 'none' || (tutorSelect.value !== "");
-        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && selectedSlotId !== null);
+        let isTermsAccepted = termsCheckboxCyclic && termsCheckboxCyclic.checked;
+        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && isTermsAccepted && selectedSlotId !== null);
     }
     
     function showStatus(message, type) {
@@ -455,6 +457,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         reservationForm.addEventListener('input', checkFormValidity);
+        
+        if (termsCheckboxCyclic) {
+            termsCheckboxCyclic.addEventListener('change', checkFormValidity);
+        }
 
         reserveButton.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -473,7 +479,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 schoolClass: classGroup.style.display === 'block' ? schoolClassSelect.value : null,
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
-                selectedTime: selectedTime
+                selectedTime: selectedTime,
+                privacyPolicyAccepted: termsCheckboxCyclic ? termsCheckboxCyclic.checked : false
             };
             
             if (typeof isOneTimeCheckbox !== 'undefined') {
@@ -504,8 +511,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     window.location.href = `confirmation.html?${params.toString()}`;
                 } else {
-                    const errorData = await response.json();
-                    showStatus(`Błąd rezerwacji: ${errorData.message || 'Nie udało się utworzyć spotkania.'}`, 'error');
+                    const errorData = await response.json().catch(() => ({ error: 'Nieznany błąd' }));
+                    showStatus(errorData.error || `Błąd rezerwacji: ${response.statusText}`, 'error');
                 }
             } catch (error) {
                 console.error('Błąd rezerwacji:', error);
