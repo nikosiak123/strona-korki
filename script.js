@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chooseTutorCheckbox = document.getElementById('chooseTutorCheckbox');
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
+    const termsCheckbox = document.getElementById('termsCheckbox');
     
     // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
@@ -91,7 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isClassValid = classGroup.style.display === 'none' || schoolClassSelect.checkValidity();
         let isLevelValid = levelGroup.style.display === 'none' || schoolLevelSelect.checkValidity();
         let isTutorValid = tutorGroup.style.display === 'none' || (tutorSelect.value !== "");
-        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && selectedSlotId !== null);
+        let isTermsAccepted = termsCheckbox ? termsCheckbox.checkValidity() : false;
+        reserveButton.disabled = !(isBaseFormValid && isClassValid && isLevelValid && isTutorValid && isTermsAccepted && selectedSlotId !== null);
     }
     
     function showStatus(message, type) {
@@ -451,6 +453,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         reservationForm.addEventListener('input', checkFormValidity);
 
+        // Event listener dla checkboxa polityki prywatności
+        if (termsCheckbox) {
+            termsCheckbox.addEventListener('change', checkFormValidity);
+        }
+
         reserveButton.addEventListener('click', async (e) => {
             e.preventDefault();
             if (!reservationForm.checkValidity() || !selectedSlotId) {
@@ -468,12 +475,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: true  // Automatyczna akceptacja
+                privacyPolicyAccepted: termsCheckbox.checked
             };
             
             reserveButton.disabled = true;
             reserveButton.textContent = 'Rezerwuję...';
-            console.log("Wysyłam dane do backendu:", formData);
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/create-reservation`, {
