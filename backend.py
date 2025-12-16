@@ -1433,7 +1433,9 @@ def create_reservation():
         # Walidacja akceptacji polityki prywatności
         privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
         if privacy_policy_accepted is not True:
-            abort(400, "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji.")
+            return jsonify({
+                "error": "Musisz zaakceptować politykę prywatności, aby dokonać rezerwację."
+            }), 400
         
         # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
         # Jeśli pole nie istnieje w zapytaniu (jak na stronie rezerwacji testowej), to NIE jest to isOneTime,
