@@ -26,9 +26,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
     
-    // Polityka prywatności (znajduje się POZA formularzem w HTML)
-    const termsCheckboxCyclic = document.getElementById('termsCheckboxCyclic');
-    
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
@@ -147,13 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Sprawdź tutora
         let isTutorValid = tutorGroup.style.display === 'none' || (tutorSelect.value !== "");
         
-        // 5. Sprawdź CHECKBOX (Kluczowa poprawka)
-        let isTermsAccepted = false;
-        if (termsCheckboxCyclic) {
-            isTermsAccepted = termsCheckboxCyclic.checked;
-        }
-
-        // 6. Sprawdź czy wybrano termin w kalendarzu
+        // 5. Sprawdź czy wybrano termin w kalendarzu
         let isSlotSelected = selectedSlotId !== null;
 
         // Logowanie dla celów diagnostycznych (możesz usunąć po wdrożeniu)
@@ -163,11 +154,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         //     class: isClassValid,
         //     level: isLevelValid,
         //     tutor: isTutorValid,
-        //     terms: isTermsAccepted,
         //     slot: isSlotSelected
         // });
 
-        reserveButton.disabled = !(isBaseFormValid && isNameValid && isClassValid && isLevelValid && isTutorValid && isTermsAccepted && isSlotSelected);
+        reserveButton.disabled = !(isBaseFormValid && isNameValid && isClassValid && isLevelValid && isTutorValid && isSlotSelected);
     }
 
     // --- OBSŁUGA UI FORMULARZA ---
@@ -536,14 +526,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 2. Input tekstu
         reservationForm.addEventListener('input', checkFormValidity);
-        
-        // 3. --- FIX CHECKBOXA POLITYKI ---
-        // Nasłuchujemy bezpośrednio na elemencie, bo jest poza <form>
-        if (termsCheckboxCyclic) {
-            termsCheckboxCyclic.addEventListener('change', checkFormValidity);
-        } else {
-            console.error("Critical Error: termsCheckboxCyclic not found in DOM");
-        }
 
         // 4. Przycisk Rezerwacji
         reserveButton.addEventListener('click', async (e) => {
@@ -567,7 +549,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: termsCheckboxCyclic ? termsCheckboxCyclic.checked : false
+                privacyPolicyAccepted: true  // Automatyczna akceptacja
             };
             
             if (isOneTimeCheckbox) {
