@@ -767,9 +767,14 @@ def check_cyclic_availability():
         traceback.print_exc()
         abort(500, "Błąd serwera podczas sprawdzania dostępności.")
 
+# ⚠️ UWAGA: Ten endpoint jest tylko do testów i panelu admina.
+# Prawdziwe płatności powinny przechodzić przez:
+# /api/initiate-payment → Przelewy24 → /api/payment-notification (webhook)
 @app.route('/api/mark-lesson-as-paid', methods=['POST'])
 def mark_lesson_as_paid():
-    """Endpoint do symulacji płatności - zaznacza checkbox i zmienia status."""
+    """Endpoint do symulacji płatności - TYLKO DLA ADMINISTRATORÓW."""
+    require_admin()
+    
     try:
         token = request.json.get('managementToken')
         if not token:
@@ -1424,6 +1429,12 @@ def get_schedule():
 def create_reservation():
     try:
         data = request.json
+        
+        # Walidacja akceptacji polityki prywatności
+        privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
+        if not privacy_policy_accepted:
+            abort(400, "Musisz zaakceptować politykę prywatności, aby dokonać rezerwacji.")
+        
         # isOneTime jest True, jeśli klient zaznaczył "To jest lekcja jednorazowa"
         # Jeśli pole nie istnieje w zapytaniu (jak na stronie rezerwacji testowej), to NIE jest to isOneTime,
         # co oznacza, że jest to rezerwacja testowa, a isCyclic = False.
