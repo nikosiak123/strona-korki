@@ -25,12 +25,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
+    const lessonPriceSpan = document.getElementById('lessonPrice');
     
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
     // --- KONFIGURACJA ---
     const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; 
+
+    // --- FUNKCJA OBLICZANIA CENY ---
+    function calculateAndDisplayPrice() {
+        const schoolType = schoolTypeSelect.value;
+        const schoolLevel = schoolLevelSelect.value;
+        const schoolClass = schoolClassSelect.value;
+        
+        let price = 0;
+
+        if (schoolType === 'szkola_podstawowa') {
+            price = 65;
+        } else if (schoolClass && schoolClass.toLowerCase().includes('matura')) {
+            price = 80;
+        } else if (schoolLevel === 'rozszerzony') {
+            price = 75;
+        } else if (schoolType === 'liceum' || schoolType === 'technikum') {
+            price = 70;
+        }
+
+        if (price > 0) {
+            lessonPriceSpan.textContent = price;
+        } else {
+            lessonPriceSpan.textContent = 'Wybierz parametry, aby zobaczyć cenę';
+        }
+    }
 
     // --- ZMIENNE STANU ---
     let selectedSlotId = null;
@@ -522,10 +548,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             checkFormValidity();
+            calculateAndDisplayPrice(); // <-- Dodane wywołanie
         });
         
         // 2. Input tekstu
-        reservationForm.addEventListener('input', checkFormValidity);
+        reservationForm.addEventListener('input', () => {
+            checkFormValidity();
+            calculateAndDisplayPrice(); // <-- Dodane wywołanie
+        });
 
         // 3. Przycisk Rezerwacji
         reserveButton.addEventListener('click', async (e) => {

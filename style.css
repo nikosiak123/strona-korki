@@ -738,3 +738,30 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     }
     /* Reguła ukrywająca siatkę PC jest już wyżej, więc nie trzeba jej powtarzać */
 }
+
+.price-container {
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.price-container h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.price-container #lessonPrice {
+    font-weight: 700;
+    color: #2c5282;
+}
+
+.refund-info {
+    font-size: 0.85rem;
+    color: #718096;
+    line-height: 1.4;
+    margin: 0;
+}
