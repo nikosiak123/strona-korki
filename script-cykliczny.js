@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
     const isOneTimeCheckbox = document.getElementById('isOneTimeCheckbox');
-    const termsCheckboxCyclic = document.getElementById('termsCheckboxCyclic');
     
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
@@ -145,10 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Sprawdź tutora
         let isTutorValid = tutorGroup.style.display === 'none' || (tutorSelect.value !== "");
         
-        // 5. Sprawdź checkbox polityki prywatności
-        let isTermsAccepted = termsCheckboxCyclic ? termsCheckboxCyclic.checkValidity() : false;
-        
-        // 6. Sprawdź czy wybrano termin w kalendarzu
+        // 5. Sprawdź czy wybrano termin w kalendarzu
         let isSlotSelected = selectedSlotId !== null;
 
         // Logowanie dla celów diagnostycznych (możesz usunąć po wdrożeniu)
@@ -158,11 +154,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         //     class: isClassValid,
         //     level: isLevelValid,
         //     tutor: isTutorValid,
-        //     terms: isTermsAccepted,
         //     slot: isSlotSelected
         // });
 
-        reserveButton.disabled = !(isBaseFormValid && isNameValid && isClassValid && isLevelValid && isTutorValid && isTermsAccepted && isSlotSelected);
+        reserveButton.disabled = !(isBaseFormValid && isNameValid && isClassValid && isLevelValid && isTutorValid && isSlotSelected);
     }
 
     // --- OBSŁUGA UI FORMULARZA ---
@@ -532,12 +527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 2. Input tekstu
         reservationForm.addEventListener('input', checkFormValidity);
 
-        // 3. Event listener dla checkboxa polityki prywatności
-        if (termsCheckboxCyclic) {
-            termsCheckboxCyclic.addEventListener('change', checkFormValidity);
-        }
-
-        // 4. Przycisk Rezerwacji
+        // 3. Przycisk Rezerwacji
         reserveButton.addEventListener('click', async (e) => {
             e.preventDefault();
             checkFormValidity(); // Upewnij się jeszcze raz
@@ -559,7 +549,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tutor: chooseTutorCheckbox.checked ? tutorSelect.value : "Dowolny dostępny",
                 selectedDate: selectedDate, 
                 selectedTime: selectedTime,
-                privacyPolicyAccepted: termsCheckboxCyclic.checked
+                privacyPolicyAccepted: true  // Always true as user accepts by clicking the button
             };
             
             if (isOneTimeCheckbox) {
