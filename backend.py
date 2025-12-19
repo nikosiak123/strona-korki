@@ -1858,7 +1858,7 @@ def get_client_dashboard():
                 lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
                 logging.debug(f"Dashboard: Pomyślnie sparsowano datę dla rekordu ID: {record_id} ({fields['Data']} {fields['Godzina']}).")
             except ValueError as e:
-                logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=Tru[...]
+                logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=True)
                 # Kontynuujemy do następnego rekordu, żeby nie zepsuć całej strony (jeśli chcemy, żeby się ładowała)
                 continue 
             
