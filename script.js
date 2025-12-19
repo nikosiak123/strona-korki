@@ -18,12 +18,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tutorGroup = document.getElementById('tutorGroup');
     const tutorSelect = document.getElementById('tutorSelect');
     const termsCheckbox = document.getElementById('termsCheckbox');
+    const lessonPriceSpan = document.getElementById('lessonPrice');
     
     // Lista pól do podstawowej walidacji
     const baseFormFields = [subjectSelect, schoolTypeSelect];
     let clientID = null;
 
     const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na adres z Cloud Run przy wdrożeniu
+
+    // --- FUNKCJA OBLICZANIA CENY ---
+    function calculateAndDisplayPrice() {
+        const schoolType = schoolTypeSelect.value;
+        const schoolLevel = schoolLevelSelect.value;
+        // Na stronie testowej nie ma `schoolClassSelect`, więc sprawdzamy, czy istnieje
+        const schoolClass = schoolClassSelect ? schoolClassSelect.value : null; 
+        
+        let price = 0;
+
+        if (schoolType === 'szkola_podstawowa') {
+            price = 65;
+        } else if (schoolClass && schoolClass.toLowerCase().includes('matura')) {
+            price = 80;
+        } else if (schoolLevel === 'rozszerzony') {
+            price = 75;
+        } else if (schoolType === 'liceum' || schoolType === 'technikum') {
+            // Domyślna cena dla liceum/technikum (poziom podstawowy)
+            price = 70;
+        }
+
+        if (price > 0) {
+            lessonPriceSpan.textContent = price;
+        } else {
+            lessonPriceSpan.textContent = '...';
+        }
+    }
 
     // --- GŁÓWNA LOGIKA INICJALIZACJI APLIKACJI ---
     async function initializeApp() {
@@ -449,9 +477,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 handleTutorSelection();
             }
             checkFormValidity();
+            calculateAndDisplayPrice(); // <-- Dodane wywołanie
         });
         
-        reservationForm.addEventListener('input', checkFormValidity);
+        reservationForm.addEventListener('input', () => {
+            checkFormValidity();
+            calculateAndDisplayPrice(); // <-- Dodane wywołanie
+        });
 
         // Event listener dla checkboxa polityki prywatności
         if (termsCheckbox) {
