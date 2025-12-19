@@ -1274,6 +1274,8 @@ def get_schedule():
     global last_fetched_schedule
     try:
         start_date_str = request.args.get('startDate')
+        logging.info(f"--- GET SCHEDULE START ---")
+        logging.info(f"Request args: {request.args}")
         if not start_date_str: abort(400, "Brak parametru startDate")
         
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
@@ -1285,6 +1287,7 @@ def get_schedule():
         # --- ZMIANA: Konwersja na małe litery od razu po pobraniu ---
         subject = request.args.get('subject', '').lower()
         tutor_name_filter = request.args.get('tutorName')
+        logging.info(f"Tutor filter: {tutor_name_filter}")
 
         all_tutors_templates = tutors_table.all()
         filtered_tutors = []
@@ -1292,7 +1295,23 @@ def get_schedule():
         if tutor_name_filter:
             found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('ImieNazwisko') == tutor_name_filter), None)
             if found_tutor:
-                filtered_tutors.append(found_tutor)
+                # Sprawdzenie limitu godzin tygodniowo
+                fields = found_tutor.get('fields', {})
+                tutor_name = fields.get('ImieNazwisko')
+                tutor_limit = fields.get('LimitGodzinTygodniowo')
+                
+                if tutor_limit is not None:
+                    week_start = get_week_start(start_date)
+                    current_hours = get_tutor_hours_for_week(tutor_name, week_start)
+                    
+                    if current_hours >= tutor_limit:
+                        # Korepetytor przekroczył limit - pomijamy go w grafiku
+                        pass
+                    else:
+                        filtered_tutors.append(found_tutor)
+                else:
+                    # Brak limitu - dodaj korepetytora
+                    filtered_tutors.append(found_tutor)
         else:
             if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
             
@@ -2255,10 +2274,13 @@ def get_tutor_weekly_hours():
         traceback.print_exc()
         abort(500, "Błąd podczas pobierania danych o godzinach.")
 
-if __name__ == '__main__':
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
-    scheduler.start()
-    # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
-    atexit.register(lambda: scheduler.shutdown())
-    app.run(port=8080, debug=True)
+        
+        logging.info(f"Found {len(available_slots)} available slots.")
+        logging.info(f"--- GET SCHEDULE END ---")
+        if __name__ == '__main__':
+            scheduler = BackgroundScheduler()
+            scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
+            scheduler.start()
+            # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
+            atexit.register(lambda: scheduler.shutdown())
+            app.run(port=8080, debug=True)
