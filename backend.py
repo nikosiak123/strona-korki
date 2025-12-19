@@ -1292,23 +1292,7 @@ def get_schedule():
         if tutor_name_filter:
             found_tutor = next((t for t in all_tutors_templates if t.get('fields', {}).get('ImieNazwisko') == tutor_name_filter), None)
             if found_tutor:
-                # Sprawdzenie limitu godzin tygodniowo
-                fields = found_tutor.get('fields', {})
-                tutor_name = fields.get('ImieNazwisko')
-                tutor_limit = fields.get('LimitGodzinTygodniowo')
-                
-                if tutor_limit is not None:
-                    week_start = get_week_start(start_date)
-                    current_hours = get_tutor_hours_for_week(tutor_name, week_start)
-                    
-                    if current_hours >= tutor_limit:
-                        # Korepetytor przekroczył limit - pomijamy go w grafiku
-                        pass
-                    else:
-                        filtered_tutors.append(found_tutor)
-                else:
-                    # Brak limitu - dodaj korepetytora
-                    filtered_tutors.append(found_tutor)
+                filtered_tutors.append(found_tutor)
         else:
             if not all([school_type, subject]): abort(400, "Brak wymaganych parametrów (schoolType, subject)")
             
