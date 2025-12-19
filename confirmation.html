@@ -24,6 +24,8 @@
         .pay-now { background-color: var(--primary-color); color: var(--text-dark); }
         .pay-later { background-color: #E0E0E0; color: var(--text-dark); }
         .payment-info { display: none; margin-top: 2rem; padding: 1rem; background-color: #FFFBEB; border: 1px solid #FFEEBA; border-radius: 8px; font-size: 0.95rem; color: #856404; }
+        .cyclic-payment-info { margin-top: 1.5rem; padding: 1rem; background-color: #E8F5E9; border-left: 4px solid #4CAF50; border-radius: 8px; }
+        .cyclic-payment-info p { font-size: 1rem; color: #2E7D32; margin: 0.5rem 0; }
     </style>
 </head>
 <body>
@@ -64,6 +66,13 @@
             <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0;">
             <h2>Co dalej?</h2>
             <p>Twój stały termin został zapisany. Możesz teraz zarządzać swoimi lekcjami, potwierdzać nadchodzące terminy i dokonywać płatności w swoim panelu klienta.</p>
+            
+            <!-- Informacja o płatnościach dla stałego terminu -->
+            <div class="cyclic-payment-info">
+                <p><strong>💰 Płatności</strong></p>
+                <p>Płatności za lekcje możesz dokonywać w dowolnym momencie przez swój panel klienta. Pamiętaj, aby opłacić każdą lekcję minimum <strong>12 godzin przed jej rozpoczęciem</strong>.</p>
+                <p>W panelu znajdziesz wszystkie nadchodzące terminy wraz z możliwością ich opłacenia.</p>
+            </div>
         </div>
 
     </div>
@@ -135,7 +144,7 @@
                 // Logika przycisków płatności
                 document.getElementById('payLaterBtn').addEventListener('click', () => {
                     const infoText = isTest 
-                        ? "Standardowo, płatności należy dokonać minimum 12 godzin przed rozpoczęciem zajęć. Jednakże, ponieważ jest to Twoja lekcja testowa, możesz opłacić ją bezpośrednio po połączeniu się z korepetytorem. Dziękujemy!"
+                        ? "Standardowo, płatności należy dokonać minimum 12 godzin przed rozpoczęciem zajęć. Jednakże, ponieważ jest to Twoja lekcja testowa, możesz opłacić ją bezpośrednio po jej zakończeniu. Link do płatności znajdziesz w panelu klienta."
                         : "Pamiętaj, aby opłacić lekcję do 12 godzin przed jej rozpoczęciem. Link do płatności znajdziesz w panelu klienta.";
                     document.getElementById('paymentInfo').innerHTML = infoText;
                     document.getElementById('paymentInfo').style.display = 'block';
