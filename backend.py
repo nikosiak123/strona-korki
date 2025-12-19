@@ -49,15 +49,13 @@ MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
 # Hasło do panelu administratora
 ADMIN_PASSWORD = "szlafrok"
 
-# Konfiguracja Przelewy24 (SANDBOX)
-# UWAGA: W produkcji te wartości powinny być w zmiennych środowiskowych
-# Obecne wartości są dla środowiska testowego (sandbox)
+# Konfiguracja Przelewy24 (PRODUKCJA)
 P24_MERCHANT_ID = 361049
 P24_POS_ID = 361049
-P24_CRC_KEY = "ee85119cff302ba1"
-P24_API_KEY = "cd49cd24"
-P24_SANDBOX = True
-P24_API_URL = "https://sandbox.przelewy24.pl"
+P24_CRC_KEY = "3d8d413164a23d5f" # Klucz z Twojego screena
+P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01" # Klucz z Twojego screena
+P24_SANDBOX = False
+P24_API_URL = "https://secure.przelewy24.pl"
 
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
@@ -124,7 +122,7 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
         f"Dostęp do panelu klienta jest pod tym linkiem:\n{dashboard_link}\n\n"
         f"Stałe zajęcia wymagają potwierdzenia lekcji w każdym tygodniu. Rezerwacja stałego terminu gwarantuje miejsce o wybranej godzinie w każdym tygodniu."
         f"Jeśli chcesz zarezerwować jeszcze jedną jednorazową lekcję wystarczy, że podczas rezerwacji stałego terminu zaznaczysz checkbox 'To jest lekcja jednorazowa'."
-        f"Bardzo pomogło by nam jeśli wypełnią Państwo ankiete, zajmuje to mniej niż 30 sekund, a dla nas jest to ogromna pomoc https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ1Xh81-BZew/edit"
+        f"Bardzo pomogło by nam jeśli wypełnią Państwo ankiete, zajmuje to mniej niż 30 sekund, a dla nas jest to ogromna pomoc https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ[...]
     )
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -674,10 +672,19 @@ def calculate_lesson_price(school_type, school_level=None, school_class=None):
 
 def generate_p24_sign(session_id, merchant_id, amount, currency, crc):
     """
-    Generuje podpis SHA-384 dla Przelewy24.
+    Generuje podpis SHA-384 dla Przelewy24 (REST API v1).
+    Ważne: podpis powstaje z JSON-a bez spacji.
     """
-    sign_string = f"{session_id}|{merchant_id}|{amount}|{currency}|{crc}"
-    return hashlib.sha384(sign_string.encode('utf-8')).hexdigest()
+    sign_payload = {
+        "sessionId": session_id,
+        "merchantId": int(merchant_id),
+        "amount": int(amount),
+        "currency": currency,
+        "crc": crc
+    }
+    # Generowanie stringa JSON bez spacji (separators)
+    sign_json = json.dumps(sign_payload, separators=(',', ':'))
+    return hashlib.sha384(sign_json.encode('utf-8')).hexdigest()
 
 # === Koniec funkcji płatności ===
 
@@ -814,7 +821,7 @@ def mark_lesson_as_paid():
 
 @app.route('/api/initiate-payment', methods=['POST'])
 def initiate_payment():
-    """Inicjuje płatność w systemie Przelewy24."""
+    """Inicjalizuje płatność w systemie Przelewy24."""
     try:
         data = request.json
         token = data.get('managementToken')
@@ -853,9 +860,9 @@ def initiate_payment():
         # Przygotuj sesję dla P24 - użyj tokena jako session_id
         # P24 akceptuje do 100 znaków, UUID ma 36 znaków
         session_id = token[:100] if len(token) <= 100 else token[:100]
+        # Poprawione generowanie sygnatury
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
         
-        # Przygotuj payload dla P24
         payload = {
             "merchantId": P24_MERCHANT_ID,
             "posId": P24_POS_ID,
@@ -864,12 +871,13 @@ def initiate_payment():
             "currency": "PLN",
             "description": f"Lekcja {fields.get('Przedmiot')}",
             "email": client_email,
+            "country": "PL",      # DODANE
+            "language": "pl",     # DODANE
             "urlReturn": f"https://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token={token}",
             "urlStatus": "https://zakręcone-korepetycje.pl/api/payment-notification",
             "sign": sign
         }
         
-        # Wyślij request do P24
         response = requests.post(
             f"{P24_API_URL}/api/v1/transaction/register", 
             json=payload, 
@@ -883,7 +891,7 @@ def initiate_payment():
             return jsonify({"paymentUrl": payment_url})
         else:
             logging.error(f"P24 Error: {response.status_code} - {response.text}")
-            abort(500, "Błąd inicjalizacji płatności")
+            return jsonify({"error": "Błąd Przelewy24", "details": response.json()}), 500
     
     except Exception as e:
         logging.error(f"Payment initiation error: {e}", exc_info=True)
@@ -891,64 +899,116 @@ def initiate_payment():
 
 @app.route('/api/payment-notification', methods=['POST'])
 def payment_notification():
-    """Webhook do otrzymywania powiadomień o płatnościach z Przelewy24."""
+    """
+    Webhook obsługujący powiadomienie o płatności z Przelewy24 (API v1 REST).
+    """
     try:
-        data = request.form
+        # P24 w API v1 wysyła dane jako JSON
+        data = request.get_json()
+        
+        # Jeśli dane nie są JSONem, spróbuj odebrać jako form (zależnie od konfiguracji serwera)
+        if not data:
+            data = request.form.to_dict()
+
+        if not data or 'sign' not in data:
+            logging.error("P24: Otrzymano pusty lub błędny webhook.")
+            return "Invalid data", 400
+
         session_id = data.get('sessionId')
+        logging.info(f"Otrzymano powiadomienie płatności P24 dla sesji: {session_id}")
+
+        # --- KROK 1: Weryfikacja sygnatury otrzymanego powiadomienia ---
+        # Pola wymagane do obliczenia sign w powiadomieniu (zgodnie z dokumentacją v1)
+        sign_check_payload = {
+            "merchantId": int(data.get('merchantId')),
+            "posId": int(data.get('posId')),
+            "sessionId": data.get('sessionId'),
+            "amount": int(data.get('amount')),
+            "originAmount": int(data.get('originAmount', data.get('amount'))),
+            "currency": data.get('currency'),
+            "orderId": int(data.get('orderId')),
+            "methodId": int(data.get('methodId')),
+            "statement": data.get('statement'),
+            "crc": P24_CRC_KEY
+        }
         
-        # Walidacja session_id - powinien być UUID lub format tokena
-        if not session_id or len(session_id) > 100:
-            logging.error(f"P24: Nieprawidłowy session_id: {session_id}")
-            abort(400, "Nieprawidłowy session_id")
+        # Tworzymy JSON bez spacji (separators)
+        sign_check_json = json.dumps(sign_check_payload, separators=(',', ':'))
+        calculated_sign = hashlib.sha384(sign_check_json.encode('utf-8')).hexdigest()
+
+        if calculated_sign != data.get('sign'):
+            logging.error(f"P24: BŁĄD SYGNATURY! Otrzymano: {data.get('sign')}, Obliczono: {calculated_sign}")
+            return "Invalid signature", 403
+
+        # --- KROK 2: Weryfikacja transakcji (Transaction Verify) ---
+        # W API v1 musimy wysłać PUT na /api/v1/transaction/verify, aby zatwierdzić płatność
         
-        logging.info(f"Otrzymano powiadomienie P24: sessionId={session_id}")
-        
-        # Weryfikuj podpis
-        sign = generate_p24_sign(
-            session_id, 
-            int(data.get('merchantId')), 
-            int(data.get('amount')), 
-            data.get('currency'), 
-            P24_CRC_KEY
+        # Obliczamy podpis dla żądania weryfikacji
+        verify_sign_data = {
+            "sessionId": data.get('sessionId'),
+            "orderId": int(data.get('orderId')),
+            "amount": int(data.get('amount')),
+            "currency": data.get('currency'),
+            "crc": P24_CRC_KEY
+        }
+        verify_sign_json = json.dumps(verify_sign_data, separators=(',', ':'))
+        verify_sign = hashlib.sha384(verify_sign_json.encode('utf-8')).hexdigest()
+
+        verify_payload = {
+            "merchantId": int(data.get('merchantId')),
+            "posId": int(data.get('posId')),
+            "sessionId": data.get('sessionId'),
+            "amount": int(data.get('amount')),
+            "currency": data.get('currency'),
+            "orderId": int(data.get('orderId')),
+            "sign": verify_sign
+        }
+
+        # Wysyłamy żądanie weryfikacji (PUT)
+        verify_response = requests.put(
+            f"{P24_API_URL}/api/v1/transaction/verify",
+            json=verify_payload,
+            auth=(str(P24_POS_ID), P24_API_KEY),
+            timeout=15
         )
-        
-        if sign != data.get('sign'):
-            logging.error("P24: Nieprawidłowy podpis!")
-            abort(403, "Nieprawidłowy podpis")
-        
-        # Sanitize session_id przed użyciem w formule (dodatkowe zabezpieczenie)
-        # UUID format: tylko znaki alfanumeryczne i myślniki
+
+        if verify_response.status_code != 200:
+            logging.error(f"P24: Błąd weryfikacji końcowej (Verify). Status: {verify_response.status_code}, Body: {verify_response.text}")
+            return "Verify failed", 500
+
+        # --- KROK 3: Aktualizacja bazy danych ---
+        # SessionId to nasz ManagementToken
         safe_session_id = ''.join(c for c in session_id if c.isalnum() or c == '-')
-        
-        # Znajdź lekcję po session_id (który jest tokenem zarządzającym)
         lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{safe_session_id}'")
         
         if lesson:
-            # Aktualizuj status lekcji
             reservations_table.update(lesson['id'], {
                 "Oplacona": True, 
                 "Status": "Opłacona"
             })
+            logging.info(f"Lekcja {lesson['id']} została pomyślnie OPŁACONA.")
             
-            logging.info(f"Lekcja {lesson['id']} została opłacona przez P24")
-            
-            # Wyślij powiadomienie Messenger
+            # --- KROK 4: Powiadomienie Messenger ---
             if MESSENGER_PAGE_TOKEN:
-                fields = lesson['fields']
-                msg = (
-                    f"✅ Płatność przyjęta!\n"
-                    f"Lekcja {fields.get('Przedmiot')} w dniu {fields.get('Data')} "
-                    f"została opłacona."
-                )
-                send_messenger_confirmation(fields.get('Klient'), msg, MESSENGER_PAGE_TOKEN)
+                fields = lesson.get('fields', {})
+                psid = fields.get('Klient')
+                if psid:
+                    msg = (
+                        f"✅ Płatność otrzymana!\n"
+                        f"Twoja lekcja z przedmiotu '{fields.get('Przedmiot')}' "
+                        f"zaplanowana na {fields.get('Data')} o {fields.get('Godzina')} "
+                        f"została pomyślnie opłacona. Dziękujemy!"
+                    )
+                    send_messenger_confirmation(psid, msg, MESSENGER_PAGE_TOKEN)
         else:
-            logging.warning(f"Nie znaleziono lekcji dla session_id: {safe_session_id}")
-        
+            logging.warning(f"P24: Otrzymano płatność, ale nie znaleziono lekcji dla sesji: {safe_session_id}")
+
+        # P24 oczekuje odpowiedzi "OK" (status 200)
         return "OK", 200
-    
+
     except Exception as e:
-        logging.error(f"Payment notification error: {e}", exc_info=True)
-        return "ERROR", 500
+        logging.error(f"P24: Wyjątek w payment_notification: {e}", exc_info=True)
+        return "Internal Error", 500
 
 @app.route('/api/get-tutor-lessons')
 def get_tutor_lessons():
@@ -1071,7 +1131,7 @@ def tutor_reschedule():
                 "Status": "Przeniesiona", "Typ": "Cykliczna Wyjątek"
             }
             reservations_table.create(new_exception)
-            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiony'."})
+            return jsonify({"message": "Stały termin na ten dzień został oznaczony jako 'Przeniesiona'."})
 
     except Exception as e:
         traceback.print_exc()
@@ -1797,7 +1857,7 @@ def get_client_dashboard():
                 lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
                 logging.debug(f"Dashboard: Pomyślnie sparsowano datę dla rekordu ID: {record_id} ({fields['Data']} {fields['Godzina']}).")
             except ValueError as e:
-                logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=True)
+                logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=Tru[...]
                 # Kontynuujemy do następnego rekordu, żeby nie zepsuć całej strony (jeśli chcemy, żeby się ładowała)
                 continue 
             
