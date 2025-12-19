@@ -106,29 +106,30 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
         logging.warning("MESSENGER: Nie można wysłać follow-upu - brak tokena.")
         return
 
-    # Pobieramy pełne dane klienta, aby upewnić się, że PSID jest poprawne
+    # Pobieramy pełne dane klienta
     client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
     psid = client_record['fields'].get('ClientID') if client_record else None
 
     if not psid:
-        logging.error(f"MESSENGER: Nie znaleziono PSID dla ClientID: {client_id}. Anulowano wysyłkę follow-upu.")
+        logging.error(f"MESSENGER: Nie znaleziono PSID dla ClientID: {client_id}. Anulowano wysyłkę.")
         return
 
     dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+    ankieta_link = "https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ1Xh81-BZew/edit"
     
-    message_to_send = (
-        f"Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊\n\n"
-        f"Zapraszamy do dalszej wspłópracy. Aby umówić się na stałę zajęcia wystarczy w panelu klienta nacisnąć przycisk 'Zarezerwuj stałe zajęcia'."
-        f"Dostęp do panelu klienta jest pod tym linkiem:\n{dashboard_link}\n\n"
-        f"Stałe zajęcia wymagają potwierdzenia lekcji w każdym tygodniu. Rezerwacja stałego terminu gwarantuje miejsce o wybranej godzinie w każdym tygodniu."
-        f"Jeśli chcesz zarezerwować jeszcze jedną jednorazową lekcję wystarczy, że podczas rezerwacji stałego terminu zaznaczysz checkbox 'To jest lekcja jednorazowa'."
-        f"Bardzo pomogło by nam jeśli wypełnią Państwo ankiete, zajmuje to mniej niż 30 sekund, a dla nas jest to ogromna pomoc https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ[...]
-    )
+    # Użycie potrójnego cudzysłowu zapobiega błędom unterminated string literal
+    message_to_send = f"""Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊
+
+Zapraszamy do dalszej współpracy. Aby umówić się na stałe zajęcia, wystarczy w panelu klienta nacisnąć przycisk 'Zarezerwuj stałe zajęcia'.
+Dostęp do panelu: {dashboard_link}
+
+Stałe zajęcia gwarantują miejsce o wybranej godzinie w każdym tygodniu. Jeśli wolisz lekcję jednorazową, zaznacz odpowiednie pole podczas rezerwacji.
+
+Bardzo pomogłoby nam, gdybyś wypełnił krótką ankietę (zajmuje mniej niż 30 sekund): 
+{ankieta_link}"""
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
-    logging.info(f"MESSENGER: Wysłano wiadomość follow-up po lekcji testowej do {psid}.")
-
-
+    logging.info(f"MESSENGER: Wysłano wiadomość follow-up do {psid}.")
 
 def calculate_image_hash(image_source):
     try:
