@@ -54,8 +54,8 @@ ADMIN_PASSWORD = "szlafrok"
 # Obecne wartości są dla środowiska testowego (sandbox)
 P24_MERCHANT_ID = 361049
 P24_POS_ID = 361049
-P24_CRC_KEY = "d88e6d2dbb9a6217"
-P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01"
+P24_CRC_KEY = "ee85119cff302ba1"
+P24_API_KEY = "cd49cd24"
 P24_SANDBOX = True
 P24_API_URL = "https://sandbox.przelewy24.pl"
 
