@@ -874,8 +874,8 @@ def initiate_payment():
             "email": client_email,
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
-            "urlReturn": f"https://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token={token}",
-            "urlStatus": "https://zakręcone-korepetycje.pl/api/payment-notification",
+            "urlReturn": f"{request.host_url}potwierdzenie-platnosci.html?token={token}",
+            "urlStatus": f"{request.host_url}api/payment-notification",
             "sign": sign
         }
         
