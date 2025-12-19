@@ -259,14 +259,26 @@
                 const tbody = table.createTBody();
                 const twelveHoursFromNow = new Date(Date.now() + 12 * 60 * 60 * 1000);
             
-                for (let h = workingHoursStart; h < workingHoursEnd; h++) {
-                    for (let m = 0; m < 60; m += 70) {
-                         const timeSlot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                         if (h * 60 + m >= workingHoursEnd * 60) continue;
+                // Zbieramy wszystkie unikalne godziny z dostępnych terminów
+                const allAvailableTimes = new Set();
+                Object.values(availableSlotsData).forEach(daySlots => {
+                    daySlots.forEach(slot => allAvailableTimes.add(slot.time));
+                });
+                // Sortujemy godziny
+                const sortedTimes = Array.from(allAvailableTimes).sort();
 
-                         const row = tbody.insertRow();
-                         row.insertCell().outerHTML = `<td class="time-label">${timeSlot}</td>`;
-                         daysInWeek.forEach(day => {
+                if (sortedTimes.length === 0) {
+                    const row = tbody.insertRow();
+                    const cell = row.insertCell();
+                    cell.colSpan = 8;
+                    cell.style.textAlign = 'center';
+                    cell.style.padding = '2rem';
+                    cell.textContent = "Brak dostępnych terminów u tego korepetytora w tym tygodniu.";
+                } else {
+                    sortedTimes.forEach(timeSlot => {
+                        const row = tbody.insertRow();
+                        row.insertCell().outerHTML = `<td class="time-label">${timeSlot}</td>`;
+                        daysInWeek.forEach(day => {
                             const cell = row.insertCell();
                             const formattedDate = getFormattedDate(day);
                             const blockId = `block_${formattedDate}_${timeSlot.replace(':', '')}`;
@@ -289,8 +301,8 @@
                                 }
                             }
                             cell.appendChild(block);
-                         });
-                    }
+                        });
+                    });
                 }
                 calendarContainer.appendChild(table);
             }
