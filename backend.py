@@ -1404,22 +1404,35 @@ def get_schedule():
         master_end_time = dt_time(22, 0)
 
         available_slots = []
+        logging.info(f"CALENDAR: Rozpoczynam generowanie wolnych slotów dla {len(filtered_tutors)} korepetytorów")
+        
         for template in filtered_tutors:
             fields = template.get('fields', {})
             tutor_name = fields.get('ImieNazwisko')
             if not tutor_name: continue
             
+            logging.info(f"CALENDAR: Sprawdzam template dla {tutor_name}")
+
             for day_offset in range(7):
                 current_date = start_date + timedelta(days=day_offset)
-                time_range_str = fields.get(WEEKDAY_MAP[current_date.weekday()])
-                if not time_range_str: continue
+                day_name = WEEKDAY_MAP[current_date.weekday()]
+                time_range_str = fields.get(day_name)
+                
+                if not time_range_str: 
+                    logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak zdefiniowanych godzin")
+                    continue
+                
+                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {time_range_str}")
                 
                 start_work_time, end_work_time = parse_time_range(time_range_str)
-                if not start_work_time or not end_work_time: continue
+                if not start_work_time or not end_work_time: 
+                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania zakresu '{time_range_str}'")
+                    continue
                 
                 current_slot_datetime = datetime.combine(current_date, master_start_time)
                 end_datetime_limit = datetime.combine(current_date, master_end_time)
 
+                slots_for_day = 0
                 while current_slot_datetime < end_datetime_limit:
                     current_time_only = current_slot_datetime.time()
                     
@@ -1437,9 +1450,13 @@ def get_schedule():
                                 'time': slot_time_str,
                                 'status': 'available'
                             })
+                            slots_for_day += 1
                     
                     current_slot_datetime += timedelta(minutes=70)
+                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): wygenerowano {slots_for_day} wolnych slotów")
         
+        logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
+        adhoc_slots_count = 0
         for record in reservations:
             fields = record.get('fields', {})
             if fields.get('Status') == 'Dostępny':
@@ -1447,16 +1464,20 @@ def get_schedule():
                     "tutor": fields.get('Korepetytor'), "date": fields.get('Data'),
                     "time": fields.get('Godzina'), "status": "available"
                 })
+                adhoc_slots_count += 1
+        logging.info(f"CALENDAR: Dodano {adhoc_slots_count} slotów ad-hoc")
             
         if tutor_name_filter:
             final_schedule = []
+            logging.info(f"CALENDAR: Formowanie finalnego grafiku dla filtra tutorName: {tutor_name_filter}")
             for template in filtered_tutors:
                 fields = template.get('fields', {})
                 tutor_name = fields.get('ImieNazwisko')
                 if not tutor_name: continue
                 for day_offset in range(7):
                     current_date = start_date + timedelta(days=day_offset)
-                    time_range_str = fields.get(WEEKDAY_MAP[current_date.weekday()])
+                    day_name = WEEKDAY_MAP[current_date.weekday()]
+                    time_range_str = fields.get(day_name)
                     if not time_range_str: continue
                     start_work_time, end_work_time = parse_time_range(time_range_str)
                     if not start_work_time or not end_work_time: continue
@@ -1477,14 +1498,17 @@ def get_schedule():
                             slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
                             if key in booked_slots:
                                 slot_info.update(booked_slots[key])
+                                logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
                             else:
                                 slot_info['status'] = 'available'
                             
                             final_schedule.append(slot_info)
 
                         current_slot_datetime += timedelta(minutes=70)
+            logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
             return jsonify(final_schedule)
         else:
+            logging.info(f"CALENDAR: Zwracam {len(available_slots)} wolnych slotów (bez filtra tutorName)")
             last_fetched_schedule = available_slots
             return jsonify(available_slots)
 
