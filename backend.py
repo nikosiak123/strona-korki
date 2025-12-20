@@ -1429,25 +1429,30 @@ def get_schedule():
                     logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania zakresu '{time_range_str}'")
                     continue
                 
-                # Używamy start_work_time zamiast master_start_time jako punktu wyjścia
-                current_slot_datetime = datetime.combine(current_date, start_work_time)
-                # Używamy end_work_time zamiast master_end_time jako limitu
-                end_datetime_limit = datetime.combine(current_date, end_work_time)
+                current_slot_datetime = datetime.combine(current_date, master_start_time)
+                end_datetime_limit = datetime.combine(current_date, master_end_time)
 
                 slots_for_day = 0
-                while current_slot_datetime + timedelta(minutes=60) <= end_datetime_limit:
-                    slot_time_str = current_slot_datetime.strftime('%H:%M')
-                    current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
-                    key = (tutor_name, current_date_str, slot_time_str)
+                while current_slot_datetime < end_datetime_limit:
+                    current_time_only = current_slot_datetime.time()
+                    
+                    if start_work_time <= current_time_only and \
+                       (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
+                        
+                        slot_time_str = current_slot_datetime.strftime('%H:%M')
+                        current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
+                        key = (tutor_name, current_date_str, slot_time_str)
 
-                    if key not in booked_slots:
-                        available_slots.append({
-                            'tutor': tutor_name,
-                            'date': current_date_str,
-                            'time': slot_time_str,
-                            'status': 'available'
-                        })
-                        slots_for_day += 1
+                        if key not in booked_slots:
+                            available_slots.append({
+                                'tutor': tutor_name,
+                                'date': current_date_str,
+                                'time': slot_time_str,
+                                'status': 'available'
+                            })
+                            slots_for_day += 1
+                        else:
+                            logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
                     
                     current_slot_datetime += timedelta(minutes=70)
                 logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): wygenerowano {slots_for_day} wolnych slotów")
@@ -1479,23 +1484,27 @@ def get_schedule():
                     start_work_time, end_work_time = parse_time_range(time_range_str)
                     if not start_work_time or not end_work_time: continue
                     
-                    # Tutaj też poprawiamy logikę generowania slotów
-                    current_slot_datetime = datetime.combine(current_date, start_work_time)
-                    end_datetime_limit = datetime.combine(current_date, end_work_time)
+                    current_slot_datetime = datetime.combine(current_date, master_start_time)
+                    end_datetime_limit = datetime.combine(current_date, master_end_time)
                     
-                    while current_slot_datetime + timedelta(minutes=60) <= end_datetime_limit:
-                        slot_time_str = current_slot_datetime.strftime('%H:%M')
-                        current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
-                        key = (tutor_name, current_date_str, slot_time_str)
-                        
-                        slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
-                        if key in booked_slots:
-                            slot_info.update(booked_slots[key])
-                            logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
-                        else:
-                            slot_info['status'] = 'available'
-                        
-                        final_schedule.append(slot_info)
+                    while current_slot_datetime < end_datetime_limit:
+                        current_time_only = current_slot_datetime.time()
+
+                        if start_work_time <= current_time_only and \
+                           (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
+
+                            slot_time_str = current_slot_datetime.strftime('%H:%M')
+                            current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
+                            key = (tutor_name, current_date_str, slot_time_str)
+                            
+                            slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
+                            if key in booked_slots:
+                                slot_info.update(booked_slots[key])
+                                logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
+                            else:
+                                slot_info['status'] = 'available'
+                            
+                            final_schedule.append(slot_info)
 
                         current_slot_datetime += timedelta(minutes=70)
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
