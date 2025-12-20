@@ -1452,13 +1452,10 @@ def get_schedule():
                             })
                             slots_for_day += 1
                         else:
+                            # Wyjątek: jeśli uczeń edytuje SWOJĄ lekcję, to slot ma być dostępny
+                            # Ale w tej metodzie nie wiemy, która lekcja jest "nasza".
+                            # Logujemy szczegóły slotu, by upewnić się, że inne sloty są wolne.
                             logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
-                    else:
-                        # Loguj powody odrzucenia przez zakres godzin pracy
-                        if not (start_work_time <= current_time_only):
-                            pass # Zbyt wcześnie
-                        elif not ((current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time)):
-                            logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - wykracza poza koniec pracy ({end_work_time})")
                     
                     current_slot_datetime += timedelta(minutes=70)
                 logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): wygenerowano {slots_for_day} wolnych slotów")
