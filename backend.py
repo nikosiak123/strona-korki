@@ -1276,6 +1276,8 @@ def get_schedule():
         start_date_str = request.args.get('startDate')
         if not start_date_str: abort(400, "Brak parametru startDate")
         
+        logging.info(f"CALENDAR: Pobieranie grafiku od {start_date_str}")
+        
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = start_date + timedelta(days=7)
         
@@ -1285,6 +1287,8 @@ def get_schedule():
         # --- ZMIANA: Konwersja na małe litery od razu po pobraniu ---
         subject = request.args.get('subject', '').lower()
         tutor_name_filter = request.args.get('tutorName')
+
+        logging.info(f"CALENDAR: Parametry filtracji: tutor={tutor_name_filter}, subject={subject}, schoolType={school_type}, level={school_level}")
 
         all_tutors_templates = tutors_table.all()
         filtered_tutors = []
@@ -1297,12 +1301,15 @@ def get_schedule():
                 tutor_name = fields.get('ImieNazwisko')
                 tutor_limit = fields.get('LimitGodzinTygodniowo')
                 
+                logging.info(f"CALENDAR: Filtrowanie dla konkretnego korepetytora: {tutor_name}")
+
                 if tutor_limit is not None:
                     week_start = get_week_start(start_date)
                     current_hours = get_tutor_hours_for_week(tutor_name, week_start)
                     
                     if current_hours >= tutor_limit:
                         # Korepetytor przekroczył limit - pomijamy go w grafiku
+                        logging.warning(f"CALENDAR: Korepetytor {tutor_name} przekroczył limit godzin ({current_hours}/{tutor_limit})")
                         pass
                     else:
                         filtered_tutors.append(found_tutor)
@@ -1966,11 +1973,14 @@ def get_client_dashboard():
 def get_reservation_details():
     try:
         token = request.args.get('token')
+        logging.info(f"DETAILS: Pobieranie szczegółów dla tokena: {token}")
         record = find_reservation_by_token(token)
         if not record: 
+            logging.warning(f"DETAILS: Nie znaleziono rezerwacji dla tokena: {token}")
             abort(404, "Nie znaleziono rezerwacji o podanym identyfikatorze.")
         
         fields = record.get('fields', {})
+        logging.info(f"DETAILS: Znaleziono rekord: {json.dumps(fields, indent=2)}")
         
         client_uuid = fields.get('Klient')
         student_name = "N/A"
