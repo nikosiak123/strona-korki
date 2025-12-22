@@ -1,4 +1,3 @@
-...existing code...
 # --- Mechanizm wolnej kwoty z bazą danych ---
 def get_free_amount(client_id):
     client = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
