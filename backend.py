@@ -51,7 +51,6 @@ def get_free_amount_api():
         abort(400, "Brak parametru clientID.")
     amount = get_free_amount(client_id)
     return jsonify({"freeAmount": amount})
-...existing code...
 # Endpoint API: pobierz wolną kwotę klienta
 import os
 import json
