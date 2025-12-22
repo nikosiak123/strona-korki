@@ -2172,7 +2172,10 @@ def reschedule_reservation():
         tutor = original_fields.get('Korepetytor')
         
         formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
-        if reservations_table.first(formula=formula_check):
+        print(f"DEBUG reschedule: checking formula: {formula_check}")
+        existing = reservations_table.first(formula=formula_check)
+        print(f"DEBUG reschedule: found existing: {existing}")
+        if existing:
             return jsonify({"message": "Wybrany termin jest już zajęty. Proszę wybrać inny."}), 409
         
         new_date_obj = datetime.strptime(new_date, '%Y-%m-%d').date()
