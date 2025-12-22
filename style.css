@@ -767,34 +767,43 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
 }
 
 /* Ikonka pomocy */
-.help-icon {
+.help-button {
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 10px 20px;
-    background-color: var(--primary-color);
-    color: var(--text-dark);
-    border: 2px solid var(--text-dark);
-    border-radius: 25px;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #F2C94C 0%, #E0B438 100%);
+    color: #333333;
+    border: 3px solid #333333;
+    border-radius: 30px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 18px;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
     z-index: 10000;
-    animation: pulse 2s infinite;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    animation: gentle-pulse 3s infinite;
 }
 
-@keyframes pulse {
-    0% {
+.help-button:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #E0B438 0%, #D4A32A 100%);
+}
+
+@keyframes gentle-pulse {
+    0%, 100% {
         transform: scale(1);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     50% {
-        transform: scale(1.05);
+        transform: scale(1.02);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.25);
     }
-    100% {
-        transform: scale(1);
-    }
+}
+
 }
 
 .help-icon:hover {
