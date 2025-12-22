@@ -15,23 +15,17 @@
     </header>
 
     <!-- Przycisk pomocy -->
-    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
-
-    <!-- Modal pomocy -->
-    <div id="helpModal" class="help-modal">
-        <div class="help-modal-content">
-            <span class="close" onclick="closeHelpModal()">&times;</span>
-            <h2>Pomoc - Rezerwacja Stała</h2>
-            <p>Oto jak zarezerwować stałe zajęcia:</p>
-            <ul>
-                <li><strong>Wypełnij formularz:</strong> Podaj swoje dane i wybierz przedmiot oraz poziom nauczania.</li>
-                <li><strong>Wybierz korepetytora:</strong> Możesz wybrać konkretnego korepetytora lub zostawić wybór systemowi.</li>
-                <li><strong>Wybierz terminy:</strong> Zaznacz dostępne dni i godziny w tygodniu.</li>
-                <li><strong>Potwierdź rezerwację:</strong> Sprawdź dane i dokonaj płatności za pierwszą lekcję.</li>
-                <li><strong>Kontakt z korepetytorem:</strong> Po rezerwacji skontaktuj się z korepetytorem, aby ustalić plan lekcji i materiał.</li>
-            </ul>
-            <p>Stałe zajęcia odbywają się regularnie w wybrane dni tygodnia.</p>
-        </div>
+    <div class="help-tooltip">
+        <button class="help-button">Pomoc</button>
+        <span class="help-tooltip-text">
+            <strong>Rezerwacja Stałych Terminów:</strong><br>
+            • Wypełnij formularz z danymi<br>
+            • Wybierz przedmiot i poziom<br>
+            • Wybierz korepetytora<br>
+            • Zaznacz dni tygodnia i godziny<br>
+            • Dokonaj płatności za pierwszą lekcję<br><br>
+            Po rezerwacji ustal plan lekcji z korepetytorem!
+        </span>
     </div>
 
     <main class="container">

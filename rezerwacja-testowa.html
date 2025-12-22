@@ -15,23 +15,17 @@
     </header>
 
     <!-- Przycisk pomocy -->
-    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
-
-    <!-- Modal pomocy -->
-    <div id="helpModal" class="help-modal">
-        <div class="help-modal-content">
-            <span class="close" onclick="closeHelpModal()">&times;</span>
-            <h2>Pomoc - Rezerwacja Lekcji Testowej</h2>
-            <p>Oto jak zarezerwować swoją pierwszą lekcję:</p>
-            <ul>
-                <li><strong>Wypełnij formularz:</strong> Podaj swoje dane i wybierz przedmiot oraz poziom nauczania.</li>
-                <li><strong>Wybierz korepetytora:</strong> Możesz wybrać konkretnego korepetytora lub zostawić wybór systemowi.</li>
-                <li><strong>Wybierz termin:</strong> Przeglądaj kalendarz i kliknij na dostępny slot czasowy.</li>
-                <li><strong>Potwierdź rezerwację:</strong> Sprawdź dane i dokonaj płatności.</li>
-                <li><strong>Kontakt z korepetytorem:</strong> Po rezerwacji skontaktuj się z korepetytorem, aby ustalić temat i materiał lekcji. Dane kontaktowe otrzymasz w potwierdzeniu rezerwacji.</li>
-            </ul>
-            <p>Lekcja testowa trwa 45 minut i kosztuje 50 zł.</p>
-        </div>
+    <div class="help-tooltip">
+        <button class="help-button">Pomoc</button>
+        <span class="help-tooltip-text">
+            <strong>Rezerwacja Lekcji Testowej:</strong><br>
+            • Wypełnij formularz z danymi<br>
+            • Wybierz przedmiot i poziom<br>
+            • Wybierz korepetytora lub zostaw automatycznie<br>
+            • Kliknij w kalendarzu dostępny termin<br>
+            • Dokonaj płatności 50 zł<br><br>
+            Po rezerwacji skontaktuj się z korepetytorem!
+        </span>
     </div>
 
     <main class="container">

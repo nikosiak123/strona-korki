@@ -628,19 +628,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeApp();
 });
 
-// Funkcje dla modali pomocy
-function openHelpModal() {
-    document.getElementById('helpModal').classList.add('show');
-}
-
-function closeHelpModal() {
-    document.getElementById('helpModal').classList.remove('show');
-}
-
-// Zamknij modal po kliknięciu poza nim
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('helpModal');
-    if (event.target == modal) {
-        modal.classList.remove('show');
-    }
-})
+// Funkcje pomocy zostały zastąpione przez CSS tooltip

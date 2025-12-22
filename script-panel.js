@@ -560,14 +560,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-// Funkcje dla pomocy
-function showHelp() {
-    alert(`Pomoc - Panel Korepetytora:
-• Zarządzanie terminarzem: Ustal swoje dostępne godziny lekcyjne
-• Potwierdzanie lekcji: Akceptuj lub odrzucaj rezerwacje klientów  
-• Kalendarz: Przeglądaj swoje zajęcia i dostępne sloty
-• Nadchodzące lekcje: Lista potwierdzonych zajęć
-• Płatności: System automatycznie obsługuje rozliczenia
-
-Jeśli masz pytania techniczne, skontaktuj się z administratorem.`);
-}
+// Funkcje dla pomocy zostały zastąpione przez CSS tooltip

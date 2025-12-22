@@ -29,22 +29,16 @@
     <header><h1>Zarządzaj rezerwacją</h1></header>
 
     <!-- Przycisk pomocy -->
-    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
-
-    <!-- Modal pomocy -->
-    <div id="helpModal" class="help-modal">
-        <div class="help-modal-content">
-            <span class="close" onclick="closeHelpModal()">&times;</span>
-            <h2>Pomoc - Zarządzanie Rezerwacją</h2>
-            <p>Oto jak zarządzać swoją rezerwacją:</p>
-            <ul>
-                <li><strong>Przegląd rezerwacji:</strong> Zobacz szczegóły swojej rezerwacji po lewej stronie.</li>
-                <li><strong>Zmiana terminu:</strong> Kliknij "Zmień termin", aby wybrać nowy czas lekcji.</li>
-                <li><strong>Anulowanie lekcji:</strong> Możesz anulować pojedyncze lekcje lub całą rezerwację.</li>
-                <li><strong>Kontakt z korepetytorem:</strong> W razie pytań skontaktuj się z korepetytorem.</li>
-            </ul>
-            <p>Pamiętaj, że zmiany terminów należy uzgadniać z korepetytorem.</p>
-        </div>
+    <div class="help-tooltip">
+        <button class="help-button">Pomoc</button>
+        <span class="help-tooltip-text">
+            <strong>Zarządzanie Rezerwacją:</strong><br>
+            • Przegląd rezerwacji po lewej<br>
+            • Zmień termin: wybierz nowy czas<br>
+            • Anuluj lekcje pojedyncze lub całą rezerwację<br>
+            • Kontakt z korepetytorem przed zmianami<br><br>
+            Zmiany terminów wymagają uzgodnienia!
+        </span>
     </div>
 
     <main id="loadingState" class="container" style="text-align: center; padding: 4rem;">
@@ -380,23 +374,6 @@
                 fetchAvailableSlots(currentWeekStart);
             }
         });
-
-        // Funkcje dla modali pomocy
-        function openHelpModal() {
-            document.getElementById('helpModal').classList.add('show');
-        }
-
-        function closeHelpModal() {
-            document.getElementById('helpModal').classList.remove('show');
-        }
-
-        // Zamknij modal po kliknięciu poza nim
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('helpModal');
-            if (event.target == modal) {
-                modal.classList.remove('show');
-            }
-        })
     </script>
 </body>
 </html>

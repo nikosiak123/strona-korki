@@ -136,7 +136,18 @@
         </nav>
     </header>
 
-    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
+    <!-- Przycisk pomocy -->
+    <div class="help-tooltip">
+        <button class="help-button">Pomoc</button>
+        <span class="help-tooltip-text">
+            <strong>Witaj na stronie korepetycji!</strong><br>
+            • Rezerwacja lekcji: Wybierz przedmiot i termin<br>
+            • Lekcje testowe: 45 minut za 50 zł<br>
+            • Stałe terminy: Regularne zajęcia w wybrane dni<br>
+            • Panel klienta: Zarządzaj swoimi lekcjami<br><br>
+            Skontaktuj się z nami w razie pytań!
+        </span>
+    </div>
 
     <main>
         <div class="landing-container">
@@ -199,36 +210,8 @@
         </div>
     </footer>
 
-    <div class="help-modal" id="helpModal">
-        <div class="help-modal-content">
-            <span class="close" onclick="closeHelpModal()">&times;</span>
-            <h3>Jak korzystać z systemu - dla klientów</h3>
-            <p>Witaj! Oto proste wyjaśnienie, jak używać naszej platformy korepetycji online.</p>
-            <ul>
-                <li><strong>Rezerwacja lekcji:</strong> Wybierz przedmiot, poziom i dostępny termin. Lekcje trwają 60 minut.</li>
-                <li><strong>Płatność:</strong> Opłać lekcję online przez Przelewy24. Jeśli masz wolną kwotę (np. z anulowanej lekcji), zostanie ona automatycznie wykorzystana.</li>
-                <li><strong>Panel klienta:</strong> Zarządzaj swoimi lekcjami – zobacz nadchodzące, przeszłe, zmieniaj terminy lub anuluj (do 12h przed).</li>
-                <li><strong>Kontakt z korepetytorem:</strong> Skontaktuj się przez link do profilu, aby ustalić materiał zajęć.</li>
-                <li><strong>Lekcje stałe:</strong> Po lekcji testowej zaproponuj korepetytorowi stały grafik.</li>
-            </ul>
-            <p>Jeśli masz pytania, napisz do nas!</p>
-        </div>
-    </div>
-
     <script>
-        function openHelpModal() {
-            document.getElementById('helpModal').classList.add('show');
-        }
-        function closeHelpModal() {
-            document.getElementById('helpModal').classList.remove('show');
-        }
-        // Zamknij modal po kliknięciu poza nim
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('helpModal');
-            if (event.target == modal) {
-                modal.classList.remove('show');
-            }
-        });
+        // Funkcje pomocy zostały zastąpione przez CSS tooltip
     </script>
 </body>
 </html>

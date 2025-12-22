@@ -771,13 +771,13 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 15px 30px;
+    padding: 12px 24px;
     background: linear-gradient(135deg, #F2C94C 0%, #E0B438 100%);
     color: #333333;
     border: 3px solid #333333;
     border-radius: 30px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
@@ -806,10 +806,45 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
 
 }
 
-.help-icon:hover {
-    background-color: var(--primary-hover-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+.help-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.help-tooltip .help-tooltip-text {
+    visibility: hidden;
+    width: 300px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 15px;
+    position: absolute;
+    z-index: 10001;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -150px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.help-tooltip .help-tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.help-tooltip:hover .help-tooltip-text {
+    visibility: visible;
+    opacity: 1;
 }
 
 .help-modal {
