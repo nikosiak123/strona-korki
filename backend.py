@@ -1,13 +1,4 @@
-# Endpoint API: pobierz wolną kwotę klienta
-@app.route('/api/get-free-amount')
-def get_free_amount_api():
-    client_id = request.args.get('clientID')
-    if not client_id:
-        abort(400, "Brak parametru clientID.")
-    amount = get_free_amount(client_id)
-    return jsonify({"freeAmount": amount})
-
-
+...existing code...
 # --- Mechanizm wolnej kwoty z bazą danych ---
 def get_free_amount(client_id):
     client = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
@@ -52,6 +43,17 @@ def handle_new_lesson_payment(lesson):
         else:
             subtract_free_amount(client_id, wolna_kwota)
             # Pozostała kwota do zapłaty przez Przelewy24
+
+# Endpoint API: pobierz wolną kwotę klienta
+@app.route('/api/get-free-amount')
+def get_free_amount_api():
+    client_id = request.args.get('clientID')
+    if not client_id:
+        abort(400, "Brak parametru clientID.")
+    amount = get_free_amount(client_id)
+    return jsonify({"freeAmount": amount})
+...existing code...
+# Endpoint API: pobierz wolną kwotę klienta
 import os
 import json
 import uuid
