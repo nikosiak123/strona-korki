@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             case 'completed': block.classList.add('completed'); block.textContent = slotData.studentName; block.style.cursor = 'not-allowed'; break;
                             case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
                             case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
-                            default: block.classList.add('unavailable'); block.textContent = "Zajęty"; block.style.cursor = 'not-allowed';
+                            default: block.classList.add('unavailable'); block.textContent = "Przeniesione"; block.style.cursor = 'not-allowed';
                         }
                     } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
                     
