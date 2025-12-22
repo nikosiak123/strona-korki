@@ -1452,10 +1452,17 @@ def get_schedule():
                 client_info = all_clients.get(fields.get('Klient'), {})
                 student_name = client_info.get('Imie', 'Uczeń')
                 
+                if status == 'Przeniesiona (zakończona)':
+                    slot_status = "completed"
+                elif status in ['Niedostępny', 'Przeniesiona']:
+                    slot_status = 'blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'
+                else:
+                    slot_status = "booked_lesson"
+                
                 booked_slots[key] = {
-                    "status": "booked_lesson" if status not in ['Niedostępny', 'Przeniesiona'] else ('blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'),
-                    "studentName": student_name, 
-                    "studentContactLink": client_info.get('LINK'),
+                    "status": slot_status,
+                    "studentName": student_name if slot_status != "completed" else f"{student_name} (Zakończona)",
+                    "studentContactLink": client_info.get('LINK') if slot_status != "completed" else None,
                     "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
                     "isPaid": fields.get('Oplacona', False),

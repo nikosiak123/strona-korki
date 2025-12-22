@@ -278,6 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         switch(slotData.status) {
                             case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
                             case 'booked_lesson': case 'cyclic_reserved': block.classList.add('booked-lesson'); block.textContent = slotData.studentName; block.addEventListener('click', () => showActionModal(slotData)); break;
+                            case 'completed': block.classList.add('completed'); block.textContent = slotData.studentName; block.style.cursor = 'not-allowed'; break;
                             case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
                             case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
                             default: block.classList.add('unavailable'); block.textContent = "Zajęty"; block.style.cursor = 'not-allowed';
