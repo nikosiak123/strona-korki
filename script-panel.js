@@ -562,17 +562,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Funkcje dla modali pomocy
 function openHelpModal() {
-    document.getElementById('helpModal').style.display = 'block';
+    document.getElementById('helpModal').classList.add('show');
 }
 
 function closeHelpModal() {
-    document.getElementById('helpModal').style.display = 'none';
+    document.getElementById('helpModal').classList.remove('show');
 }
 
 // Zamknij modal po kliknięciu poza nim
 window.onclick = function(event) {
     const modal = document.getElementById('helpModal');
     if (event.target == modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
     }
 }

@@ -28,8 +28,8 @@
 <body>
     <header><h1>Zarządzaj rezerwacją</h1></header>
 
-    <!-- Ikonka pomocy -->
-    <div class="help-icon" onclick="openHelpModal()">?</div>
+    <!-- Przycisk pomocy -->
+    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
 
     <!-- Modal pomocy -->
     <div id="helpModal" class="help-modal">
@@ -383,18 +383,18 @@
 
         // Funkcje dla modali pomocy
         function openHelpModal() {
-            document.getElementById('helpModal').style.display = 'block';
+            document.getElementById('helpModal').classList.add('show');
         }
 
         function closeHelpModal() {
-            document.getElementById('helpModal').style.display = 'none';
+            document.getElementById('helpModal').classList.remove('show');
         }
 
         // Zamknij modal po kliknięciu poza nim
         window.onclick = function(event) {
             const modal = document.getElementById('helpModal');
             if (event.target == modal) {
-                modal.style.display = 'none';
+                modal.classList.remove('show');
             }
         }
     </script>

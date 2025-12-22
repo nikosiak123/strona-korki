@@ -136,7 +136,7 @@
         </nav>
     </header>
 
-    <div class="help-icon" onclick="showHelp()">?</div>
+    <button class="help-icon" onclick="openHelpModal()">Pomoc</button>
 
     <main>
         <div class="landing-container">
@@ -216,11 +216,18 @@
     </div>
 
     <script>
-        function showHelp() {
+        function openHelpModal() {
             document.getElementById('helpModal').classList.add('show');
         }
-        function closeHelp() {
+        function closeHelpModal() {
             document.getElementById('helpModal').classList.remove('show');
+        }
+        // Zamknij modal po kliknięciu poza nim
+        window.onclick = function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target == modal) {
+                modal.classList.remove('show');
+            }
         }
     </script>
 </body>
