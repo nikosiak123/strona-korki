@@ -562,8 +562,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Funkcje pomocy
 function toggleHelp() {
+    console.log('toggleHelp called');
     const tooltip = document.querySelector('.help-tooltip');
-    tooltip.classList.toggle('show');
+    console.log('tooltip element:', tooltip);
+    if (tooltip) {
+        tooltip.classList.toggle('show');
+        console.log('classList after toggle:', tooltip.classList);
+    }
 }
 
 // Zamknij tooltip po kliknięciu gdzie indziej

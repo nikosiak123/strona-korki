@@ -804,8 +804,6 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     }
 }
 
-}
-
 .help-tooltip {
     position: relative;
     display: inline-block;
@@ -820,8 +818,8 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     border-radius: 6px;
     padding: 15px;
     position: absolute;
-    z-index: 10001;
-    bottom: 125%;
+    z-index: 100000;
+    top: 125%;
     left: 50%;
     margin-left: -150px;
     opacity: 0;
@@ -834,12 +832,12 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
 .help-tooltip .help-tooltip-text::after {
     content: "";
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: #333 transparent transparent transparent;
+    border-color: transparent transparent #333 transparent;
 }
 
 .help-tooltip.show .help-tooltip-text {
