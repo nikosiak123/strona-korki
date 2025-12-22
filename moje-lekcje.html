@@ -563,7 +563,15 @@
                             }
                             
                             const data = await response.json();
-                            window.location.href = data.paymentUrl;
+                            if (data.paymentUrl) {
+                                window.location.href = data.paymentUrl;
+                            } else if (data.message) {
+                                alert(data.message);
+                                // Odśwież stronę, aby zobaczyć zaktualizowany status lekcji
+                                window.location.reload();
+                            } else {
+                                throw new Error("Nieprawidłowa odpowiedź serwera.");
+                            }
                         } catch (error) {
                             alert('Błąd: ' + error.message);
                             button.textContent = 'Opłać';
