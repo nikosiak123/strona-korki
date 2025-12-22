@@ -28,6 +28,25 @@
 <body>
     <header><h1>Zarządzaj rezerwacją</h1></header>
 
+    <!-- Ikonka pomocy -->
+    <div class="help-icon" onclick="openHelpModal()">?</div>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Pomoc - Zarządzanie Rezerwacją</h2>
+            <p>Oto jak zarządzać swoją rezerwacją:</p>
+            <ul>
+                <li><strong>Przegląd rezerwacji:</strong> Zobacz szczegóły swojej rezerwacji po lewej stronie.</li>
+                <li><strong>Zmiana terminu:</strong> Kliknij "Zmień termin", aby wybrać nowy czas lekcji.</li>
+                <li><strong>Anulowanie lekcji:</strong> Możesz anulować pojedyncze lekcje lub całą rezerwację.</li>
+                <li><strong>Kontakt z korepetytorem:</strong> W razie pytań skontaktuj się z korepetytorem.</li>
+            </ul>
+            <p>Pamiętaj, że zmiany terminów należy uzgadniać z korepetytorem.</p>
+        </div>
+    </div>
+
     <main id="loadingState" class="container" style="text-align: center; padding: 4rem;">
         <h2>Ładowanie danych rezerwacji...</h2>
     </main>
@@ -361,6 +380,23 @@
                 fetchAvailableSlots(currentWeekStart);
             }
         });
+
+        // Funkcje dla modali pomocy
+        function openHelpModal() {
+            document.getElementById('helpModal').style.display = 'block';
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+
+        // Zamknij modal po kliknięciu poza nim
+        window.onclick = function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

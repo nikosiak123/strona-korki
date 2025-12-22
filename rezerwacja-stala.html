@@ -14,6 +14,26 @@
         <h1>Zarezerwuj stały termin</h1>
     </header>
 
+    <!-- Ikonka pomocy -->
+    <div class="help-icon" onclick="openHelpModal()">?</div>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Pomoc - Rezerwacja Stała</h2>
+            <p>Oto jak zarezerwować stałe zajęcia:</p>
+            <ul>
+                <li><strong>Wypełnij formularz:</strong> Podaj swoje dane i wybierz przedmiot oraz poziom nauczania.</li>
+                <li><strong>Wybierz korepetytora:</strong> Możesz wybrać konkretnego korepetytora lub zostawić wybór systemowi.</li>
+                <li><strong>Wybierz terminy:</strong> Zaznacz dostępne dni i godziny w tygodniu.</li>
+                <li><strong>Potwierdź rezerwację:</strong> Sprawdź dane i dokonaj płatności za pierwszą lekcję.</li>
+                <li><strong>Kontakt z korepetytorem:</strong> Po rezerwacji skontaktuj się z korepetytorem, aby ustalić plan lekcji i materiał.</li>
+            </ul>
+            <p>Stałe zajęcia odbywają się regularnie w wybrane dni tygodnia.</p>
+        </div>
+    </div>
+
     <main class="container">
         <!-- Ten kontener będzie pokazywany, jeśli link jest nieprawidłowy -->
         <div id="invalidLinkContainer" style="display: none; padding: 2rem; text-align: center; width: 100%;">
