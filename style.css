@@ -771,21 +771,17 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 40px;
-    height: 40px;
+    padding: 10px 20px;
     background-color: var(--primary-color);
     color: var(--text-dark);
     border: 2px solid var(--text-dark);
-    border-radius: 50%;
+    border-radius: 25px;
     cursor: pointer;
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
     z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     animation: pulse 2s infinite;
 }
 
