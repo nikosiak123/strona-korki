@@ -143,6 +143,26 @@
 <body>
     <header><h1>Panel Klienta</h1></header>
 
+    <!-- Ikonka pomocy -->
+    <div class="help-icon" onclick="openHelpModal()">?</div>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Pomoc - Panel Klienta</h2>
+            <p>Witaj w panelu klienta! Oto krótkie wyjaśnienie działania systemu:</p>
+            <ul>
+                <li><strong>Rezerwacja zajęć:</strong> Kliknij "Zarezerwuj stałe zajęcia", aby umówić się na regularne lekcje.</li>
+                <li><strong>Twoje terminy:</strong> W sekcji "Twoje stałe terminy" zobaczysz zaplanowane lekcje.</li>
+                <li><strong>Nadchodzące lekcje:</strong> Tutaj znajdziesz potwierdzone zajęcia w najbliższym czasie.</li>
+                <li><strong>Płatności:</strong> System automatycznie obsługuje płatności za lekcje.</li>
+                <li><strong>Wolna kwota:</strong> Jeśli masz niewykorzystane środki, zobaczysz informację o nich na górze strony.</li>
+            </ul>
+            <p>Jeśli masz pytania, skontaktuj się z korepetytorem.</p>
+        </div>
+    </div>
+
     <main id="dashboard" class="dashboard-container">
         <h2 id="welcomeMessage">Ładowanie danych...</h2>
         <div id="freeAmountInfo" style="display:none; margin-bottom:1.5rem; background:#FFF8E1; color:#6D4C41; padding:1rem; border-radius:8px; font-weight:600; text-align:center;"></div>
@@ -633,6 +653,23 @@
                 }, 1000);
             }
         });
+
+        // Funkcje dla modali pomocy
+        function openHelpModal() {
+            document.getElementById('helpModal').style.display = 'block';
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+
+        // Zamknij modal po kliknięciu poza nim
+        window.onclick = function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

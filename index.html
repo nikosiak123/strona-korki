@@ -136,6 +136,8 @@
         </nav>
     </header>
 
+    <div class="help-icon" onclick="showHelp()">?</div>
+
     <main>
         <div class="landing-container">
             <h1>Zacznij zakręcone korepetycje już dziś!</h1>
@@ -196,5 +198,30 @@
             <a href="/polityka-prywatnosci.html">Polityka Prywatności</a>
         </div>
     </footer>
+
+    <div class="help-modal" id="helpModal">
+        <div class="help-modal-content">
+            <span class="help-close" onclick="closeHelp()">&times;</span>
+            <h3>Jak korzystać z systemu - dla klientów</h3>
+            <p>Witaj! Oto proste wyjaśnienie, jak używać naszej platformy korepetycji online.</p>
+            <ul>
+                <li><strong>Rezerwacja lekcji:</strong> Wybierz przedmiot, poziom i dostępny termin. Lekcje trwają 60 minut.</li>
+                <li><strong>Płatność:</strong> Opłać lekcję online przez Przelewy24. Jeśli masz wolną kwotę (np. z anulowanej lekcji), zostanie ona automatycznie wykorzystana.</li>
+                <li><strong>Panel klienta:</strong> Zarządzaj swoimi lekcjami – zobacz nadchodzące, przeszłe, zmieniaj terminy lub anuluj (do 12h przed).</li>
+                <li><strong>Kontakt z korepetytorem:</strong> Skontaktuj się przez link do profilu, aby ustalić materiał zajęć.</li>
+                <li><strong>Lekcje stałe:</strong> Po lekcji testowej zaproponuj korepetytorowi stały grafik.</li>
+            </ul>
+            <p>Jeśli masz pytania, napisz do nas!</p>
+        </div>
+    </div>
+
+    <script>
+        function showHelp() {
+            document.getElementById('helpModal').classList.add('show');
+        }
+        function closeHelp() {
+            document.getElementById('helpModal').classList.remove('show');
+        }
+    </script>
 </body>
 </html>
