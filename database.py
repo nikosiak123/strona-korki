@@ -30,9 +30,18 @@ def init_database():
             ImieKlienta TEXT,
             NazwiskoKlienta TEXT,
             Zdjecie TEXT,
+            wolna_kwota INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Migracja: Dodaj kolumnę wolna_kwota, jeśli nie istnieje
+    try:
+        cursor.execute("SELECT wolna_kwota FROM Klienci LIMIT 1")
+    except sqlite3.OperationalError:
+        print("Migracja: Dodawanie kolumny wolna_kwota do tabeli Klienci...")
+        cursor.execute("ALTER TABLE Klienci ADD COLUMN wolna_kwota INTEGER DEFAULT 0")
+        print("✓ Kolumna wolna_kwota dodana pomyślnie.")
     
     # Tabela Korepetytorzy
     cursor.execute('''

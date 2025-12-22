@@ -1,3 +1,38 @@
+
+# --- Mechanizm wolnej kwoty ---
+# Słownik w pamięci (można zastąpić bazą danych): {client_id: wolna_kwota_w_groszach}
+free_amounts = {}
+
+# Dodaj wolną kwotę przy anulowaniu lekcji (np. >12h przed rozpoczęciem)
+def handle_paid_lesson_cancellation(lesson):
+    fields = lesson.get('fields', {})
+    client_id = fields.get('Klient')
+    if fields.get('Oplacona'):
+        cena = fields.get('Cena', 0)
+        if not cena:
+            # Jeśli nie ma pola Cena, oblicz na podstawie typu szkoły, poziomu, klasy
+            cena = calculate_lesson_price(fields.get('TypSzkoly'), fields.get('Poziom'), fields.get('Klasa'))
+        free_amounts[client_id] = free_amounts.get(client_id, 0) + int(cena)
+
+# Odejmij wolną kwotę przy płatności za nową lekcję
+def handle_new_lesson_payment(lesson):
+    fields = lesson.get('fields', {})
+    client_id = fields.get('Klient')
+    cena = calculate_lesson_price(fields.get('TypSzkoly'), fields.get('Poziom'), fields.get('Klasa'))
+    wolna_kwota = free_amounts.get(client_id, 0)
+    if wolna_kwota > 0:
+        if wolna_kwota >= cena:
+            # Cała lekcja pokryta z wolnej kwoty
+            reservations_table.update(lesson['id'], {"Oplacona": True, "Status": "Opłacona"})
+            free_amounts[client_id] -= cena
+        else:
+            # Pokryj część kwoty, reszta do dopłaty
+            # Tu można dodać logikę do płatności online: kwota do zapłaty = cena - wolna_kwota
+            free_amounts[client_id] = 0
+            # Reszta płatności przez Przelewy24
+
+# Przykład użycia: wywołaj handle_paid_lesson_cancellation(lesson) przy anulowaniu opłaconej lekcji
+# Przykład użycia: wywołaj handle_new_lesson_payment(lesson) przy płatności za nową lekcję
 import os
 import json
 import uuid
