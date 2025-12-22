@@ -923,6 +923,18 @@ def initiate_payment():
             fields.get('Klasa')
         )
         
+        # Sprawdź wolną kwotę klienta
+        wolna_kwota = get_free_amount(client_id) if client_id else 0
+        if wolna_kwota >= amount:
+            # Wolna kwota pokrywa pełną cenę - oznacz lekcję jako opłaconą bez P24
+            reservations_table.update(lesson['id'], {"Oplacona": True, "Status": "Opłacona"})
+            subtract_free_amount(client_id, amount)
+            return jsonify({"message": "Lekcja opłacona z wolnej kwoty."})
+        elif wolna_kwota > 0:
+            # Częściowe pokrycie - odejmij wolną kwotę i zmniejsz amount do P24
+            subtract_free_amount(client_id, wolna_kwota)
+            amount -= wolna_kwota
+        
         # Przygotuj sesję dla P24 - generuj unikalny session_id (UUID)
         import uuid
         session_id = str(uuid.uuid4())
@@ -1052,6 +1064,9 @@ def payment_notification():
                 "Status": "Opłacona"
             })
             logging.info(f"Lekcja {lesson['id']} została pomyślnie OPŁACONA.")
+            
+            # Odejmij wolną kwotę przy płatności za nową lekcję
+            handle_new_lesson_payment(lesson)
             
             # --- KROK 4: Powiadomienie Messenger ---
             if MESSENGER_PAGE_TOKEN:
