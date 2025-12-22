@@ -78,8 +78,12 @@ PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
 COOKIES_FILE = "/var/www/korki/cookies.pkl"
 HASH_DIFFERENCE_THRESHOLD = 10
 
+
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
+
+# Jawne wywołanie migracji bazy danych na starcie
+init_database()
 
 # Inicjalizacja tabel bazy danych
 tutors_table = DatabaseTable('Korepetytorzy')
