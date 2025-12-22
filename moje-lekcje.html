@@ -177,6 +177,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const clientID = params.get('clientID');
+
                         // Pobierz wolną kwotę i wyświetl jeśli > 0
                         try {
                             console.log('Fetching free amount for clientID:', clientID);
@@ -198,8 +201,6 @@
                         } catch(e) { 
                             console.error('Error fetching free amount:', e);
                         }
-            const params = new URLSearchParams(window.location.search);
-            const clientID = params.get('clientID');
 
             const welcomeMessage = document.getElementById('welcomeMessage');
             const cyclicContainer = document.getElementById('cyclicReservations');
