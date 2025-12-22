@@ -2171,7 +2171,7 @@ def reschedule_reservation():
 
         tutor = original_fields.get('Korepetytor')
         
-        formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
+        formula_check = f"AND({{Korepetytor}} = '{tutor}', {{Data}} = '{new_date}', {{Godzina}} = '{new_time}')"
         print(f"DEBUG reschedule: checking formula: {formula_check}")
         existing = reservations_table.first(formula=formula_check)
         print(f"DEBUG reschedule: found existing: {existing}")

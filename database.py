@@ -215,9 +215,11 @@ class DatabaseTable:
         
         where_clause, params = self._convert_formula_to_sql(formula)
         query = f"SELECT * FROM {self.table_name} WHERE {where_clause} LIMIT 1"
+        print(f"DEBUG DB first: query={query}, params={params}")
         
         cursor.execute(query, params)
         row = cursor.fetchone()
+        print(f"DEBUG DB first: row={row}")
         conn.close()
         
         return self._row_to_dict(row)
