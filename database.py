@@ -35,13 +35,13 @@ def init_database():
         )
     ''')
 
-    # Migracja: Dodaj kolumnę wolna_kwota, jeśli nie istnieje
+    # Migracja: Dodaj kolumnę WolnaKwotaUzyta do tabeli Rezerwacje, jeśli nie istnieje
     try:
-        cursor.execute("SELECT wolna_kwota FROM Klienci LIMIT 1")
+        cursor.execute("SELECT WolnaKwotaUzyta FROM Rezerwacje LIMIT 1")
     except sqlite3.OperationalError:
-        print("Migracja: Dodawanie kolumny wolna_kwota do tabeli Klienci...")
-        cursor.execute("ALTER TABLE Klienci ADD COLUMN wolna_kwota INTEGER DEFAULT 0")
-        print("✓ Kolumna wolna_kwota dodana pomyślnie.")
+        print("Migracja: Dodawanie kolumny WolnaKwotaUzyta do tabeli Rezerwacje...")
+        cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN WolnaKwotaUzyta INTEGER DEFAULT 0")
+        print("✓ Kolumna WolnaKwotaUzyta dodana pomyślnie.")
     
     # Tabela Korepetytorzy
     cursor.execute('''
