@@ -2173,13 +2173,13 @@ def reschedule_reservation():
         
         formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{new_date}', {{Godzina}} = '{new_time}')"
         if reservations_table.first(formula=formula_check):
-            abort(409, "Wybrany termin jest już zajęty. Proszę wybrać inny.")
+            return jsonify({"message": "Wybrany termin jest już zajęty. Proszę wybrać inny."}), 409
         
         new_date_obj = datetime.strptime(new_date, '%Y-%m-%d').date()
         day_of_week_name = WEEKDAY_MAP[new_date_obj.weekday()]
         cyclic_check_formula = f"AND({{Korepetytor}} = '{tutor}', {{DzienTygodnia}} = '{day_of_week_name}', {{Godzina}} = '{new_time}', {{Aktywna}}=1)"
         if cyclic_reservations_table.first(formula=cyclic_check_formula):
-            abort(409, "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny.")
+            return jsonify({"message": "Wybrany termin jest zajęty przez rezerwację stałą. Proszę wybrać inny."}), 409
             
         was_paid = original_fields.get('Oplacona', False)
         new_status = 'Oczekuje na płatność'
