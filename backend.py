@@ -930,10 +930,7 @@ def initiate_payment():
             reservations_table.update(lesson['id'], {"Oplacona": True, "Status": "Opłacona"})
             subtract_free_amount(client_id, amount)
             return jsonify({"message": "Lekcja opłacona z wolnej kwoty."})
-        elif wolna_kwota > 0:
-            # Częściowe pokrycie - odejmij wolną kwotę i zmniejsz amount do P24
-            subtract_free_amount(client_id, wolna_kwota)
-            amount -= wolna_kwota
+        # Jeśli wolna kwota częściowo pokrywa, wyślij pełną kwotę do P24, a odejmij po potwierdzeniu
         
         # Przygotuj sesję dla P24 - generuj unikalny session_id (UUID)
         import uuid
