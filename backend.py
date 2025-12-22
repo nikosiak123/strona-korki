@@ -44,14 +44,6 @@ def handle_new_lesson_payment(lesson):
             # Pozostała kwota do zapłaty przez Przelewy24
 
 # Endpoint API: pobierz wolną kwotę klienta
-@app.route('/api/get-free-amount')
-def get_free_amount_api():
-    client_id = request.args.get('clientID')
-    if not client_id:
-        abort(400, "Brak parametru clientID.")
-    amount = get_free_amount(client_id)
-    return jsonify({"freeAmount": amount})
-# Endpoint API: pobierz wolną kwotę klienta
 import os
 import json
 import uuid
@@ -143,6 +135,7 @@ def get_free_amount_api():
         abort(400, "Brak parametru clientID.")
     amount = get_free_amount(client_id)
     return jsonify({"freeAmount": amount})
+
 
 WEEKDAY_MAP = { 0: "Poniedziałek", 1: "Wtorek", 2: "Środa", 3: "Czwartek", 4: "Piątek", 5: "Sobota", 6: "Niedziela" }
 LEVEL_MAPPING = {
