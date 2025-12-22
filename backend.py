@@ -136,6 +136,7 @@ CORS(app)
 
 # Endpoint API: pobierz wolną kwotę klienta
 @app.route('/api/get-free-amount')
+
 def get_free_amount_api():
     client_id = request.args.get('clientID')
     if not client_id:
