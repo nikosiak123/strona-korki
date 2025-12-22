@@ -179,6 +179,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
             const clientID = params.get('clientID');
+            const API_BASE_URL = ''; // Adres API jest względny
 
                         // Pobierz wolną kwotę i wyświetl jeśli > 0
                         try {
@@ -214,7 +215,6 @@
             const modalButtons = document.getElementById('modalButtons');
             const modalInfo = document.getElementById('modalInfo');
             
-            const API_BASE_URL = ''; // Adres API jest względny
 
             if (!clientID) {
                 welcomeMessage.innerHTML = '<h2>Wystąpił błąd: Brak identyfikatora klienta.</h2>';
