@@ -858,12 +858,11 @@ def initiate_payment():
             fields.get('Klasa')
         )
         
-        # Przygotuj sesję dla P24 - użyj tokena jako session_id
-        # P24 akceptuje do 100 znaków, UUID ma 36 znaków
-        session_id = token[:100] if len(token) <= 100 else token[:100]
-        # Poprawione generowanie sygnatury
+        # Przygotuj sesję dla P24 - generuj unikalny session_id (UUID)
+        import uuid
+        session_id = str(uuid.uuid4())
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
-        
+
         payload = {
             "merchantId": P24_MERCHANT_ID,
             "posId": P24_POS_ID,
@@ -878,13 +877,13 @@ def initiate_payment():
             "urlStatus": f"{request.host_url}api/payment-notification",
             "sign": sign
         }
-        
+
         response = requests.post(
             f"{P24_API_URL}/api/v1/transaction/register", 
             json=payload, 
             auth=(str(P24_POS_ID), P24_API_KEY)
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             p24_token = result['data']['token']
