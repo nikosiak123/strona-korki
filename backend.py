@@ -1,3 +1,11 @@
+# Endpoint API: pobierz wolną kwotę klienta
+@app.route('/api/get-free-amount')
+def get_free_amount_api():
+    client_id = request.args.get('clientID')
+    if not client_id:
+        abort(400, "Brak parametru clientID.")
+    amount = get_free_amount(client_id)
+    return jsonify({"freeAmount": amount})
 
 
 # --- Mechanizm wolnej kwoty z bazą danych ---

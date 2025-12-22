@@ -145,7 +145,7 @@
 
     <main id="dashboard" class="dashboard-container">
         <h2 id="welcomeMessage">Ładowanie danych...</h2>
-        
+        <div id="freeAmountInfo" style="display:none; margin-bottom:1.5rem; background:#FFF8E1; color:#6D4C41; padding:1rem; border-radius:8px; font-weight:600; text-align:center;"></div>
         <div class="actions-container">
             <a href="#" id="newBookingLink" class="btn-primary">Zarezerwuj stałe zajęcia</a>
         </div>
@@ -177,6 +177,18 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+                        // Pobierz wolną kwotę i wyświetl jeśli > 0
+                        try {
+                            const freeAmountResp = await fetch(`${API_BASE_URL}/api/get-free-amount?clientID=${clientID}`);
+                            if (freeAmountResp.ok) {
+                                const freeAmountData = await freeAmountResp.json();
+                                if (freeAmountData.freeAmount > 0) {
+                                    const infoBox = document.getElementById('freeAmountInfo');
+                                    infoBox.style.display = 'block';
+                                    infoBox.innerHTML = `Masz do wykorzystania <strong>${(freeAmountData.freeAmount/100).toFixed(2)} zł</strong> (wolna kwota).<br><span style='font-size:0.95em;'>Wolna kwota to środki powstałe po odwołaniu opłaconej lekcji, które możesz wykorzystać na opłacenie kolejnych rezerwacji lub zamienić na zwrot po kontakcie mailowym.</span>`;
+                                }
+                            }
+                        } catch(e) { /* ignoruj */ }
             const params = new URLSearchParams(window.location.search);
             const clientID = params.get('clientID');
 
