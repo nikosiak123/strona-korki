@@ -557,4 +557,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeApp();
 });
 
-// Funkcje pomocy zostały zastąpione przez CSS tooltip
+// Funkcje pomocy
+function toggleHelp() {
+    const tooltip = document.querySelector('.help-tooltip');
+    tooltip.classList.toggle('show');
+}
+
+// Zamknij tooltip po kliknięciu gdzie indziej
+document.addEventListener('click', function(event) {
+    const tooltip = document.querySelector('.help-tooltip');
+    if (tooltip && !tooltip.contains(event.target)) {
+        tooltip.classList.remove('show');
+    }
+});

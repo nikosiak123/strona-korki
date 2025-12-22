@@ -842,7 +842,7 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     border-color: #333 transparent transparent transparent;
 }
 
-.help-tooltip:hover .help-tooltip-text {
+.help-tooltip.show .help-tooltip-text {
     visibility: visible;
     opacity: 1;
 }
