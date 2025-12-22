@@ -201,7 +201,7 @@
 
     <div class="help-modal" id="helpModal">
         <div class="help-modal-content">
-            <span class="help-close" onclick="closeHelp()">&times;</span>
+            <span class="close" onclick="closeHelpModal()">&times;</span>
             <h3>Jak korzystać z systemu - dla klientów</h3>
             <p>Witaj! Oto proste wyjaśnienie, jak używać naszej platformy korepetycji online.</p>
             <ul>
@@ -223,12 +223,12 @@
             document.getElementById('helpModal').classList.remove('show');
         }
         // Zamknij modal po kliknięciu poza nim
-        window.onclick = function(event) {
+        window.addEventListener('click', function(event) {
             const modal = document.getElementById('helpModal');
             if (event.target == modal) {
                 modal.classList.remove('show');
             }
-        }
+        });
     </script>
 </body>
 </html>

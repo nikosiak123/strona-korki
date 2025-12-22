@@ -638,9 +638,9 @@ function closeHelpModal() {
 }
 
 // Zamknij modal po kliknięciu poza nim
-window.onclick = function(event) {
+window.addEventListener('click', function(event) {
     const modal = document.getElementById('helpModal');
     if (event.target == modal) {
         modal.classList.remove('show');
     }
-}
+})
