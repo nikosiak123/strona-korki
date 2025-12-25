@@ -47,6 +47,7 @@
         }
         .lesson-card.unconfirmed { border-left-color: #FFA726; }
         .lesson-card.rescheduled { border-left-color: #64B5F6; }
+        .lesson-card.ongoing { border-left-color: #FF9800; background-color: #FFF8E1; }
         .lesson-info div { font-size: 1.1rem; margin-bottom: 0.5rem; }
         .lesson-info strong { color: var(--text-dark); }
         .lesson-actions {
@@ -507,14 +508,34 @@
                 if (lesson.status === 'Przeniesiona (zakończona)' || lesson.status === 'Przeniesiona') {
                     cardClass += ' rescheduled';
                 }
+                if (lesson.isOngoing) {
+                    cardClass += ' ongoing';
+                }
                 card.className = cardClass;
                 
                 const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
                 let paymentInfoHtml = '';
+                let statusText = lesson.status;
 
                 if (!isPast) {
-                    if (lesson.status === 'Przeniesiona') {
+                    if (lesson.isOngoing) {
+                        // Lekcja w trakcie
+                        statusText = '<span style="color: #FF9800; font-weight: bold;">W TRAKCIE</span>';
+                        let payButtonHtml = '';
+                        
+                        if (lesson.isPaid) {
+                            payButtonHtml = `<span>Opłacona</span>`;
+                        } else {
+                            payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                        }
+
+                        actionsHtml = `
+                            <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
+                            ${payButtonHtml}
+                            <a href="${lesson.tutorContactLink || '#'}" target="_blank">Kontakt</a>
+                        `;
+                    } else if (lesson.status === 'Przeniesiona') {
                         actionsHtml = `<a href="${editUrl}" class="btn-reschedule">Przenieś</a>`;
                     } 
                     else if (lesson.status === 'Przeniesiona (zakończona)') {
@@ -554,7 +575,7 @@
                             <div class="lesson-info">
                                 <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
                                 <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>
-                                <div><strong>Status:</strong> ${lesson.status}</div>
+                                <div><strong>Status:</strong> ${statusText}</div>
                             </div>
                             <div class="lesson-actions">${actionsHtml}</div>
                         </div>

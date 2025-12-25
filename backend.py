@@ -2008,9 +2008,14 @@ def get_client_dashboard():
             }
             
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
-            if lesson_datetime < datetime.now() or status in inactive_statuses:
+            # Lekcje trafiają do historii dopiero 1h po zakończeniu
+            lesson_end_time = lesson_datetime + timedelta(hours=1)
+            if lesson_end_time < datetime.now() or status in inactive_statuses:
                 past.append(lesson_data)
             else:
+                # Dodajemy informację czy lekcja jest w trakcie
+                is_ongoing = lesson_datetime <= datetime.now() < lesson_end_time
+                lesson_data['isOngoing'] = is_ongoing
                 upcoming.append(lesson_data)
         # --- KONIEC BLOKU ZWIĘKSZONEGO LOGOWANIA ---
 
