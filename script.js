@@ -549,10 +549,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-            }
-        });
-    }
-
     // --- Start aplikacji ---
     initializeApp();
 });
