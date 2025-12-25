@@ -281,8 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const endTime = new Date(startDate);
         endTime.setHours(workingHoursEnd, 0, 0, 0);
     
-        const twelveHoursFromNow = new Date();
-        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
+        const threeHoursFromNow = new Date();
+        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 3);
     
         while (currentTime < endTime) {
             const timeSlot = currentTime.toTimeString().substring(0, 5);
@@ -308,14 +308,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const blockDateTime = new Date(`${formattedDate}T${timeSlot}:00`);
     
-                if (matchingSlot && blockDateTime > twelveHoursFromNow) {
+                if (matchingSlot && blockDateTime > threeHoursFromNow) {
                     block.textContent = timeSlot;
                     isClickable = true;
                 } else {
                     block.classList.add('disabled');
                     if (matchingSlot) { 
                          block.textContent = timeSlot;
-                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 12h).";
+                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 3h).";
                     }
                 }
     
@@ -358,8 +358,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         mobileContainer.appendChild(calendarNavigation);
 
-        const twelveHoursFromNow = new Date();
-        twelveHoursFromNow.setHours(twelveHoursFromNow.getHours() + 12);
+        const threeHoursFromNow = new Date();
+        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 3);
         let hasAvailableSlots = false;
 
         // 2. Lista dni
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const availableDaySlots = daySlots.filter(slot => {
                 const blockDateTime = new Date(`${formattedDate}T${slot.time}:00`);
-                return blockDateTime > twelveHoursFromNow;
+                return blockDateTime > threeHoursFromNow;
             });
 
             if (availableDaySlots.length === 0) {

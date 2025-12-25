@@ -2180,8 +2180,9 @@ def reschedule_reservation():
 
         original_fields = original_record.get('fields', {})
         
+        hours_limit = 3 if original_fields.get('JestTestowa', False) else 12
         if not is_cancellation_allowed(original_record) and original_fields.get('Status') != 'Przeniesiona':
-            abort(403, "Nie można zmienić terminu rezerwacji. Pozostało mniej niż 12 godzin.")
+            abort(403, f"Nie można zmienić terminu rezerwacji. Pozostało mniej niż {hours_limit} godzin.")
 
         tutor = original_fields.get('Korepetytor')
         
