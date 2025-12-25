@@ -900,19 +900,13 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     color: var(--text-medium);
 }
 
-.help-close:hover {
-    color: var(--text-dark);
+/* Style dla lekcji w trakcie */
+.lesson-card.ongoing {
+    border-left: 4px solid #FF9800;
+    background-color: #FFF8E1;
 }
 
-.close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-medium);
-}
-
-.close:hover {
-    color: var(--text-dark);
+.lesson-card.ongoing .lesson-status {
+    color: #FF9800 !important;
+    font-weight: bold;
 }
