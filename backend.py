@@ -530,7 +530,8 @@ def check_and_cancel_unpaid_lessons():
     
     try:
         # --- ZMIANA: Sprawdzamy wszystkie nieopłacone lekcje w przyszłości ---
-        formula = f"AND({{Oplacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
+        # Tymczasowo uproszczona formuła do debugowania
+        formula = f"AND({{Oplacona}} != 1, OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
         
         potential_lessons = reservations_table.all(formula=formula)
         
