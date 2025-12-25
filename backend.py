@@ -543,50 +543,17 @@ def check_and_cancel_unpaid_lessons():
             fields = lesson.get('fields', {})
             logging.debug(f"Lekcja ALL ID {lesson['id']}: Status='{fields.get('Status')}', Oplacona={fields.get('Oplacona')}")
         
-        # Filtruj tylko lekcje w przyszłości
-        future_lessons = []
-        for lesson in potential_lessons:
-            fields = lesson.get('fields', {})
-            lesson_date_str = fields.get('Data')
-            lesson_time_str = fields.get('Godzina')
-            lesson_status = fields.get('Status', '')
-            is_paid = fields.get('Oplacona', False)
-            
-            if not lesson_date_str or not lesson_time_str:
-                continue
-                
-            try:
-                lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
-                lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
-            except Exception as e:
-                continue
-            
-            if lesson_datetime_aware <= current_local_time:
-                continue
-                
-            # Sprawdź status
-            if lesson_status not in ['Oczekuje na płatność', 'Termin płatności minął']:
-                continue
-                
-            # Sprawdź płatność
-            if is_paid:
-                continue
-                
-            future_lessons.append(lesson)
-        
-        potential_lessons = future_lessons
-        
         logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Znaleziono {len(potential_lessons)} potencjalnych lekcji.")
         
         for lesson in potential_lessons:
             fields = lesson.get('fields', {})
-            logging.debug(f"Lekcja ID {lesson['id']}: Status='{fields.get('Status')}', Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}', Oplacona={fields.get('Oplacona')}, Przyszła={fields.get('Data')} {fields.get('Godzina') > current_local_time.strftime('%Y-%m-%d %H:%M:%S') if fields.get('Data') and fields.get('Godzina') else 'N/A'}")
+            logging.debug(f"Lekcja ID {lesson['id']}: Status='{fields.get('Status')}', Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}', Oplacona={fields.get('Oplacona')}")
         
         if not potential_lessons:
-            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono przyszłych, nieopłaconych lekcji.")
+            logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono potencjalnych lekcji.")
             return
 
-        logging.debug(f"Znaleziono {len(potential_lessons)} przyszłych, nieopłaconych lekcji. Sprawdzam terminy płatności...")
+        logging.debug(f"Znaleziono {len(potential_lessons)} potencjalnych lekcji. Sprawdzam terminy płatności...")
         
         lessons_to_cancel = []
         
@@ -614,7 +581,7 @@ def check_and_cancel_unpaid_lessons():
                 logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} ma status 'Termin płatności minął' - anulowanie natychmiastowe.")
                 continue
             
-            # Różne terminy płatności dla różnych typów lekcji
+            # Dla "Oczekuje na płatność" sprawdź deadline
             if is_test_lesson:
                 payment_deadline = lesson_datetime_aware - timedelta(hours=3)  # 3h dla testowych
             else:
@@ -2503,7 +2470,7 @@ def get_tutor_weekly_hours():
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", minutes=1)
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=10)
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
