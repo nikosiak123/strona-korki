@@ -529,8 +529,7 @@ def check_and_cancel_unpaid_lessons():
     logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
     
     try:
-        # --- ZMIANA: Sprawdzamy wszystkie nieopłacone lekcje w przyszłości ---
-        # Tymczasowo uproszczona formuła do debugowania
+        # --- ZMIANA: Sprawdzamy wszystkie nieopłacone lekcje (bez warunku czasowego w Airtable) ---
         formula = f"AND({{Oplacona}} != 1, OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
         
         potential_lessons = reservations_table.all(formula=formula)
@@ -543,6 +542,24 @@ def check_and_cancel_unpaid_lessons():
         for lesson in all_lessons:
             fields = lesson.get('fields', {})
             logging.debug(f"Lekcja ALL ID {lesson['id']}: Status='{fields.get('Status')}', Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}', Oplacona={fields.get('Oplacona')}, Klient='{fields.get('Klient')}'")
+        
+        # Filtruj tylko lekcje w przyszłości
+        future_lessons = []
+        for lesson in potential_lessons:
+            fields = lesson.get('fields', {})
+            lesson_date_str = fields.get('Data')
+            lesson_time_str = fields.get('Godzina')
+            
+            if not lesson_date_str or not lesson_time_str:
+                continue
+                
+            lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+            lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
+            
+            if lesson_datetime_aware > current_local_time:
+                future_lessons.append(lesson)
+        
+        potential_lessons = future_lessons
         
         logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Znaleziono {len(potential_lessons)} potencjalnych lekcji.")
         
