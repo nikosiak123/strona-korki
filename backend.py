@@ -777,9 +777,9 @@ def is_cancellation_allowed(record):
         
     time_remaining = lesson_datetime - datetime.now()
     
-    # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 1 minuty przed rozpoczęciem.
+    # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 3 godzin przed rozpoczęciem.
     if is_test_lesson:
-        return time_remaining > timedelta(minutes=1)
+        return time_remaining > timedelta(hours=3)
     
     # Warunek dla wszystkich innych lekcji: Obowiązuje standardowe 12 godzin.
     return time_remaining > timedelta(hours=12)
@@ -2140,6 +2140,12 @@ def cancel_reservation():
     if not record: abort(404, "Nie znaleziono rezerwacji.")
     if not is_cancellation_allowed(record): abort(403, "Nie można odwołać rezerwacji.")
     try:
+        # --- DODANO: Dodaj wolną kwotę przy odwołaniu opłaconej lekcji ---
+        fields = record.get('fields', {})
+        if fields.get('Oplacona') or fields.get('Status') == 'Opłacona':
+            handle_paid_lesson_cancellation(record)
+        # --- KONIEC DODAWANIA ---
+        
         # --- DODANO POWIADOMIENIE ---
         if MESSENGER_PAGE_TOKEN:
             fields = record.get('fields', {})
