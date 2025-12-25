@@ -541,13 +541,13 @@ def check_and_cancel_unpaid_lessons():
         logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Wszystkie lekcje w tabeli: {len(all_lessons)}")
         for lesson in all_lessons:
             fields = lesson.get('fields', {})
-            logging.debug(f"Lekcja ALL ID {lesson['id']}: Status='{fields.get('Status')}', Oplacona={fields.get('Oplacona')}")
+            logging.debug(f"Lekcja ALL ID {lesson['id']}: Status='{fields.get('Status')}', Oplacona={fields.get('Oplacona')}, JestTestowa={fields.get('JestTestowa')}, Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'")
         
-        logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Znaleziono {len(potential_lessons)} potencjalnych lekcji.")
+        logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Znaleziono {len(potential_lessons)} potencjalnych lekcji przez formułę.")
         
         for lesson in potential_lessons:
             fields = lesson.get('fields', {})
-            logging.debug(f"Lekcja ID {lesson['id']}: Status='{fields.get('Status')}', Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}', Oplacona={fields.get('Oplacona')}")
+            logging.debug(f"Lekcja POTENCJALNA ID {lesson['id']}: Status='{fields.get('Status')}', Oplacona={fields.get('Oplacona')}, JestTestowa={fields.get('JestTestowa')}, Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'")
         
         if not potential_lessons:
             logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Nie znaleziono potencjalnych lekcji.")
@@ -564,21 +564,26 @@ def check_and_cancel_unpaid_lessons():
             is_test_lesson = fields.get('JestTestowa', False)
             lesson_status = fields.get('Status', '')
 
+            logging.debug(f"PRZETWARZAM lekcję ID {lesson['id']}: Data={lesson_date_str}, Godzina={lesson_time_str}, Status='{lesson_status}', JestTestowa={is_test_lesson}")
+
             if not lesson_date_str or not lesson_time_str:
+                logging.debug(f"Lekcja ID {lesson['id']} POMINIĘTA: brak daty lub godziny")
                 continue
 
             lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
             lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
             
+            logging.debug(f"Lekcja ID {lesson['id']}: sparsowana data {lesson_datetime_aware}, aktualny czas {current_local_time}")
+            
             # Jeśli to lekcja testowa, nie anuluj jej automatycznie
             if is_test_lesson:
-                logging.debug(f"Lekcja ID {lesson['id']} jest testowa - pomijam automatyczne anulowanie")
+                logging.debug(f"Lekcja ID {lesson['id']} POMINIĘTA: jest testowa - nie anuluję automatycznie")
                 continue
             
             # Jeśli status to "Termin płatności minął", anuluj natychmiast
             if lesson_status == 'Termin płatności minął':
                 lessons_to_cancel.append(lesson)
-                logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} ma status 'Termin płatności minął' - anulowanie natychmiastowe.")
+                logging.info(f"Lekcja ID {lesson['id']} ZAKWALIFIKOWANA DO ANULOWANIA: status 'Termin płatności minął' - anulowanie natychmiastowe")
                 continue
             
             # Dla "Oczekuje na płatność" sprawdź deadline
@@ -587,9 +592,13 @@ def check_and_cancel_unpaid_lessons():
             else:
                 payment_deadline = lesson_datetime_aware - timedelta(hours=12)  # 12h dla normalnych
             
+            logging.debug(f"Lekcja ID {lesson['id']}: deadline płatności {payment_deadline}")
+            
             if current_local_time > payment_deadline:
                 lessons_to_cancel.append(lesson)
-                logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} zakwalifikowana do anulowania. Termin płatności: {payment_deadline.strftime('%Y-%m-%d %H:%M:%S')} (testowa: {is_test_lesson})")
+                logging.info(f"Lekcja ID {lesson['id']} ZAKWALIFIKOWANA DO ANULOWANIA: przekroczony deadline płatności ({payment_deadline})")
+            else:
+                logging.debug(f"Lekcja ID {lesson['id']} NIE ANULOWANA: deadline nie przekroczony (pozostało {(payment_deadline - current_local_time).total_seconds() / 60:.1f} minut)")
             else:
                 logging.debug(f"Lekcja ID {lesson['id']} nie przekroczyła deadline - nie anulowana")
 
