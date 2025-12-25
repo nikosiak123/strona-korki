@@ -550,7 +550,7 @@
                             payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
                             paymentInfoHtml = `
                                 <div class="lesson-payment-info">
-                                    Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}"></span>, inaczej lekcja zostanie odwołana.
+                                    Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span>, inaczej lekcja zostanie odwołana.
                                 </div>
                             `;
                         } else if (lesson.status === 'Anulowana (brak płatności)') {
@@ -644,7 +644,9 @@
 
             function startCountdown(element, lessonDateTimeStr) {
                 const lessonDateTime = new Date(lessonDateTimeStr);
-                const deadline12h = new Date(lessonDateTime.getTime() - 12 * 60 * 60 * 1000);
+                const isTestLesson = element.getAttribute('data-is-test') === 'true';
+                const deadlineHours = isTestLesson ? 3 : 12;
+                const deadline = new Date(lessonDateTime.getTime() - deadlineHours * 60 * 60 * 1000);
                 const deadline24h = new Date(lessonDateTime.getTime() - 24 * 60 * 60 * 1000);
 
                 const timer = setInterval(() => {
@@ -656,7 +658,7 @@
                         return;
                     }
 
-                    if (now > deadline12h) {
+                    if (now > deadline) {
                         element.parentElement.innerHTML = "Termin płatności minął";
                         element.parentElement.style.display = 'block';
                         clearInterval(timer);
@@ -664,7 +666,7 @@
                     }
 
                     element.parentElement.style.display = 'block';
-                    const timeLeft = deadline12h - now;
+                    const timeLeft = deadline - now;
 
                     const hours = Math.floor(timeLeft / (1000 * 60 * 60));
                     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
