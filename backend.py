@@ -2126,6 +2126,7 @@ def get_reservation_details():
             "tutor": tutor_name,
             "student": student_name, 
             "isCancellationAllowed": is_cancellation_allowed(record),
+            "isTestLesson": fields.get('JestTestowa', False),
             "clientID": client_uuid,
             "tutorContactLink": tutor_contact_link # Dodajemy link do odpowiedzi
         })
