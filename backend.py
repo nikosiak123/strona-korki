@@ -530,7 +530,7 @@ def check_and_cancel_unpaid_lessons():
     
     try:
         # --- ZMIANA: Sprawdzamy wszystkie nieopłacone lekcje w przyszłości ---
-        formula = f"AND({{Oplacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), {{Status}} = 'Oczekuje na płatność')"
+        formula = f"AND({{Oplacona}} != 1, IS_AFTER(DATETIME_PARSE(CONCATENATE({{Data}}, ' ', {{Godzina}})), NOW()), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
         
         potential_lessons = reservations_table.all(formula=formula)
         
@@ -547,12 +547,19 @@ def check_and_cancel_unpaid_lessons():
             lesson_date_str = fields.get('Data')
             lesson_time_str = fields.get('Godzina')
             is_test_lesson = fields.get('JestTestowa', False)
+            lesson_status = fields.get('Status', '')
 
             if not lesson_date_str or not lesson_time_str:
                 continue
 
             lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
             lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
+            
+            # Jeśli status to "Termin płatności minął", anuluj natychmiast
+            if lesson_status == 'Termin płatności minął':
+                lessons_to_cancel.append(lesson)
+                logging.info(f"Lekcja (ID: {lesson['id']}) z {lesson_date_str} o {lesson_time_str} ma status 'Termin płatności minął' - anulowanie natychmiastowe.")
+                continue
             
             # Różne terminy płatności dla różnych typów lekcji
             if is_test_lesson:
