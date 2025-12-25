@@ -603,6 +603,11 @@ def check_and_cancel_unpaid_lessons():
             lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
             lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
             
+            # Jeśli to lekcja testowa, nie anuluj jej automatycznie
+            if is_test_lesson:
+                logging.debug(f"Lekcja ID {lesson['id']} jest testowa - pomijam automatyczne anulowanie")
+                continue
+            
             # Jeśli status to "Termin płatności minął", anuluj natychmiast
             if lesson_status == 'Termin płatności minął':
                 lessons_to_cancel.append(lesson)
@@ -2065,13 +2070,28 @@ def get_client_dashboard():
                 "teamsLink": fields.get('TeamsLink'),
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
                 "isPaid": fields.get('Oplacona', False),
-                "Typ": fields.get('Typ')
+                "Typ": fields.get('Typ'),
+                "isTest": fields.get('JestTestowa', False)
             }
             
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
+            is_test_lesson = fields.get('JestTestowa', False)
+            is_paid = fields.get('Oplacona', False)
+            
             # Lekcje trafiają do historii dopiero 1h po zakończeniu
             lesson_end_time = lesson_datetime + timedelta(hours=1)
-            if lesson_end_time < datetime.now() or status in inactive_statuses:
+            
+            # Specjalna logika dla lekcji testowych: pozostają w upcoming nawet po zakończeniu jeśli nieopłacone
+            should_go_to_past = False
+            if status in inactive_statuses:
+                should_go_to_past = True
+            elif lesson_end_time < datetime.now():
+                # Normalne lekcje idą do historii po zakończeniu
+                # Lekcje testowe pozostają w upcoming jeśli nieopłacone
+                if not is_test_lesson or is_paid:
+                    should_go_to_past = True
+            
+            if should_go_to_past:
                 past.append(lesson_data)
             else:
                 # Dodajemy informację czy lekcja jest w trakcie

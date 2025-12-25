@@ -546,13 +546,15 @@
                         
                         if (lesson.isPaid) {
                             payButtonHtml = `<span>Opłacona</span>`;
-                        } else if (lesson.status === 'Oczekuje na płatność') {
+                        } else if (lesson.status === 'Oczekuje na płatność' || (lesson.isTest && lesson.status !== 'Anulowana (brak płatności)')) {
                             payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
-                            paymentInfoHtml = `
-                                <div class="lesson-payment-info">
-                                    Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span>, inaczej lekcja zostanie odwołana.
-                                </div>
-                            `;
+                            if (lesson.status === 'Oczekuje na płatność') {
+                                paymentInfoHtml = `
+                                    <div class="lesson-payment-info">
+                                        Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span>, inaczej lekcja zostanie odwołana.
+                                    </div>
+                                `;
+                            }
                         } else if (lesson.status === 'Anulowana (brak płatności)') {
                             payButtonHtml = `<span>Anulowana</span>`;
                         }
