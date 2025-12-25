@@ -112,17 +112,23 @@
     <header><h1>Panel Korepetytora</h1></header>
 
     <!-- Przycisk pomocy -->
-    <div class="help-tooltip" onclick="toggleHelp()">
-        <button class="help-button">Pomoc</button>
-        <span class="help-tooltip-text">
-            <strong>Panel Korepetytora - Pomoc:</strong><br>
-            • Zarządzanie terminarzem: Ustal swoje dostępne godziny lekcyjne<br>
-            • Potwierdzanie lekcji: Akceptuj lub odrzucaj rezerwacje klientów<br>
-            • Kalendarz: Przeglądaj swoje zajęcia i dostępne sloty<br>
-            • Nadchodzące lekcje: Lista potwierdzonych zajęć<br>
-            • Płatności: System automatycznie obsługuje rozliczenia<br><br>
-            Jeśli masz pytania techniczne, skontaktuj się z administratorem.
-        </span>
+    <button class="help-button" onclick="openHelpModal()">Pomoc</button>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Pomoc - Panel Korepetytora</h2>
+            <p>Witaj w panelu korepetytora! Oto krótkie wyjaśnienie działania systemu:</p>
+            <ul>
+                <li><strong>Zarządzanie terminarzem:</strong> Ustal swoje dostępne godziny lekcyjne.</li>
+                <li><strong>Potwierdzanie lekcji:</strong> Akceptuj lub odrzucaj rezerwacje klientów.</li>
+                <li><strong>Kalendarz:</strong> Przeglądaj swoje zajęcia i dostępne sloty.</li>
+                <li><strong>Nadchodzące lekcje:</strong> Lista potwierdzonych zajęć w najbliższym czasie.</li>
+                <li><strong>Płatności:</strong> System automatycznie obsługuje rozliczenia.</li>
+            </ul>
+            <p>Jeśli masz pytania techniczne, skontaktuj się z administratorem.</p>
+        </div>
     </div>
 
     <main id="panelContainer" class="panel-container">

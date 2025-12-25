@@ -144,17 +144,23 @@
     <header><h1>Panel Klienta</h1></header>
 
     <!-- Przycisk pomocy -->
-    <div class="help-tooltip" onclick="toggleHelp()">
-        <button class="help-button">Pomoc</button>
-        <span class="help-tooltip-text">
-            <strong>Panel Klienta - Pomoc:</strong><br>
-            • Rezerwacja zajęć: Dodaj nowe lekcje<br>
-            • Twoje terminy: Stałe rezerwacje<br>
-            • Nadchodzące lekcje: Potwierdzone zajęcia<br>
-            • Płatności: Automatyczne rozliczenia<br>
-            • Wolna kwota: Dostępne środki<br><br>
-            Skontaktuj się z korepetytorem przed lekcją!
-        </span>
+    <button class="help-button" onclick="openHelpModal()">Pomoc</button>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Panel Klienta - Pomoc</h2>
+            <p>Witaj w panelu klienta! Oto krótkie wyjaśnienie działania systemu:</p>
+            <ul>
+                <li><strong>Rezerwacja zajęć:</strong> Dodaj nowe lekcje</li>
+                <li><strong>Twoje terminy:</strong> Stałe rezerwacje</li>
+                <li><strong>Nadchodzące lekcje:</strong> Potwierdzone zajęcia</li>
+                <li><strong>Płatności:</strong> Automatyczne rozliczenia</li>
+                <li><strong>Wolna kwota:</strong> Dostępne środki</li>
+            </ul>
+            <p>Skontaktuj się z korepetytorem przed lekcją!</p>
+        </div>
     </div>
 
     <main id="dashboard" class="dashboard-container">
@@ -649,16 +655,19 @@
         });
 
         // Funkcje pomocy
-        function toggleHelp() {
-            const tooltip = document.querySelector('.help-tooltip');
-            tooltip.classList.toggle('show');
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('show');
         }
 
-        // Zamknij tooltip po kliknięciu gdzie indziej
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.remove('show');
+        }
+
+        // Zamknij modal po kliknięciu gdzie indziej
         document.addEventListener('click', function(event) {
-            const tooltip = document.querySelector('.help-tooltip');
-            if (tooltip && !tooltip.contains(event.target)) {
-                tooltip.classList.remove('show');
+            const modal = document.getElementById('helpModal');
+            if (modal && event.target == modal) {
+                modal.classList.remove('show');
             }
         });
     </script>

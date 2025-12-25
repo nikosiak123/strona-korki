@@ -15,17 +15,23 @@
     </header>
 
     <!-- Przycisk pomocy -->
-    <div class="help-tooltip" onclick="toggleHelp()">
-        <button class="help-button">Pomoc</button>
-        <span class="help-tooltip-text">
-            <strong>Rezerwacja Lekcji Testowej:</strong><br>
-            • Wypełnij formularz z danymi<br>
-            • Wybierz przedmiot i poziom<br>
-            • Wybierz korepetytora lub zostaw automatycznie<br>
-            • Kliknij w kalendarzu dostępny termin<br>
-            • Dokonaj płatności 50 zł<br><br>
-            Po rezerwacji skontaktuj się z korepetytorem!
-        </span>
+    <button class="help-button" onclick="openHelpModal()">Pomoc</button>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Rezerwacja Lekcji Testowej</h2>
+            <p>Oto jak zarezerwować swoją pierwszą lekcję:</p>
+            <ul>
+                <li><strong>Wypełnij formularz:</strong> Podaj swoje dane</li>
+                <li><strong>Wybierz przedmiot i poziom:</strong> Wybierz odpowiednie opcje</li>
+                <li><strong>Wybierz korepetytora:</strong> Lub zostaw automatyczny wybór</li>
+                <li><strong>Kliknij w kalendarzu:</strong> Wybierz dostępny termin</li>
+                <li><strong>Dokonaj płatności:</strong> 50 zł za lekcję testową</li>
+            </ul>
+            <p>Po rezerwacji skontaktuj się z korepetytorem!</p>
+        </div>
     </div>
 
     <main class="container">

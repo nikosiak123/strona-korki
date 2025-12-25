@@ -29,17 +29,7 @@
     <header><h1>Zarządzaj rezerwacją</h1></header>
 
     <!-- Przycisk pomocy -->
-    <div class="help-tooltip" onclick="toggleHelp()">
-        <button class="help-button">Pomoc</button>
-        <span class="help-tooltip-text">
-            <strong>Zarządzanie Rezerwacją:</strong><br>
-            • Przegląd rezerwacji po lewej<br>
-            • Zmień termin: wybierz nowy czas<br>
-            • Anuluj lekcje pojedyncze lub całą rezerwację<br>
-            • Kontakt z korepetytorem przed zmianami<br><br>
-            Zmiany terminów wymagają uzgodnienia!
-        </span>
-    </div>
+    <button class="help-button" onclick="openHelpModal()">Pomoc</button>
 
     <main id="loadingState" class="container" style="text-align: center; padding: 4rem;">
         <h2>Ładowanie danych rezerwacji...</h2>
@@ -382,12 +372,23 @@
         }
 
         // Zamknij tooltip po kliknięciu gdzie indziej
-        document.addEventListener('click', function(event) {
-            const tooltip = document.querySelector('.help-tooltip');
-            if (tooltip && !tooltip.contains(event.target)) {
-                tooltip.classList.remove('show');
-            }
         });
     </script>
+
+    <!-- Modal pomocy -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+            <h2>Zarządzanie Rezerwacją</h2>
+            <p>Oto jak zarządzać swoją rezerwacją:</p>
+            <ul>
+                <li><strong>Przegląd rezerwacji:</strong> Po lewej stronie zobaczysz szczegóły</li>
+                <li><strong>Zmień termin:</strong> Wybierz nowy czas w kalendarzu</li>
+                <li><strong>Anuluj lekcje:</strong> Możesz anulować pojedyncze lekcje lub całą rezerwację</li>
+                <li><strong>Kontakt z korepetytorem:</strong> Skontaktuj się przed wprowadzeniem zmian</li>
+            </ul>
+            <p><strong>Uwaga:</strong> Zmiany terminów wymagają uzgodnienia z korepetytorem!</p>
+        </div>
+    </div>
 </body>
 </html>

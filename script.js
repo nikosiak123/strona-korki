@@ -558,15 +558,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Funkcje pomocy
-function toggleHelp() {
-    const tooltip = document.querySelector('.help-tooltip');
-    tooltip.classList.toggle('show');
+function openHelpModal() {
+    document.getElementById('helpModal').classList.add('show');
 }
 
-// Zamknij tooltip po kliknięciu gdzie indziej
+function closeHelpModal() {
+    document.getElementById('helpModal').classList.remove('show');
+}
+
+// Zamknij modal po kliknięciu gdzie indziej
 document.addEventListener('click', function(event) {
-    const tooltip = document.querySelector('.help-tooltip');
-    if (tooltip && !tooltip.contains(event.target)) {
-        tooltip.classList.remove('show');
+    const modal = document.getElementById('helpModal');
+    if (modal && event.target == modal) {
+        modal.classList.remove('show');
     }
 });
