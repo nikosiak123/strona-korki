@@ -535,6 +535,14 @@ def check_and_cancel_unpaid_lessons():
         potential_lessons = reservations_table.all(formula=formula)
         
         logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Formuła: {formula}")
+        
+        # DEBUG: Pokaż wszystkie lekcje w tabeli
+        all_lessons = reservations_table.all()
+        logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Wszystkie lekcje w tabeli: {len(all_lessons)}")
+        for lesson in all_lessons:
+            fields = lesson.get('fields', {})
+            logging.debug(f"Lekcja ALL ID {lesson['id']}: Status='{fields.get('Status')}', Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}', Oplacona={fields.get('Oplacona')}, Klient='{fields.get('Klient')}'")
+        
         logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Znaleziono {len(potential_lessons)} potencjalnych lekcji.")
         
         for lesson in potential_lessons:
