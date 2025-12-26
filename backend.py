@@ -2532,27 +2532,22 @@ def update_tutor_weekly_limit():
 @app.route('/api/get-tutor-weekly-hours')
 def get_tutor_weekly_hours():
     """Zwraca aktualny stan godzin korepetytora w bieżącym tygodniu."""
-    print("DEBUG: get_tutor_weekly_hours called")
     try:
         tutor_name = request.args.get('tutorName')
-        print(f"DEBUG: tutor_name = {tutor_name}")
         if not tutor_name:
             abort(400, "Brak tutorName.")
         
         # Pobierz limit
         tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
-        print(f"DEBUG: tutor_record = {tutor_record}")
         if not tutor_record:
             abort(404, "Nie znaleziono korepetytora.")
         
         tutor_limit = tutor_record['fields'].get('LimitGodzinTygodniowo')
-        print(f"DEBUG: tutor_limit = {tutor_limit}")
         
         # Oblicz zajęte godziny w bieżącym tygodniu
         today = datetime.now().date()
         week_start = get_week_start(today)
         current_hours = get_tutor_hours_for_week(tutor_name, week_start)
-        print(f"DEBUG: current_hours = {current_hours}")
         
         return jsonify({
             "currentHours": current_hours,
@@ -2561,13 +2556,12 @@ def get_tutor_weekly_hours():
         })
         
     except Exception as e:
-        print(f"DEBUG: Exception = {e}")
         traceback.print_exc()
         abort(500, "Błąd podczas pobierania danych o godzinach.")
 
 if __name__ == '__main__':
     # scheduler = BackgroundScheduler()
-    # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=10)
+    # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)  # Zwiększony interwał
     # scheduler.start()
     # # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     # atexit.register(lambda: scheduler.shutdown())
