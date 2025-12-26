@@ -202,27 +202,27 @@
             const clientID = params.get('clientID');
             const API_BASE_URL = ''; // Adres API jest względny
 
-                        // Pobierz wolną kwotę i wyświetl jeśli > 0
-                        try {
-                            console.log('Fetching free amount for clientID:', clientID);
-                            const freeAmountResp = await fetch(`${API_BASE_URL}/api/get-free-amount?clientID=${clientID}`);
-                            console.log('Response status:', freeAmountResp.status);
-                            if (freeAmountResp.ok) {
-                                const freeAmountData = await freeAmountResp.json();
-                                console.log('Free amount data:', freeAmountData);
-                                if (freeAmountData.freeAmount > 0) {
-                                    const infoBox = document.getElementById('freeAmountInfo');
-                                    infoBox.style.display = 'block';
-                                    infoBox.innerHTML = `Masz do wykorzystania <strong>${(freeAmountData.freeAmount/100).toFixed(2)} zł</strong> (wolna kwota).<br><span style='font-size:0.95em;'>Wolna kwota to środki powstałe po odwołaniu opłaconej lekcji, które możesz wykorzystać na opłacenie kolejnych rezerwacji lub zamienić na zwrot po kontakcie mailowym.</span>`;
-                                } else {
-                                    console.log('Free amount is 0 or less');
-                                }
-                            } else {
-                                console.log('Failed to fetch free amount');
-                            }
-                        } catch(e) { 
-                            console.error('Error fetching free amount:', e);
-                        }
+            // Pobierz wolną kwotę i wyświetl jeśli > 0
+            try {
+                console.log('Fetching free amount for clientID:', clientID);
+                const freeAmountResp = await fetch(`${API_BASE_URL}/api/get-free-amount?clientID=${clientID}`);
+                console.log('Response status:', freeAmountResp.status);
+                if (freeAmountResp.ok) {
+                    const freeAmountData = await freeAmountResp.json();
+                    console.log('Free amount data:', freeAmountData);
+                    if (freeAmountData.freeAmount > 0) {
+                        const infoBox = document.getElementById('freeAmountInfo');
+                        infoBox.style.display = 'block';
+                        infoBox.innerHTML = `Masz do wykorzystania <strong>${(freeAmountData.freeAmount/100).toFixed(2)} zł</strong> (wolna kwota).<br><span style='font-size:0.95em;'>Wolna kwota to środki powstałe po odwołaniu opłaconej lekcji, które możesz wykorzystać na opłacenie kolejnych rezerwacji lub zamienić na zwrot po kontakcie mailowym.</span>`;
+                    } else {
+                        console.log('Free amount is 0 or less');
+                    }
+                } else {
+                    console.log('Failed to fetch free amount');
+                }
+            } catch(e) { 
+                console.error('Error fetching free amount:', e);
+            }
 
             const welcomeMessage = document.getElementById('welcomeMessage');
             const cyclicContainer = document.getElementById('cyclicReservations');
@@ -533,7 +533,6 @@
                         actionsHtml = `
                             <button class="btn-join" data-teams-link="${lesson.teamsLink || ''}">Dołącz</button>
                             ${payButtonHtml}
-                            <a href="${lesson.tutorContactLink || '#'}" target="_blank">Kontakt</a>
                         `;
                     } else if (lesson.status === 'Przeniesiona') {
                         actionsHtml = `<a href="${editUrl}" class="btn-reschedule">Przenieś</a>`;
