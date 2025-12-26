@@ -21,6 +21,9 @@ let upcomingLessons = [];
 let masterScheduleTimes = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    tutorID = params.get('tutorID');
+    currentWeekStart = getMonday(new Date());
 
     if (!tutorID) {
         loadingState.innerHTML = '<h2>Błąd: Brak identyfikatora korepetytora w linku. Dostęp zabroniony.</h2>';
