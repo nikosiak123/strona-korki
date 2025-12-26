@@ -972,12 +972,19 @@ def initiate_payment():
 
         if response.status_code == 200:
             result = response.json()
-            p24_token = result['data']['token']
-            payment_url = f"{P24_API_URL}/trnRequest/{p24_token}"
-            return jsonify({"paymentUrl": payment_url})
+            logging.info(f"P24 Response: {result}")
+            
+            if 'data' in result and 'token' in result['data']:
+                p24_token = result['data']['token']
+                payment_url = f"{P24_API_URL}/trnRequest/{p24_token}"
+                logging.info(f"Generated payment URL: {payment_url}")
+                return jsonify({"paymentUrl": payment_url})
+            else:
+                logging.error(f"P24 Response missing data.token: {result}")
+                return jsonify({"error": "Błąd Przelewy24 - brak tokena", "details": result}), 500
         else:
             logging.error(f"P24 Error: {response.status_code} - {response.text}")
-            return jsonify({"error": "Błąd Przelewy24", "details": response.json()}), 500
+            return jsonify({"error": "Błąd Przelewy24", "details": response.json() if response.content else "No response"}), 500
     
     except Exception as e:
         logging.error(f"Payment initiation error: {e}", exc_info=True)
