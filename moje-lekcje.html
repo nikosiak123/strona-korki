@@ -612,6 +612,7 @@
                 }
 
                 if (!isPast) {
+                    console.log('Lekcja:', lesson.date, lesson.time, 'Status:', lesson.status, 'isPaid:', lesson.isPaid, 'isTest:', lesson.isTest);
                     if (lesson.isOngoing) {
                         // Lekcja w trakcie
                         statusText = '<span style="color: #FF9800; font-weight: bold;">W TRAKCIE</span>';
