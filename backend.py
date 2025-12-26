@@ -95,28 +95,29 @@ reservations_table = DatabaseTable('Rezerwacje')
 clients_table = DatabaseTable('Klienci')
 cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 
-MS_TENANT_ID = "58928953-69aa-49da-b96c-100396a3caeb"
-MS_CLIENT_ID = "8bf9be92-1805-456a-9162-ffc7cda3b794"
-MS_CLIENT_SECRET = "MQ~8Q~VD9sI3aB19_Drwqndp4j5V_WAjmwK3yaQD"
-MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
+MS_TENANT_ID = os.environ.get('MS_TENANT_ID', "58928953-69aa-49da-b96c-100396a3caeb")
+MS_CLIENT_ID = os.environ.get('MS_CLIENT_ID', "8bf9be92-1805-456a-9162-ffc7cda3b794")
+MS_CLIENT_SECRET = os.environ.get('MS_CLIENT_SECRET', "MQ~8Q~VD9sI3aB19_Drwqndp4j5V_WAjmwK3yaQD")
+MEETING_ORGANIZER_USER_ID = os.environ.get('MEETING_ORGANIZER_USER_ID', "8cf07b71-d305-4450-9b70-64cb5be6ecef")
 
 # Hasło do panelu administratora
-ADMIN_PASSWORD = "szlafrok"
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'szlafrok')
 
 # Konfiguracja Przelewy24 (PRODUKCJA)
-P24_MERCHANT_ID = 361049
-P24_POS_ID = 361049
-P24_CRC_KEY = "3d8d413164a23d5f" # Klucz z Twojego screena
-P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01" # Klucz z Twojego screena
+P24_MERCHANT_ID = int(os.environ.get('P24_MERCHANT_ID', 361049))
+P24_POS_ID = int(os.environ.get('P24_POS_ID', 361049))
+P24_CRC_KEY = os.environ.get('P24_CRC_KEY', "3d8d413164a23d5f") # Klucz z Twojego screena
+P24_API_KEY = os.environ.get('P24_API_KEY', "c1efdce3669a2a15b40d4630c3032b01") # Klucz z Twojego screena
 P24_SANDBOX = False
 P24_API_URL = "https://secure.przelewy24.pl"
 
 # Konfiguracja Brevo (Sendinblue)
-BREVO_API_KEY = "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"
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', "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")
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
-FROM_EMAIL = "edu.najechalski@gmail.com"
+FROM_EMAIL = os.environ.get('FROM_EMAIL', "edu.najechalski@gmail.com")
 
 MESSENGER_PAGE_TOKEN = None
+MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
 try:
