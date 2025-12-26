@@ -43,6 +43,7 @@ def add_test_data():
         {
             'TutorID': 'tutor001',
             'ImieNazwisko': 'Piotr Wiśniewski',
+            'Email': 'piotr.wisniewski@zakreconekorepetycje.pl',
             'Poniedziałek': '14:00-20:00',
             'Wtorek': '14:00-20:00',
             'Środa': '14:00-20:00',
@@ -55,6 +56,7 @@ def add_test_data():
         {
             'TutorID': 'tutor002',
             'ImieNazwisko': 'Maria Kowalczyk',
+            'Email': 'maria.kowalczyk@zakreconekorepetycje.pl',
             'Poniedziałek': '16:00-21:00',
             'Środa': '16:00-21:00',
             'Piątek': '16:00-21:00',
