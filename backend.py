@@ -111,6 +111,11 @@ P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01" # Klucz z Twojego screena
 P24_SANDBOX = False
 P24_API_URL = "https://secure.przelewy24.pl"
 
+# Konfiguracja Brevo (Sendinblue)
+BREVO_API_KEY = "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"
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+FROM_EMAIL = "edu.najechalski@gmail.com"
+
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
@@ -791,6 +796,59 @@ def is_cancellation_allowed(record):
     
     # Warunek dla wszystkich innych lekcji: Obowiązuje standardowe 12 godzin.
     return time_remaining > timedelta(hours=12)
+
+def send_email_via_brevo(to_email, subject, html_content):
+    """Wysyła email przez Brevo API."""
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    payload = {
+        "sender": {
+            "name": "Zakręcone Korepetycje",
+            "email": FROM_EMAIL
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+    try:
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        if response.status_code == 201:
+            logging.info(f"Email wysłany pomyślnie do {to_email}: {subject}")
+        else:
+            logging.error(f"Błąd wysyłania emaila do {to_email}: {response.status_code} - {response.text}")
+    except Exception as e:
+        logging.error(f"Wyjątek podczas wysyłania emaila: {e}")
+
+def notify_tutor_about_lesson_change(tutor_name, change_type, lesson_details):
+    """Wysyła powiadomienie do korepetytora o zmianie w lekcji."""
+    tutor = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
+    if not tutor or not tutor['fields'].get('Email'):
+        logging.warning(f"Brak emaila dla korepetytora {tutor_name}")
+        return
+    
+    email = tutor['fields']['Email']
+    tutor_id = tutor['fields'].get('TutorID')
+    panel_link = f"https://zakręcone-korepetycje.pl/panel-korepetytora.html?tutorID={tutor_id}"
+    
+    if change_type == "new":
+        subject = "Nowa lekcja została zarezerwowana"
+        html = f"<p>Witaj {tutor_name},</p><p>Masz nową lekcję:</p><p>{lesson_details}</p><p>Dostęp do panelu: <a href='{panel_link}'>Panel korepetytora</a></p><p>Pozdrawiam,<br>Zakręcone Korepetycje</p>"
+    elif change_type == "cancelled":
+        subject = "Lekcja została anulowana"
+        html = f"<p>Witaj {tutor_name},</p><p>Lekcja została anulowana:</p><p>{lesson_details}</p><p>Dostęp do panelu: <a href='{panel_link}'>Panel korepetytora</a></p><p>Pozdrawiam,<br>Zakręcone Korepetycje</p>"
+    elif change_type == "rescheduled":
+        subject = "Lekcja została przesunięta"
+        html = f"<p>Witaj {tutor_name},</p><p>Lekcja została przesunięta:</p><p>{lesson_details}</p><p>Dostęp do panelu: <a href='{panel_link}'>Panel korepetytora</a></p><p>Pozdrawiam,<br>Zakręcone Korepetycje</p>"
+    elif change_type == "confirmed":
+        subject = "Lekcja została potwierdzona"
+        html = f"<p>Witaj {tutor_name},</p><p>Lekcja została potwierdzona:</p><p>{lesson_details}</p><p>Dostęp do panelu: <a href='{panel_link}'>Panel korepetytora</a></p><p>Pozdrawiam,<br>Zakręcone Korepetycje</p>"
+    else:
+        return
+    
+    send_email_via_brevo(email, subject, html)
 
 # --- Endpointy API ---
 @app.route('/api/check-cyclic-availability', methods=['POST'])
@@ -1779,6 +1837,10 @@ def create_reservation():
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
             
+            # Powiadomienie korepetytora o nowej lekcji
+            lesson_details = f"Przedmiot: {data.get('subject')}, Data: {data['selectedDate']}, Godzina: {data['selectedTime']}, Klient: {first_name}"
+            notify_tutor_about_lesson_change(tutor_for_reservation, "new", lesson_details)
+            
             # --- DODANIE ZADANIA FOLLOW-UP DLA LEKCJI TESTOWEJ ---
             if is_test_lesson:
                 
@@ -1944,6 +2006,10 @@ def confirm_next_lesson():
         
         reservations_table.create(new_confirmed_lesson)
         print("SUKCES: Zapisano w Airtable.")
+
+        # Powiadomienie korepetytora o potwierdzonej lekcji
+        lesson_details = f"Przedmiot: {subject}, Data: {next_lesson_date_str}, Godzina: {lesson_time}, Klient: {first_name}"
+        notify_tutor_about_lesson_change(tutor, "confirmed", lesson_details)
 
         # --- DODANO POWIADOMIENIE ---
         if MESSENGER_PAGE_TOKEN:
@@ -2198,6 +2264,12 @@ def cancel_reservation():
         # --- KONIEC DODAWANIA ---
         
         reservations_table.delete(record['id'])
+        
+        # Powiadomienie korepetytora o anulowanej lekcji
+        fields = record.get('fields', {})
+        lesson_details = f"Przedmiot: {fields.get('Przedmiot')}, Data: {fields.get('Data')}, Godzina: {fields.get('Godzina')}, Klient: {fields.get('Klient')}"
+        notify_tutor_about_lesson_change(fields.get('Korepetytor'), "cancelled", lesson_details)
+        
         return jsonify({"message": "Rezerwacja została pomyślnie odwołana."})
     except Exception as e: abort(500, "Wystąpił błąd podczas odwoływania rezerwacji.")
 
@@ -2263,6 +2335,10 @@ def reschedule_reservation():
         reservations_table.create(new_reservation_data)
 
         reservations_table.update(original_record['id'], {"Status": "Przeniesiona (zakończona)"})
+        
+        # Powiadomienie korepetytora o przesuniętej lekcji
+        lesson_details = f"Przedmiot: {original_fields.get('Przedmiot')}, Nowy termin: {new_date} {new_time}, Klient: {original_fields.get('Klient')}"
+        notify_tutor_about_lesson_change(tutor, "rescheduled", lesson_details)
         
         if MESSENGER_PAGE_TOKEN:
             psid = original_fields.get('Klient')

@@ -64,6 +64,14 @@ def init_database():
         )
     ''')
     
+    # Migracja: Dodaj kolumnę Email do tabeli Korepetytorzy, jeśli nie istnieje
+    try:
+        cursor.execute("SELECT Email FROM Korepetytorzy LIMIT 1")
+    except sqlite3.OperationalError:
+        print("Migracja: Dodawanie kolumny Email do tabeli Korepetytorzy...")
+        cursor.execute("ALTER TABLE Korepetytorzy ADD COLUMN Email TEXT")
+        print("✓ Kolumna Email dodana pomyślnie.")
+    
     # Tabela Rezerwacje
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Rezerwacje (
