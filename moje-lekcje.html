@@ -639,7 +639,7 @@
                         
                         if (lesson.isPaid) {
                             payButtonHtml = `<span>Opłacona</span>`;
-                        } else if (lesson.status === 'Oczekuje na płatność' || (lesson.isTest && lesson.status !== 'Anulowana (brak płatności)')) {
+                        } else if (lesson.managementToken && !lesson.isPaid) {
                             payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
                             if (lesson.status === 'Oczekuje na płatność') {
                                 paymentInfoHtml = `
