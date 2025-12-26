@@ -964,11 +964,15 @@ def initiate_payment():
             "sign": sign
         }
 
+        logging.info(f"P24 payload: {payload}")
+
         response = requests.post(
             f"{P24_API_URL}/api/v1/transaction/register", 
             json=payload, 
             auth=(str(P24_POS_ID), P24_API_KEY)
         )
+
+        logging.info(f"P24 request sent, status: {response.status_code}")
 
         if response.status_code == 200:
             result = response.json()

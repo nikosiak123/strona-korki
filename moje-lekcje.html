@@ -474,7 +474,14 @@
                         }
                         
                         const paymentData = await paymentResponse.json();
-                        window.location.href = paymentData.paymentUrl;
+                        if (paymentData.paymentUrl) {
+                            window.location.href = paymentData.paymentUrl;
+                        } else {
+                            alert(paymentData.message || "Lekcja została opłacona.");
+                            modalOverlay.classList.remove('active');
+                            // Odśwież stronę, aby pokazać zaktualizowany status
+                            window.location.reload();
+                        }
                         
                     } catch (error) {
                         alert('Błąd: ' + error.message);

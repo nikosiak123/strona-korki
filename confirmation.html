@@ -168,7 +168,13 @@
                         }
                         
                         const data = await response.json();
-                        window.location.href = data.paymentUrl;
+                        if (data.paymentUrl) {
+                            window.location.href = data.paymentUrl;
+                        } else {
+                            alert(data.message || "Lekcja została opłacona.");
+                            // Odśwież stronę, aby pokazać zaktualizowany status
+                            window.location.reload();
+                        }
                     } catch (error) {
                         alert('Błąd: ' + error.message);
                         btn.textContent = 'Opłać teraz (BLIK)';
