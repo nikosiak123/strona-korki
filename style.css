@@ -932,3 +932,34 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     background-color: #E0E0E0;
     cursor: not-allowed;
 }
+
+/* Style dla przycisków w modalach */
+.modal-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.modal-btn.primary {
+    background-color: var(--primary-color);
+    color: var(--text-dark);
+}
+
+.modal-btn.primary:hover {
+    background-color: var(--primary-hover-color);
+    transform: translateY(-1px);
+}
+
+.modal-btn.secondary {
+    background-color: #E0E0E0;
+    color: var(--text-dark);
+}
+
+.modal-btn.secondary:hover {
+    background-color: #BDBDBD;
+}
