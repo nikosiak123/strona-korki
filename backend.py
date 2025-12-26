@@ -1906,13 +1906,14 @@ def confirm_next_lesson():
         if not teams_link: 
             abort(500, "Nie udało się wygenerować linku Teams.")
 
+        management_token = str(uuid.uuid4())
         new_confirmed_lesson = {
             "Klient": client_uuid,
             "Korepetytor": tutor,
             "Data": next_lesson_date_str,
             "Godzina": lesson_time,
             "Przedmiot": subject,
-            "ManagementToken": str(uuid.uuid4()),
+            "ManagementToken": management_token,
             "Typ": "Cykliczna",
             "Status": "Oczekuje na płatność",
             "TeamsLink": teams_link,
@@ -1947,7 +1948,7 @@ def confirm_next_lesson():
         return jsonify({
             "message": f"Najbliższa lekcja w dniu {next_lesson_date_str} została potwierdzona.", 
             "teamsUrl": teams_link,
-            "managementToken": temp_token
+            "managementToken": management_token
         })
     except Exception as e:
         print("!!! KRYTYCZNY BŁĄD w confirm_next_lesson !!!")
