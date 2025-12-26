@@ -2592,4 +2592,4 @@ if __name__ == '__main__':
     # scheduler.start()
     # # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     # atexit.register(lambda: scheduler.shutdown())
-    app.run(port=8080, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
