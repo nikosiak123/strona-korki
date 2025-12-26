@@ -785,9 +785,9 @@ def is_cancellation_allowed(record):
         
     time_remaining = lesson_datetime - datetime.now()
     
-    # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 3 godzin przed rozpoczęciem.
+    # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 6 godzin przed rozpoczęciem.
     if is_test_lesson:
-        return time_remaining > timedelta(hours=3)
+        return time_remaining > timedelta(hours=6)
     
     # Warunek dla wszystkich innych lekcji: Obowiązuje standardowe 12 godzin.
     return time_remaining > timedelta(hours=12)
@@ -2205,7 +2205,7 @@ def reschedule_reservation():
 
         original_fields = original_record.get('fields', {})
         
-        hours_limit = 3 if original_fields.get('JestTestowa', False) else 12
+        hours_limit = 6 if original_fields.get('JestTestowa', False) else 12
         if not is_cancellation_allowed(original_record) and original_fields.get('Status') != 'Przeniesiona':
             abort(403, f"Nie można zmienić terminu rezerwacji. Pozostało mniej niż {hours_limit} godzin.")
 

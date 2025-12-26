@@ -160,7 +160,7 @@
                     <div class="details-item"><strong>Korepetytor:</strong> <span>${details.tutor}</span></div>
                     <div class="details-item"><strong>Termin:</strong> <span>${details.date} o ${details.time}</span></div>
                 `;
-                const hoursLimit = details.isTestLesson ? 3 : 12;
+                const hoursLimit = details.isTestLesson ? 6 : 12;
                 if (details.isCancellationAllowed) {
                     cancelButton.disabled = false;
                     timeLimitInfo.textContent = `Możesz odwołać lub zmienić termin do ${hoursLimit} godzin przed rozpoczęciem zajęć.`;

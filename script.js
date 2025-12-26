@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         endTime.setHours(workingHoursEnd, 0, 0, 0);
     
         const threeHoursFromNow = new Date();
-        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 3);
+        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 6);
     
         while (currentTime < endTime) {
             const timeSlot = currentTime.toTimeString().substring(0, 5);
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     block.classList.add('disabled');
                     if (matchingSlot) { 
                          block.textContent = timeSlot;
-                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 3h).";
+                         block.title = "Tego terminu nie można już zarezerwować (mniej niż 6h).";
                     }
                 }
     
@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         mobileContainer.appendChild(calendarNavigation);
 
         const threeHoursFromNow = new Date();
-        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 3);
+        threeHoursFromNow.setHours(threeHoursFromNow.getHours() + 6);
         let hasAvailableSlots = false;
 
         // 2. Lista dni
