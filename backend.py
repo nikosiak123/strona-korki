@@ -122,13 +122,24 @@ MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
-    with open('/home/korepetotor2/strona/config.json', 'r', encoding='utf-8') as f:
-        bot_config = json.load(f)
-        MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
-    if MESSENGER_PAGE_TOKEN:
-        print("--- MESSENGER: Pomyślnie załadowano token dostępu do strony.")
-    else:
-        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w config.json.")
+    config_paths = [
+        '/home/korepetotor2/strona/config.json',  # oryginalna ścieżka
+        './config.json',  # lokalna ścieżka
+        os.path.join(os.path.dirname(__file__), 'config.json')  # obok backend.py
+    ]
+    
+    MESSENGER_PAGE_TOKEN = None
+    for config_path in config_paths:
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                bot_config = json.load(f)
+                MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
+                if MESSENGER_PAGE_TOKEN:
+                    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z {config_path}.")
+                    break
+    
+    if not MESSENGER_PAGE_TOKEN:
+        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w żadnym z plików config.json.")
 except Exception as e:
     print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
 
@@ -170,6 +181,17 @@ logging.getLogger('requests.packages.urllib3.connectionpool').setLevel(logging.D
 # ================================================
 # === FUNKCJE WYSZUKIWARKI PROFILI FACEBOOK ====
 # ================================================
+def normalize_tutor_field(field_value):
+    """Normalizuje pola korepetytora - konwertuje JSON string na listę."""
+    if isinstance(field_value, str):
+        try:
+            return json.loads(field_value)
+        except (json.JSONDecodeError, TypeError):
+            return [field_value] if field_value else []
+    elif isinstance(field_value, list):
+        return field_value
+    else:
+        return [str(field_value)] if field_value else []
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
@@ -1348,11 +1370,18 @@ def get_tutor_schedule():
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
     fields = tutor_record.get('fields', {})
     return jsonify({
-        "Imię i Nazwisko": fields.get("ImieNazwisko"), "Poniedzialek": fields.get("Poniedzialek", ""),"Wtorek": fields.get("Wtorek", ""),
-        "Sroda": fields.get("Sroda", ""), "Czwartek": fields.get("Czwartek", ""),"Piatek": fields.get("Piatek", ""),
-        "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", ""),
+        "Imię i Nazwisko": fields.get("ImieNazwisko"), 
+        "Poniedzialek": fields.get("Poniedzialek", ""),
+        "Wtorek": fields.get("Wtorek", ""),
+        "Sroda": fields.get("Sroda", ""), 
+        "Czwartek": fields.get("Czwartek", ""),
+        "Piatek": fields.get("Piatek", ""),
+        "Sobota": fields.get("Sobota", ""), 
+        "Niedziela": fields.get("Niedziela", ""),
+        "Przedmioty": normalize_tutor_field(fields.get("Przedmioty", [])),
         "PoziomNauczania": normalize_tutor_field(fields.get("PoziomNauczania", [])),
-        "Email": fields.get("Email", "")
+        "Email": fields.get("Email", ""),
+        "LimitGodzinTygodniowo": fields.get("LimitGodzinTygodniowo")
     })
 
 @app.route('/api/get-tutor-by-name')
@@ -2544,10 +2573,8 @@ def get_tutor_weekly_hours():
         
         tutor_limit = tutor_record['fields'].get('LimitGodzinTygodniowo')
         
-        # Oblicz zajęte godziny w bieżącym tygodniu
-        today = datetime.now().date()
-        week_start = get_week_start(today)
-        current_hours = get_tutor_hours_for_week(tutor_name, week_start)
+        # Na razie zwracamy uproszczone dane - TODO: zaimplementować właściwe obliczenia
+        current_hours = 0  # Tymczasowo 0
         
         return jsonify({
             "currentHours": current_hours,
