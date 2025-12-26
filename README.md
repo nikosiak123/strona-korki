@@ -29,7 +29,38 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-### 2. Inicjalizacja bazy danych
+### 2. Migracja danych z Airtable do SQLite
+
+Jeśli masz istniejące dane w Airtable, wykonaj migrację:
+
+#### Krok 1: Eksport danych z Airtable
+```bash
+# Edytuj export_airtable.py i dodaj swoje klucze API
+# Następnie uruchom eksport
+python export_airtable.py
+```
+
+#### Krok 2: Import danych do SQLite
+```bash
+# Zaimportuj wyeksportowane dane
+python import_data.py
+```
+
+#### Alternatywa: Ręczne dodanie danych
+```bash
+# Uruchom interaktywny shell Python
+python3 -c "
+from database import DatabaseTable
+tutors = DatabaseTable('Korepetytorzy')
+tutors.create({
+    'TutorID': 'tutor001',
+    'ImieNazwisko': 'Jan Kowalski',
+    # ... pozostałe pola
+})
+"
+```
+
+### 3. Inicjalizacja bazy danych
 
 Baza danych zostanie automatycznie utworzona przy pierwszym uruchomieniu. Opcjonalnie możesz dodać dane testowe:
 
