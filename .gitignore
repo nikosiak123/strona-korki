@@ -7,9 +7,6 @@ __pycache__/
 korki.db
 korki.db-journal
 
-# Environment variables
-.env
-
 # IDE
 .vscode/
 .idea/

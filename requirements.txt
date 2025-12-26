@@ -7,4 +7,3 @@ pytz
 Pillow
 selenium
 imagehash
-python-dotenv
