@@ -2055,15 +2055,12 @@ def get_client_dashboard():
             # Lekcje trafiają do historii dopiero 1h po zakończeniu
             lesson_end_time = lesson_datetime + timedelta(hours=1)
             
-            # Specjalna logika dla lekcji testowych: pozostają w upcoming nawet po zakończeniu jeśli nieopłacone
+            # Wszystkie lekcje idą do historii po zakończeniu
             should_go_to_past = False
             if status in inactive_statuses:
                 should_go_to_past = True
             elif lesson_end_time < datetime.now():
-                # Normalne lekcje idą do historii po zakończeniu
-                # Lekcje testowe pozostają w upcoming jeśli nieopłacone
-                if not is_test_lesson or is_paid:
-                    should_go_to_past = True
+                should_go_to_past = True
             
             if should_go_to_past:
                 past.append(lesson_data)

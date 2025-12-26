@@ -518,6 +518,12 @@
                 let paymentInfoHtml = '';
                 let statusText = lesson.status;
 
+                // Specjalna logika dla zakończonych lekcji testowych: możliwość opłacenia jeśli nieopłacone
+                if (isPast && lesson.isTest && !lesson.isPaid && lesson.status !== 'Anulowana (brak płatności)') {
+                    actionsHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                    statusText = 'Zakończona (można opłacić)';
+                }
+
                 if (!isPast) {
                     if (lesson.isOngoing) {
                         // Lekcja w trakcie
