@@ -6,6 +6,8 @@ const availableLevels = [
     { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
 ];
 
+const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
+
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingState = document.getElementById('loadingState');
     const contentDiv = document.getElementById('content');
@@ -23,7 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const actionModalText = document.getElementById('actionModalText');
     const actionModalButtons = document.getElementById('actionModalButtons');
 
-    const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
     const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
     const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
     const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
