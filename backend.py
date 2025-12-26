@@ -49,6 +49,7 @@ def handle_new_lesson_payment(lesson):
 
 # Endpoint API: pobierz wolną kwotę klienta
 import os
+from dotenv import load_dotenv
 import json
 import uuid
 import traceback
@@ -85,6 +86,9 @@ HASH_DIFFERENCE_THRESHOLD = 10
 
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
+
+# Załaduj zmienne środowiskowe z pliku .env
+load_dotenv()
 
 # Jawne wywołanie migracji bazy danych na starcie
 init_database()
