@@ -492,7 +492,10 @@
 
         function generateModalForm(record) {
             const formContainer = document.getElementById('modalForm');
-            let fields = record.fields || getDefaultFields(currentTable);
+            // Jeśli nie ma pól lub obiekt jest pusty, użyj domyślnego zestawu pól dla danej tabeli
+            let fields = (record && record.fields && Object.keys(record.fields).length > 0)
+                ? record.fields
+                : getDefaultFields(currentTable);
             
             // Sortuj pola w odpowiedniej kolejności dla Korepetytorzy
             let sortedKeys = Object.keys(fields);
@@ -533,7 +536,7 @@
         function getDefaultFields(tableName) {
             const defaults = {
                 'Klienci': {ClientID: '', Imie: '', Nazwisko: '', LINK: ''},
-                'Korepetytorzy': {TutorID: '', ImieNazwisko: '', Poniedzialek: '', Przedmioty: '[]', PoziomNauczania: '[]'},
+'Korepetytorzy': {TutorID: '', ImieNazwisko: '', LINK: '', Poniedzialek: '', Wtorek: '', Sroda: '', Czwartek: '', Piatek: '', Sobota: '', Niedziela: '', Przedmioty: '[]', PoziomNauczania: '[]'},
                 'Rezerwacje': {Klient: '', Korepetytor: '', Data: '', Godzina: '', Przedmiot: '', Status: 'Oczekuje na płatność'},
                 'StaleRezerwacje': {Klient_ID: '', Korepetytor: '', DzienTygodnia: '', Godzina: '', Przedmiot: '', Aktywna: true}
             };
