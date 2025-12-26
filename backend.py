@@ -530,7 +530,7 @@ def check_and_cancel_unpaid_lessons():
     
     try:
         # --- Sprawdzamy wszystkie nieopłacone lekcje (bez warunku czasowego w Airtable) ---
-        formula = f"AND({{Oplacona}} != 1, OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
+        formula = f"AND(NOT({{Oplacona}}), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
         
         potential_lessons = reservations_table.all(formula=formula)
         
