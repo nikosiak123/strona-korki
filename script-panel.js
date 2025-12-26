@@ -22,6 +22,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
 
+    const availableLevels = [
+        { label: "Szkoła podstawowa", value: "podstawowka" },
+        { label: "Liceum - poziom podstawowy", value: "liceum_podstawa" },
+        { label: "Liceum - poziom rozszerzony", value: "liceum_rozszerzenie" },
+        { label: "Technikum - poziom podstawowy", value: "liceum_podstawa" }, // Uwaga: technikum używa tych samych tagów
+        { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
+    ];
+
     const params = new URLSearchParams(window.location.search);
     const tutorID = params.get('tutorID');
     let tutorName = "";
@@ -43,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         welcomeTutor.textContent = `Witaj, ${tutorName}!`;
         
         renderStaticScheduleForm(data);
+        renderProfileForm(data);
         await fetchAndRenderUpcomingLessons(tutorName);
         await renderWeeklyCalendar(currentWeekStart);
         // Załaduj status godzin tygodniowo
@@ -567,6 +576,79 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+
+    function renderProfileForm(data) {
+        const emailInput = document.getElementById('emailInput');
+        const levelsContainer = document.getElementById('levelsContainer');
+        
+        // Wypełnij email
+        emailInput.value = data.Email || '';
+        
+        // Wyczyść kontener poziomów
+        levelsContainer.innerHTML = '';
+        
+        // Dodaj checkboxy dla poziomów
+        availableLevels.forEach(level => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.style.display = 'flex';
+            checkboxDiv.style.alignItems = 'center';
+            checkboxDiv.style.gap = '0.5rem';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `level_${level.value}`;
+            checkbox.value = level.value;
+            checkbox.checked = (data.PoziomNauczania || []).includes(level.value);
+            
+            const label = document.createElement('label');
+            label.htmlFor = `level_${level.value}`;
+            label.textContent = level.label;
+            label.style.fontWeight = '500';
+            
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(label);
+            levelsContainer.appendChild(checkboxDiv);
+        });
+        
+        // Dodaj event listener dla zapisywania profilu
+        const saveProfileBtn = document.getElementById('saveProfileBtn');
+        saveProfileBtn.addEventListener('click', saveProfile);
+    }
+    
+    async function saveProfile() {
+        const emailInput = document.getElementById('emailInput');
+        const selectedLevels = [];
+        availableLevels.forEach(level => {
+            const checkbox = document.getElementById(`level_${level.value}`);
+            if (checkbox.checked) {
+                selectedLevels.push(level.value);
+            }
+        });
+        
+        const saveButton = document.getElementById('saveProfileBtn');
+        saveButton.textContent = 'Zapisywanie...';
+        saveButton.disabled = true;
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/update-tutor-profile`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tutorID: tutorID,
+                    PoziomNauczania: selectedLevels,
+                    Email: emailInput.value.trim()
+                })
+            });
+            if (!response.ok) throw new Error("Nie udało się zapisać zmian.");
+            const result = await response.json();
+            alert(result.message);
+        } catch (error) {
+            alert(`Wystąpił błąd: ${error.message}`);
+        } finally {
+            saveButton.textContent = 'Zapisz profil';
+            saveButton.disabled = false;
+        }
+    }
 
 // Funkcje pomocy
 function openHelpModal() {

@@ -207,6 +207,28 @@
             </section>
             
             <section class="panel-section">
+                <h2>Edycja profilu</h2>
+                <p class="info-text">Zaktualizuj swoje poziomy nauczania i adres email.</p>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="emailInput" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Adres email:</label>
+                    <input type="email" id="emailInput" placeholder="Wpisz swój adres email" 
+                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 1rem;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Poziomy nauczania:</label>
+                    <div id="levelsContainer" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+                        <!-- Checkboxy będą dodane dynamicznie przez JS -->
+                    </div>
+                </div>
+                
+                <div class="save-button-container">
+                    <button id="saveProfileBtn" class="btn-primary">Zapisz profil</button>
+                </div>
+            </section>
+            
+            <section class="panel-section">
                 <h2>Nadchodzące lekcje</h2>
                 <div id="upcomingLessonsContainer">
                     <p>Brak nadchodzących lekcji.</p>

@@ -438,7 +438,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 startDate: getFormattedDate(startDate),
                 schoolType: selectedSchoolType,
                 schoolLevel: selectedLevel || '',
-                subject: selectedSubject
+                subject: selectedSubject,
+                clientID: clientID || ''
             });
             
             const response = await fetch(`${API_BASE_URL}/api/get-schedule?${params.toString()}`);

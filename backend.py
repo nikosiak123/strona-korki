@@ -1349,7 +1349,9 @@ def get_tutor_schedule():
     return jsonify({
         "Imię i Nazwisko": fields.get("ImieNazwisko"), "Poniedzialek": fields.get("Poniedzialek", ""),"Wtorek": fields.get("Wtorek", ""),
         "Sroda": fields.get("Sroda", ""), "Czwartek": fields.get("Czwartek", ""),"Piatek": fields.get("Piatek", ""),
-        "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", "")
+        "Sobota": fields.get("Sobota", ""), "Niedziela": fields.get("Niedziela", ""),
+        "PoziomNauczania": normalize_tutor_field(fields.get("PoziomNauczania", [])),
+        "Email": fields.get("Email", "")
     })
 
 @app.route('/api/get-tutor-by-name')
@@ -1381,6 +1383,24 @@ def update_tutor_schedule():
     fields_to_update = {day: time_range for day, time_range in new_schedule.items() if time_range is not None}
     tutors_table.update(tutor_record['id'], fields_to_update)
     return jsonify({"message": "Grafik został pomyślnie zaktualizowany."})
+
+@app.route('/api/update-tutor-profile', methods=['POST'])
+def update_tutor_profile():
+    data = request.json
+    tutor_id = data.get('tutorID')
+    poziom_nauczania = data.get('PoziomNauczania')
+    email = data.get('Email')
+    if not tutor_id: abort(400, "Brak identyfikatora korepetytora.")
+    tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
+    if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
+    fields_to_update = {}
+    if poziom_nauczania is not None:
+        fields_to_update['PoziomNauczania'] = json.dumps(poziom_nauczania) if isinstance(poziom_nauczania, list) else poziom_nauczania
+    if email is not None:
+        fields_to_update['Email'] = email
+    if fields_to_update:
+        tutors_table.update(tutor_record['id'], fields_to_update)
+    return jsonify({"message": "Profil został pomyślnie zaktualizowany."})
 
 @app.route('/api/block-single-slot', methods=['POST'])
 def block_single_slot():
@@ -1448,8 +1468,9 @@ def get_schedule():
         # --- ZMIANA: Konwersja na małe litery od razu po pobraniu ---
         subject = request.args.get('subject', '').lower()
         tutor_name_filter = request.args.get('tutorName')
+        client_id = request.args.get('clientID')
 
-        logging.info(f"CALENDAR: Parametry filtracji: tutor={tutor_name_filter}, subject={subject}, schoolType={school_type}, level={school_level}")
+        logging.info(f"CALENDAR: Parametry filtracji: tutor={tutor_name_filter}, subject={subject}, schoolType={school_type}, level={school_level}, clientID={client_id}")
 
         all_tutors_templates = tutors_table.all()
         filtered_tutors = []
@@ -1501,7 +1522,15 @@ def get_schedule():
                 # --- KONIEC ZMIAN ---
 
                 # Teraz porównanie jest bezpieczne i niezależne od wielkości liter
-                if all(tag in tutor_levels for tag in required_level_tags) and subject in tutor_subjects:
+                teaches_level = all(tag in tutor_levels for tag in required_level_tags)
+                teaches_subject = subject in tutor_subjects
+                
+                # Wyjątek: jeśli klient ma stałe zajęcia z tym korepetytorem, pokaż go nawet jeśli poziomy się zmieniły
+                has_cyclic = False
+                if client_id and not teaches_level:
+                    has_cyclic = check_if_client_has_cyclic_with_tutor(client_id, tutor_name)
+                
+                if (teaches_level and teaches_subject) or has_cyclic:
                     # Sprawdzenie limitu godzin tygodniowo
                     tutor_limit = fields.get('LimitGodzinTygodniowo')
                     
