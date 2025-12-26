@@ -910,3 +910,25 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     color: #FF9800 !important;
     font-weight: bold;
 }
+
+/* Style dla przycisków w panelu klienta */
+.btn-pay {
+    background-color: var(--primary-color);
+    color: var(--text-dark);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-pay:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.btn-pay:disabled {
+    background-color: #E0E0E0;
+    cursor: not-allowed;
+}
