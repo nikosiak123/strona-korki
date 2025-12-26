@@ -1946,7 +1946,8 @@ def confirm_next_lesson():
         
         return jsonify({
             "message": f"Najbliższa lekcja w dniu {next_lesson_date_str} została potwierdzona.", 
-            "teamsUrl": teams_link
+            "teamsUrl": teams_link,
+            "managementToken": temp_token
         })
     except Exception as e:
         print("!!! KRYTYCZNY BŁĄD w confirm_next_lesson !!!")

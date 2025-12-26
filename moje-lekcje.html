@@ -433,16 +433,55 @@
                 modalInfo.style.display = 'none';
             
                 modalButtons.innerHTML = `
-                    <button id="modalPayNowBtn" class="modal-btn primary">Opłać teraz (wkrótce)</button>
+                    <button id="modalPayNowBtn" class="modal-btn primary">Opłać teraz</button>
                     <button id="modalPayLaterBtn" class="modal-btn secondary">Opłacę później</button>
                 `;
                 
-                document.getElementById('modalPayNowBtn').onclick = () => {
-                    modalInfo.textContent = "Funkcjonalność płatności online zostanie dodana wkrótce. Na razie, lekcja została potwierdzona. Możesz ją opłacić później.";
-                    modalInfo.style.display = 'block';
-                    modalButtons.style.display = 'none';
-                    confirmLessonInBackend(lesson.id);
-                    setTimeout(() => modalOverlay.classList.remove('active'), 4000);
+                document.getElementById('modalPayNowBtn').onclick = async () => {
+                    const btn = document.getElementById('modalPayNowBtn');
+                    btn.textContent = 'Przygotowuję płatność...';
+                    btn.disabled = true;
+                    
+                    try {
+                        // Najpierw potwierdź lekcję
+                        const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-next-lesson`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ cyclicReservationId: lesson.id })
+                        });
+                        
+                        const confirmResult = await confirmResponse.json();
+                        
+                        if (!confirmResponse.ok) {
+                            if (confirmResponse.status === 409 && confirmResult.error === 'CONFLICT') {
+                                showConflictModal(confirmResult.message, confirmResult.managementToken);
+                                return;
+                            } else {
+                                throw new Error(confirmResult.message || "Nie udało się potwierdzić lekcji w systemie.");
+                            }
+                        }
+                        
+                        // Jeśli potwierdzenie się udało, przejdź do płatności
+                        const paymentResponse = await fetch('/api/initiate-payment', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ managementToken: confirmResult.managementToken })
+                        });
+                        
+                        if (!paymentResponse.ok) {
+                            const errorData = await paymentResponse.json();
+                            throw new Error(errorData.message || "Błąd serwera podczas inicjowania płatności.");
+                        }
+                        
+                        const paymentData = await paymentResponse.json();
+                        window.location.href = paymentData.paymentUrl;
+                        
+                    } catch (error) {
+                        alert('Błąd: ' + error.message);
+                        btn.textContent = 'Opłać teraz';
+                        btn.disabled = false;
+                        modalOverlay.classList.remove('active');
+                    }
                 };
             
                 document.getElementById('modalPayLaterBtn').onclick = () => {
