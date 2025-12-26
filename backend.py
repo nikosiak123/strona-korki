@@ -599,8 +599,6 @@ def check_and_cancel_unpaid_lessons():
                 logging.info(f"Lekcja ID {lesson['id']} ZAKWALIFIKOWANA DO ANULOWANIA: przekroczony deadline płatności ({payment_deadline})")
             else:
                 logging.debug(f"Lekcja ID {lesson['id']} NIE ANULOWANA: deadline nie przekroczony (pozostało {(payment_deadline - current_local_time).total_seconds() / 60:.1f} minut)")
-            else:
-                logging.debug(f"Lekcja ID {lesson['id']} nie przekroczyła deadline - nie anulowana")
 
         if not lessons_to_cancel:
             logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Żadna z lekcji nie przekroczyła terminu płatności.")
