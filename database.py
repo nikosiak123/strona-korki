@@ -6,7 +6,7 @@ import os
 
 # Wspólna baza danych dla bota i backendu
 # Możesz ustawić zmienną środowiskową KORKI_DB_PATH lub użyje domyślnej
-DB_PATH = os.environ.get('KORKI_DB_PATH', '/home/korepetotor2/korki.db')
+DB_PATH = os.environ.get('KORKI_DB_PATH', 'korki.db')
 
 def get_connection():
     """Zwraca połączenie z bazą danych."""
@@ -35,14 +35,6 @@ def init_database():
         )
     ''')
 
-    # Migracja: Dodaj kolumnę WolnaKwotaUzyta do tabeli Rezerwacje, jeśli nie istnieje
-    try:
-        cursor.execute("SELECT WolnaKwotaUzyta FROM Rezerwacje LIMIT 1")
-    except sqlite3.OperationalError:
-        print("Migracja: Dodawanie kolumny WolnaKwotaUzyta do tabeli Rezerwacje...")
-        cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN WolnaKwotaUzyta INTEGER DEFAULT 0")
-        print("✓ Kolumna WolnaKwotaUzyta dodana pomyślnie.")
-    
     # Tabela Korepetytorzy
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Korepetytorzy (
@@ -94,6 +86,14 @@ def init_database():
             FOREIGN KEY (Klient) REFERENCES Klienci(ClientID)
         )
     ''')
+
+    # Migracja: Dodaj kolumnę WolnaKwotaUzyta do tabeli Rezerwacje, jeśli nie istnieje
+    try:
+        cursor.execute("SELECT WolnaKwotaUzyta FROM Rezerwacje LIMIT 1")
+    except sqlite3.OperationalError:
+        print("Migracja: Dodawanie kolumny WolnaKwotaUzyta do tabeli Rezerwacje...")
+        cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN WolnaKwotaUzyta INTEGER DEFAULT 0")
+        print("✓ Kolumna WolnaKwotaUzyta dodana pomyślnie.")
     
     # Tabela StaleRezerwacje
     cursor.execute('''
@@ -406,5 +406,4 @@ class DatabaseTable:
 
 
 # Inicjalizacja przy imporcie
-if not os.path.exists(DB_PATH):
-    init_database()
+# init_database()  # Usunięte - wywoływane w backend.py

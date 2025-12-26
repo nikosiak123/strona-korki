@@ -19,8 +19,25 @@ let tutorName = "";
 let currentWeekStart = null;
 let upcomingLessons = [];
 let masterScheduleTimes = [];
+let calendarContainer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const loadingState = document.getElementById('loadingState');
+    const contentDiv = document.getElementById('content');
+    const scheduleForm = document.getElementById('scheduleForm');
+    const welcomeTutor = document.getElementById('welcomeTutor');
+    const scheduleFields = document.getElementById('scheduleFields');
+    calendarContainer = document.getElementById('calendar-container');
+    const upcomingLessonsContainer = document.getElementById('upcomingLessonsContainer');
+    
+    const lessonDetailsModal = document.getElementById('lessonDetailsModal');
+    const modalDetailsContent = document.getElementById('modalDetailsContent');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const actionModal = document.getElementById('actionModal');
+    const actionModalTitle = document.getElementById('actionModalTitle');
+    const actionModalText = document.getElementById('actionModalText');
+    const actionModalButtons = document.getElementById('actionModalButtons');
+
     const params = new URLSearchParams(window.location.search);
     tutorID = params.get('tutorID');
     currentWeekStart = getMonday(new Date());
