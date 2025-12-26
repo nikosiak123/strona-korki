@@ -8,35 +8,19 @@ const availableLevels = [
 
 const API_BASE_URL = 'https://zakręcone-korepetycje.pl'; // Zmień na URL produkcyjny
 
+const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
+const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
+const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
+const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
+const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
+
+let tutorID = null;
+let tutorName = "";
+let currentWeekStart = null;
+let upcomingLessons = [];
+let masterScheduleTimes = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
-    const loadingState = document.getElementById('loadingState');
-    const contentDiv = document.getElementById('content');
-    const scheduleForm = document.getElementById('scheduleForm');
-    const welcomeTutor = document.getElementById('welcomeTutor');
-    const scheduleFields = document.getElementById('scheduleFields');
-    const calendarContainer = document.getElementById('calendar-container');
-    const upcomingLessonsContainer = document.getElementById('upcomingLessonsContainer');
-    
-    const lessonDetailsModal = document.getElementById('lessonDetailsModal');
-    const modalDetailsContent = document.getElementById('modalDetailsContent');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const actionModal = document.getElementById('actionModal');
-    const actionModalTitle = document.getElementById('actionModalTitle');
-    const actionModalText = document.getElementById('actionModalText');
-    const actionModalButtons = document.getElementById('actionModalButtons');
-
-    const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
-    const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
-    const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
-    const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
-    const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
-
-    const params = new URLSearchParams(window.location.search);
-    const tutorID = params.get('tutorID');
-    let tutorName = "";
-    let currentWeekStart = getMonday(new Date());
-    let upcomingLessons = [];
-    let masterScheduleTimes = []; // Tutaj przechowamy "główną" siatkę godzin
 
     if (!tutorID) {
         loadingState.innerHTML = '<h2>Błąd: Brak identyfikatora korepetytora w linku. Dostęp zabroniony.</h2>';
@@ -67,6 +51,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     scheduleForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!tutorID) {
+            alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
         const saveButton = document.getElementById('saveScheduleBtn');
         saveButton.textContent = 'Zapisywanie...';
         saveButton.disabled = true;
@@ -190,6 +178,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function showActionModal(slot) {
+        if (!tutorID) {
+            alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
         actionModalTitle.textContent = `Zarządzaj terminem (${slot.date} o ${slot.time})`;
         
         console.log("Dane dla showActionModal (z kalendarza):", slot);
@@ -410,6 +402,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     
     async function handleBlockClick(date, time) {
+        if (!tutorID) {
+            alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
         const block = event.target;
         block.textContent = '...';
         try {
@@ -427,6 +423,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handleAddHocSlot(date, time) {
+        if (!tutorID) {
+            alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
         const block = event.target;
         block.textContent = '...';
         
@@ -617,6 +617,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     async function saveProfile() {
+        if (!tutorID) {
+            alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
         const emailInput = document.getElementById('emailInput');
         const selectedLevels = [];
         availableLevels.forEach(level => {
