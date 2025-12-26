@@ -1,3 +1,11 @@
+const availableLevels = [
+    { label: "Szkoła podstawowa", value: "podstawowka" },
+    { label: "Liceum - poziom podstawowy", value: "liceum_podstawa" },
+    { label: "Liceum - poziom rozszerzony", value: "liceum_rozszerzenie" },
+    { label: "Technikum - poziom podstawowy", value: "liceum_podstawa" }, // Uwaga: technikum używa tych samych tagów
+    { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
+];
+
 document.addEventListener('DOMContentLoaded', async () => {
     const loadingState = document.getElementById('loadingState');
     const contentDiv = document.getElementById('content');
@@ -21,14 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
     const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
     const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
-
-    const availableLevels = [
-        { label: "Szkoła podstawowa", value: "podstawowka" },
-        { label: "Liceum - poziom podstawowy", value: "liceum_podstawa" },
-        { label: "Liceum - poziom rozszerzony", value: "liceum_rozszerzenie" },
-        { label: "Technikum - poziom podstawowy", value: "liceum_podstawa" }, // Uwaga: technikum używa tych samych tagów
-        { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
-    ];
 
     const params = new URLSearchParams(window.location.search);
     const tutorID = params.get('tutorID');
