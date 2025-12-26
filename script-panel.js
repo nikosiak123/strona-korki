@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${lesson.subject || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${lesson.schoolType || 'N/A'}</span></div>
-            <div class="modal-details-item"><strong>Poziom:</strong> <span>${lesson.schoolLevel || 'N/A'}</span></div>
+            ${lesson.schoolType !== 'Szkoła podstawowa' ? `<div class="modal-details-item"><strong>Poziom:</strong> <span>${lesson.schoolLevel || 'N/A'}</span></div>` : ''}
             <div class="modal-details-item"><strong>Klasa:</strong> <span>${lesson.schoolClass || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Link Teams:</strong> <a href="${lesson.teamsLink || '#'}" target="_blank">Dołącz</a></div>
         `;
@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${slot.subject || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Typ szkoły:</strong> <span>${slot.schoolType || 'N/A'}</span></div>
-            <div class="modal-details-item"><strong>Poziom:</strong> <span>${slot.schoolLevel || 'N/A'}</span></div>
+            ${slot.schoolType !== 'Szkoła podstawowa' ? `<div class="modal-details-item"><strong>Poziom:</strong> <span>${slot.schoolLevel || 'N/A'}</span></div>` : ''}
             <div class="modal-details-item"><strong>Klasa:</strong> <span>${slot.schoolClass || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Link Teams:</strong> <a href="${slot.teamsLink || '#'}" target="_blank">Dołącz</a></div>
         `;
