@@ -148,6 +148,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         console.log("Dane dla showLessonDetailsModal:", lesson);
 
+        let lessonTypeHtml = '';
+        if (lesson.isTest) {
+            lessonTypeHtml = `<div class="modal-details-item"><strong>Typ lekcji:</strong> <span style="color: #1976D2; font-weight: bold;">TESTOWA</span></div>`;
+        } else {
+            lessonTypeHtml = `<div class="modal-details-item"><strong>Typ lekcji:</strong> <span>STAŁA</span></div>`;
+        }
+
         let paymentStatusHtml = '';
         if (lesson.isTest && !lesson.isPaid) {
             paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
@@ -160,6 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         modalDetailsContent.innerHTML = `
             <div class="modal-details-item"><strong>Uczeń:</strong> <span>${lesson.studentName || 'Brak danych'}</span></div>
             <div class="modal-details-item"><strong>Termin:</strong> <span>${lesson.date} o ${lesson.time}</span></div>
+            ${lessonTypeHtml}
             ${paymentStatusHtml} 
             <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${lesson.subject || 'Brak danych'}</span></div>

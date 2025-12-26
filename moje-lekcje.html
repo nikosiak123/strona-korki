@@ -520,7 +520,7 @@
 
                 // Specjalna logika dla zakończonych lekcji testowych: możliwość opłacenia jeśli nieopłacone
                 if (isPast && lesson.isTest && !lesson.isPaid && lesson.status !== 'Anulowana (brak płatności)') {
-                    actionsHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
+                    actionsHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button> <span style="color: #d32f2f; font-weight: bold; font-size: 0.9em;">zapłać za odbytą lekcję</span>`;
                     statusText = 'Zakończona (można opłacić)';
                 }
 
