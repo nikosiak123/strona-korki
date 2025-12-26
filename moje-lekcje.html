@@ -417,33 +417,13 @@
                 modalButtons.style.display = 'flex';
                 modalOverlay.classList.add('active');
 
-                document.getElementById('modalConfirmYes').onclick = () => {
-                    showPaymentStep(lesson);
-                };
-                document.getElementById('modalConfirmNo').onclick = () => {
-                    modalOverlay.classList.remove('active');
-                };
-            }
-
-            function showPaymentStep(lesson) {
-                modalTitle.textContent = "Wybierz metodę płatności";
-                modalText.innerHTML = `Lekcja została potwierdzona. Jak chcesz za nią zapłacić?
-                                     <br><br>
-                                     <small>Pamiętaj, że aby lekcja się odbyła, należy ją opłacić najpóźniej 12 godzin przed jej rozpoczęciem. W przeciwnym razie zostanie automatycznie anulowana.</small>`;
-                modalInfo.style.display = 'none';
-            
-                modalButtons.innerHTML = `
-                    <button id="modalPayNowBtn" class="modal-btn primary">Opłać teraz</button>
-                    <button id="modalPayLaterBtn" class="modal-btn secondary">Opłacę później</button>
-                `;
-                
-                document.getElementById('modalPayNowBtn').onclick = async () => {
-                    const btn = document.getElementById('modalPayNowBtn');
-                    btn.textContent = 'Przygotowuję płatność...';
-                    btn.disabled = true;
+                document.getElementById('modalConfirmYes').onclick = async () => {
+                    modalTitle.textContent = "Potwierdzanie lekcji...";
+                    modalText.textContent = "Trwa potwierdzanie lekcji w systemie.";
+                    modalButtons.style.display = 'none';
                     
                     try {
-                        // Najpierw potwierdź lekcję
+                        // Najpierw potwierdź lekcję w backend
                         const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-next-lesson`, {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
@@ -461,11 +441,42 @@
                             }
                         }
                         
-                        // Jeśli potwierdzenie się udało, przejdź do płatności
+                        // Jeśli potwierdzenie się udało, przejdź do wyboru płatności
+                        showPaymentStep(lesson, confirmResult.managementToken);
+                        
+                    } catch (error) {
+                        alert('Błąd: ' + error.message);
+                        modalOverlay.classList.remove('active');
+                    }
+                };
+                document.getElementById('modalConfirmNo').onclick = () => {
+                    modalOverlay.classList.remove('active');
+                };
+            }
+
+            function showPaymentStep(lesson, managementToken) {
+                modalTitle.textContent = "Wybierz metodę płatności";
+                modalText.innerHTML = `Lekcja została potwierdzona. Jak chcesz za nią zapłacić?
+                                     <br><br>
+                                     <small>Pamiętaj, że aby lekcja się odbyła, należy ją opłacić najpóźniej 12 godzin przed jej rozpoczęciem. W przeciwnym razie zostanie automatycznie anulowana.</small>`;
+                modalInfo.style.display = 'none';
+            
+                modalButtons.innerHTML = `
+                    <button id="modalPayNowBtn" class="modal-btn primary">Opłać teraz</button>
+                    <button id="modalPayLaterBtn" class="modal-btn secondary">Opłacę później</button>
+                `;
+                
+                document.getElementById('modalPayNowBtn').onclick = async () => {
+                    const btn = document.getElementById('modalPayNowBtn');
+                    btn.textContent = 'Przygotowuję płatność...';
+                    btn.disabled = true;
+                    
+                    try {
+                        // Lekcja już potwierdzona, przejdź bezpośrednio do płatności
                         const paymentResponse = await fetch('/api/initiate-payment', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ managementToken: confirmResult.managementToken })
+                            body: JSON.stringify({ managementToken: managementToken })
                         });
                         
                         if (!paymentResponse.ok) {
@@ -495,7 +506,7 @@
                     modalInfo.textContent = "Lekcja została potwierdzona. Informacje o płatności znajdziesz w swoim panelu klienta.";
                     modalInfo.style.display = 'block';
                     modalButtons.style.display = 'none';
-                    confirmLessonInBackend(lesson.id);
+                    // Lekcja już potwierdzona, nie trzeba nic więcej robić
                     setTimeout(() => modalOverlay.classList.remove('active'), 4000);
                 };
             }
