@@ -119,15 +119,55 @@
         <div class="help-modal-content">
             <span class="close" onclick="closeHelpModal()">&times;</span>
             <h2>Pomoc - Panel Korepetytora</h2>
-            <p>Witaj w panelu korepetytora! Oto krótkie wyjaśnienie działania systemu:</p>
+            
+            <h3>Jak działają rezerwacje:</h3>
+            <p><strong>Uczniowie sami zapisują się na zajęcia</strong> do dostępnego grafiku korepetytora.</p>
+            
+            <h3>Ustalanie cotygodniowego grafiku:</h3>
             <ul>
-                <li><strong>Zarządzanie terminarzem:</strong> Ustal swoje dostępne godziny lekcyjne.</li>
-                <li><strong>Potwierdzanie lekcji:</strong> Akceptuj lub odrzucaj rezerwacje klientów.</li>
-                <li><strong>Kalendarz:</strong> Przeglądaj swoje zajęcia i dostępne sloty.</li>
-                <li><strong>Nadchodzące lekcje:</strong> Lista potwierdzonych zajęć w najbliższym czasie.</li>
-                <li><strong>Płatności:</strong> System automatycznie obsługuje rozliczenia.</li>
+                <li>Swój cotygodniowy grafik można ustalić zmieniając godziny dla poszczególnych dni</li>
+                <li><strong>UWAGA:</strong> Do wpisanych zakresów godzin, system wpisuje dostępne godziny korepetytora według stałego grafiku (8:00-9:00, 9:10-10:10, 10:20-11:20 itd.)</li>
+                <li><strong>Może to skutkować sytuacją</strong> w której w ustawione wolne 60 minut lub więcej nie zostanie wpisana żadna wolna godzina, ponieważ zajęcia nie zawsze zaczynają się od godzin :00</li>
             </ul>
-            <p>Jeśli masz pytania techniczne, skontaktuj się z administratorem.</p>
+            
+            <h3>Limit godzin tygodniowo:</h3>
+            <p>To funkcja która pozwala na ustalenie limitu godzin korepetycji tygodniowo. Po przekroczeniu limitu korepetytor nie będzie się pokazywać dla klientów chcących ustalić nowy termin stałych zajęć.</p>
+            
+            <h3>Grafik zajęć (na dole strony):</h3>
+            <ul>
+                <li>W grafiku widzimy nadchodzące zajęcia</li>
+                <li>Po kliknięciu w daną godzinę zobaczymy więcej szczegółów</li>
+                <li>Klienci szczególnie przy pierwszych lekcjach są upominani o skontaktowanie się z korepetytorem</li>
+                <li>Jeśli jednak uczeń nie skontaktował się, można to zrobić samemu klikając na niebieski napis <strong>"Przejdź do profilu"</strong></li>
+            </ul>
+            
+            <h3>Edycja grafiku:</h3>
+            <ul>
+                <li>Grafik można jednorazowo edytować np. blokując pojedyncze godziny w danym tygodniu klikając na <strong>"Dostępne terminy"</strong></li>
+                <li>Lub przekładając zajęcia po kliknięciu w daną godzinę</li>
+                <li><strong>Prosimy jednak, aby starać się przekładać zajęcia po ustaleniu tego z klientem</strong></li>
+                <li>Klient również ma dostęp do przekładania zajęć na specjalnych zasadach</li>
+            </ul>
+            
+            <h3>Zasady płatności:</h3>
+            <ul>
+                <li><strong>Standardowe lekcje</strong> muszą być opłacone 12h przed rozpoczęciem</li>
+                <li>Nieopłacona lekcja jest automatycznie odwoływana</li>
+                <li>Klient także po odwołaniu lekcji w tym okresie nie dostanie zwrotu kosztów</li>
+                <li><strong>Lekcja testowa</strong> może być opłacona w trakcie, a nawet po zakończeniu zajęć</li>
+                <li><strong>Ważne:</strong> W sytuacji gdy zobaczymy napis <strong>"Płatność: TESTOWA - PRZYPOMNIJ O PŁATNOŚCI"</strong> w szczegółach zajęć:</li>
+                <ul>
+                    <li>Przypomnij uczniowi po połączeniu się o płatności</li>
+                    <li>Najlepiej zacząć lekcję dopiero po tym jak klient poinformuje, że już zapłacił</li>
+                </ul>
+            </ul>
+            
+            <h3>Typy rezerwacji:</h3>
+            <ul>
+                <li><strong>Rezerwacja testowa:</strong> Jest to zawsze pierwsza lekcja ucznia</li>
+                <li><strong>Rezerwacja jednorazowa:</strong> Jest to jednorazowa lekcja zarezerwowana przez panel klienta</li>
+                <li><strong>Rezerwacja cykliczna:</strong> Jest to rodzaj rezerwacji stałego terminu w tygodniu. Takie lekcje wymagają cotygodniowego potwierdzenia aby zmienić swój status z cyklicznej rezerwacji na zwykłe zajęcia</li>
+            </ul>
         </div>
     </div>
 
