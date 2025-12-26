@@ -231,6 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     async function renderWeeklyCalendar(startDate) {
+        if (!calendarContainer) {
+            console.error('calendarContainer not defined');
+            return;
+        }
         calendarContainer.innerHTML = '<p>Ładowanie grafiku...</p>';
         const mobileContainer = document.getElementById('calendar-mobile-container');
         if (mobileContainer) mobileContainer.innerHTML = '';
@@ -464,6 +468,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function renderStaticScheduleForm(data) {
+        if (!scheduleFields) {
+            console.error('scheduleFields not defined');
+            return;
+        }
         scheduleFields.innerHTML = '';
         const formatTime = (timeStr) => {
             if (!timeStr) return '';
@@ -584,6 +592,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderProfileForm(data) {
         const emailInput = document.getElementById('emailInput');
         const levelsContainer = document.getElementById('levelsContainer');
+        
+        if (!emailInput || !levelsContainer) {
+            console.error('emailInput or levelsContainer not found');
+            return;
+        }
         
         // Wypełnij email
         emailInput.value = data.Email || '';
