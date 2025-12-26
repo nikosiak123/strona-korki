@@ -222,3 +222,4 @@ W razie problemów:
 ## 📄 Licencja
 
 Własnościowa - Zakręcone Korepetycje
+# Test commit
