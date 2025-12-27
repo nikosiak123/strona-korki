@@ -159,11 +159,11 @@ def login():
 
 @app.route('/panel-korepetytora')
 def panel_korepetytora():
-    return send_from_directory('.', 'panel-korepetytora.html')
+    return send_from_directory('.', 'panel-korepetytora')
 
 @app.route('/moje-lekcje')
 def moje_lekcje():
-    return send_from_directory('.', 'moje-lekcje.html')
+    return send_from_directory('.', 'moje-lekcje')
 
 @app.route('/baza-danych')
 def baza_danych():
@@ -269,7 +269,7 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
         logging.error(f"MESSENGER: Nie znaleziono PSID dla ClientID: {client_id}. Anulowano wysyłkę.")
         return
 
-    dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+    dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
     ankieta_link = "https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ1Xh81-BZew/edit"
     
     # Użycie potrójnego cudzysłowu zapobiega błędom unterminated string literal
@@ -916,7 +916,7 @@ def notify_tutor_about_lesson_change(tutor_name, change_type, lesson_details):
     
     email = tutor['fields']['Email']
     tutor_id = tutor['fields'].get('TutorID')
-    panel_link = f"https://zakręcone-korepetycje.pl/panel-korepetytora.html?tutorID={tutor_id}"
+    panel_link = f"https://zakręcone-korepetycje.pl/panel-korepetytora?tutorID={tutor_id}"
     
     if change_type == "new":
         subject = "Nowa lekcja została zarezerwowana"
@@ -1362,7 +1362,7 @@ def tutor_reschedule():
             
             # --- DODANO POWIADOMIENIE ---
             if MESSENGER_PAGE_TOKEN and psid:
-                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
                 message_to_send = (
                     f"Ważna informacja! Twój korepetytor musiał przenieść lekcję zaplanowaną na {date} o {time}.\n\n"
                     f"Prosimy o wejście do panelu klienta i wybranie nowego, dogodnego terminu:\n{dashboard_link}"
@@ -1933,7 +1933,7 @@ def create_reservation():
             # --- POWIADOMIENIE MESSENGER: CYKLICZNA ---
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
-                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
                 message_to_send = (
                     f"Dziękujemy! Twój stały termin na {data['subject']} w każdy {day_of_week_name} o {data['selectedTime']} został pomyślnie zarezerwowany.\n\n"
                     f"Pamiętaj, aby potwierdzać każdą nadchodzącą lekcję w swoim panelu klienta:\n{dashboard_link}"
@@ -2009,7 +2009,7 @@ def create_reservation():
             
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
-                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+                dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
                 
                 # Pobierz link do korepetytora
                 tutor_contact_link = None
@@ -2135,7 +2135,7 @@ def confirm_next_lesson():
         # --- DODANO POWIADOMIENIE ---
         if MESSENGER_PAGE_TOKEN:
             psid = client_uuid.strip()
-            dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje.html?clientID={psid}"
+            dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
             message_to_send = (
                 f"Potwierdzono! Twoja nadchodząca lekcja z przedmiotu '{subject}' została potwierdzona na dzień {next_lesson_date_str} o {lesson_time}.\n\n"
                 f"Prosimy o opłacenie jej najpóźniej 12 godzin przed rozpoczęciem. Możesz zarządzać swoimi lekcjami tutaj:\n{dashboard_link}"
