@@ -2653,6 +2653,16 @@ def get_tutor_weekly_hours():
         traceback.print_exc()
         abort(500, "Błąd podczas pobierania danych o godzinach.")
 
+@app.route('/<path:path>')
+def catch_all(path):
+    if path.startswith('api/'):
+        abort(404)
+    file_path = path + '.html' if '.' not in path else path
+    try:
+        return send_from_directory('.', file_path)
+    except FileNotFoundError:
+        abort(404)
+
 if __name__ == '__main__':
     # scheduler = BackgroundScheduler()
     # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)  # Zwiększony interwał
