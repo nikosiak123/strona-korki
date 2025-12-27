@@ -147,6 +147,11 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
+@app.before_request
+def block_html():
+    if request.path.endswith('.html'):
+        abort(404)
+
 # --- Endpointy dla stron HTML (bez .html w URL) ---
 
 @app.route('/')
