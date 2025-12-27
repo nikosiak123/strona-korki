@@ -156,51 +156,51 @@ def block_html():
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory('.', 'index')
 
 @app.route('/login')
 def login():
-    return send_from_directory('.', 'login.html')
+    return send_from_directory('.', 'login')
 
 @app.route('/panel-korepetytora')
 def panel_korepetytora():
-    return send_from_directory('.', 'panel-korepetytora.html')
+    return send_from_directory('.', 'panel-korepetytora')
 
 @app.route('/moje-lekcje')
 def moje_lekcje():
-    return send_from_directory('.', 'moje-lekcje.html')
+    return send_from_directory('.', 'moje-lekcje')
 
 @app.route('/baza-danych')
 def baza_danych():
-    return send_from_directory('.', 'baza-danych.html')
+    return send_from_directory('.', 'baza-danych')
 
 @app.route('/confirmation')
 def confirmation():
-    return send_from_directory('.', 'confirmation.html')
+    return send_from_directory('.', 'confirmation')
 
 @app.route('/edit')
 def edit():
-    return send_from_directory('.', 'edit.html')
+    return send_from_directory('.', 'edit')
 
 @app.route('/polityka-prywatnosci')
 def polityka_prywatnosci():
-    return send_from_directory('.', 'polityka-prywatnosci.html')
+    return send_from_directory('.', 'polityka-prywatnosci')
 
 @app.route('/potwierdzenie-platnosci')
 def potwierdzenie_platnosci():
-    return send_from_directory('.', 'potwierdzenie-platnosci.html')
+    return send_from_directory('.', 'potwierdzenie-platnosci')
 
 @app.route('/regulamin')
 def regulamin():
-    return send_from_directory('.', 'regulamin.html')
+    return send_from_directory('.', 'regulamin')
 
 @app.route('/rezerwacja-stala')
 def rezerwacja_stala():
-    return send_from_directory('.', 'rezerwacja-stala.html')
+    return send_from_directory('.', 'rezerwacja-stala')
 
 @app.route('/rezerwacja-testowa')
 def rezerwacja_testowa():
-    return send_from_directory('.', 'rezerwacja-testowa.html')
+    return send_from_directory('.', 'rezerwacja-testowa')
 
 # --- Endpointy dla plików statycznych ---
 
@@ -2657,7 +2657,7 @@ def get_tutor_weekly_hours():
 def catch_all(path):
     if path.startswith('api/'):
         abort(404)
-    file_path = path + '.html' if '.' not in path else path
+    file_path = path
     try:
         return send_from_directory('.', file_path)
     except FileNotFoundError:
