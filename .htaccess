@@ -1,7 +1,7 @@
 RewriteEngine On
 
-# Redirect old .html URLs to new clean URLs (optional, for backward compatibility)
-RewriteRule ^(.*)\.html$ /$1 [R=301,L]
+# Block old .html URLs - return 404
+RewriteRule ^(.*)\.html$ - [R=404,L]
 
 # Serve HTML files without .html extension
 RewriteCond %{REQUEST_FILENAME} !-f
