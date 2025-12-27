@@ -147,60 +147,55 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
-@app.before_request
-def block_html():
-    if request.path.endswith('.html'):
-        abort(404)
-
 # --- Endpointy dla stron HTML (bez .html w URL) ---
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/login')
 def login():
-    return send_from_directory('.', 'login')
+    return send_from_directory('.', 'login.html')
 
 @app.route('/panel-korepetytora')
 def panel_korepetytora():
-    return send_from_directory('.', 'panel-korepetytora')
+    return send_from_directory('.', 'panel-korepetytora.html')
 
 @app.route('/moje-lekcje')
 def moje_lekcje():
-    return send_from_directory('.', 'moje-lekcje')
+    return send_from_directory('.', 'moje-lekcje.html')
 
 @app.route('/baza-danych')
 def baza_danych():
-    return send_from_directory('.', 'baza-danych')
+    return send_from_directory('.', 'baza-danych.html')
 
 @app.route('/confirmation')
 def confirmation():
-    return send_from_directory('.', 'confirmation')
+    return send_from_directory('.', 'confirmation.html')
 
 @app.route('/edit')
 def edit():
-    return send_from_directory('.', 'edit')
+    return send_from_directory('.', 'edit.html')
 
 @app.route('/polityka-prywatnosci')
 def polityka_prywatnosci():
-    return send_from_directory('.', 'polityka-prywatnosci')
+    return send_from_directory('.', 'polityka-prywatnosci.html')
 
 @app.route('/potwierdzenie-platnosci')
 def potwierdzenie_platnosci():
-    return send_from_directory('.', 'potwierdzenie-platnosci')
+    return send_from_directory('.', 'potwierdzenie-platnosci.html')
 
 @app.route('/regulamin')
 def regulamin():
-    return send_from_directory('.', 'regulamin')
+    return send_from_directory('.', 'regulamin.html')
 
 @app.route('/rezerwacja-stala')
 def rezerwacja_stala():
-    return send_from_directory('.', 'rezerwacja-stala')
+    return send_from_directory('.', 'rezerwacja-stala.html')
 
 @app.route('/rezerwacja-testowa')
 def rezerwacja_testowa():
-    return send_from_directory('.', 'rezerwacja-testowa')
+    return send_from_directory('.', 'rezerwacja-testowa.html')
 
 # --- Endpointy dla plików statycznych ---
 
@@ -2657,7 +2652,7 @@ def get_tutor_weekly_hours():
 def catch_all(path):
     if path.startswith('api/'):
         abort(404)
-    file_path = path
+    file_path = path + '.html' if '.' not in path else path
     try:
         return send_from_directory('.', file_path)
     except FileNotFoundError:
