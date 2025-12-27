@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         isCyclic: result.isCyclic,
                         tutorName: result.tutorName
                     });
-                    window.location.href = `confirmation.html?${params.toString()}`;
+                    window.location.href = `/confirmation?${params.toString()}`;
                 } else {
                     console.error("Odpowiedź z serwera nie była OK:", response);
                     const errorData = await response.json().catch(() => ({ error: 'Nieznany błąd' }));

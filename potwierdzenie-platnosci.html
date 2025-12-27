@@ -56,7 +56,7 @@
         <h1>Płatność przyjęta!</h1>
         <p>Dziękujemy! Twoja lekcja została opłacona i jest w pełni potwierdzona.</p>
         <p>Informacje o lekcji oraz link do spotkania znajdziesz w swoim panelu klienta.</p>
-        <a href="/moje-lekcje.html" id="dashboardLink" class="btn-dashboard">Przejdź do panelu</a>
+        <a href="/moje-lekcje" id="dashboardLink" class="btn-dashboard">Przejdź do panelu</a>
     </div>
 
     <script>
@@ -73,7 +73,7 @@
                         const data = await response.json();
                         if (data.clientID) {
                             // Zaktualizuj link do panelu z clientID
-                            dashboardLink.href = `/moje-lekcje.html?clientID=${data.clientID}`;
+                            dashboardLink.href = `/moje-lekcje?clientID=${data.clientID}`;
                         }
                     }
                 } catch (error) {

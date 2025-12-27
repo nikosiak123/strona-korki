@@ -273,7 +273,7 @@
                 return;
             }
 
-            newBookingLink.href = `rezerwacja-stala.html?clientID=${clientID}`;
+            newBookingLink.href = `/rezerwacja-stala?clientID=${clientID}`;
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/get-client-dashboard?clientID=${clientID}`);
@@ -570,7 +570,7 @@
                 modalTitle.textContent = "Termin niedostępny!";
                 modalText.innerHTML = `${message}<br><br><strong>Jednorazowo przenieś termin lekcji lub odwołaj zajęcia.</strong>`;
                 modalInfo.style.display = 'none';
-                const editUrl = token ? `edit.html?token=${token}` : '#';
+                const editUrl = token ? `/edit?token=${token}` : '#';
                 
                 let buttonsHtml = '';
                 
@@ -602,7 +602,7 @@
                 }
                 card.className = cardClass;
                 
-                const editUrl = lesson.managementToken ? `edit.html?token=${lesson.managementToken}` : '#';
+                const editUrl = lesson.managementToken ? `/edit?token=${lesson.managementToken}` : '#';
                 let actionsHtml = '<span>Zakończona</span>';
                 let paymentInfoHtml = '';
                 let statusText = lesson.status;

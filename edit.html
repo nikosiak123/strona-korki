@@ -116,7 +116,7 @@
                         });
                         if (!response.ok) throw new Error((await response.json()).message || "Nie udało się odwołać lekcji.");
                         alert("Lekcja została odwołana.");
-                        window.location.href = clientID ? `moje-lekcje.html?clientID=${clientID}` : 'index.html';
+                        window.location.href = clientID ? `/moje-lekcje?clientID=${clientID}` : '/';
                     } catch (error) {
                         alert(`Błąd: ${error.message}`);
                     }
@@ -137,7 +137,7 @@
                     if (!response.ok) throw new Error((await response.json()).message || "Nie udało się zmienić terminu.");
                     
                     alert((await response.json()).message);
-                    window.location.href = clientID ? `moje-lekcje.html?clientID=${clientID}` : window.location.reload();
+                    window.location.href = clientID ? `/moje-lekcje?clientID=${clientID}` : window.location.reload();
                 } catch (error) {
                     alert(`Błąd: ${error.message}`);
                 }

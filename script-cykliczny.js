@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         isTest: result.isTest
                     });
                     // Przekierowanie
-                    window.location.href = `confirmation.html?${params.toString()}`;
+                    window.location.href = `/confirmation?${params.toString()}`;
                 } else {
                     const errorData = await response.json().catch(() => ({ error: 'Nieznany błąd' }));
                     showStatus(errorData.message || errorData.error || `Błąd rezerwacji: ${response.statusText}`, 'error');

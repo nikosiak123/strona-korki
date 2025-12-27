@@ -1,0 +1,19 @@
+RewriteEngine On
+
+# Redirect old .html URLs to new clean URLs (optional, for backward compatibility)
+RewriteRule ^(.*)\.html$ /$1 [R=301,L]
+
+# Serve HTML files without .html extension
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# Handle static files
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))$ $1 [L]
+
+# API routes - let them pass through to backend
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteRule ^(.*)$ $1 [L]
