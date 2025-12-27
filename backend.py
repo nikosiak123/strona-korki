@@ -54,7 +54,7 @@ import uuid
 import traceback
 import threading
 import hashlib
-from flask import Flask, jsonify, request, abort, session
+from flask import Flask, jsonify, request, abort, session, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from datetime import time as dt_time
@@ -146,6 +146,68 @@ except Exception as e:
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
+
+# --- Endpointy dla stron HTML (bez .html w URL) ---
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
+
+@app.route('/login')
+def login():
+    return send_from_directory('.', 'login.html')
+
+@app.route('/panel-korepetytora')
+def panel_korepetytora():
+    return send_from_directory('.', 'panel-korepetytora.html')
+
+@app.route('/moje-lekcje')
+def moje_lekcje():
+    return send_from_directory('.', 'moje-lekcje.html')
+
+@app.route('/baza-danych')
+def baza_danych():
+    return send_from_directory('.', 'baza-danych.html')
+
+@app.route('/confirmation')
+def confirmation():
+    return send_from_directory('.', 'confirmation.html')
+
+@app.route('/edit')
+def edit():
+    return send_from_directory('.', 'edit.html')
+
+@app.route('/polityka-prywatnosci')
+def polityka_prywatnosci():
+    return send_from_directory('.', 'polityka-prywatnosci.html')
+
+@app.route('/potwierdzenie-platnosci')
+def potwierdzenie_platnosci():
+    return send_from_directory('.', 'potwierdzenie-platnosci.html')
+
+@app.route('/regulamin')
+def regulamin():
+    return send_from_directory('.', 'regulamin.html')
+
+@app.route('/rezerwacja-stala')
+def rezerwacja_stala():
+    return send_from_directory('.', 'rezerwacja-stala.html')
+
+@app.route('/rezerwacja-testowa')
+def rezerwacja_testowa():
+    return send_from_directory('.', 'rezerwacja-testowa.html')
+
+# --- Endpointy dla plików statycznych ---
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    # Obsługa plików CSS, JS, obrazów itp.
+    if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
+        return send_from_directory('.', filename)
+    # Jeśli to nie plik statyczny, zwróć 404
+    abort(404)
+
+# --- Endpointy API ---
 
 # Endpoint API: pobierz wolną kwotę klienta
 @app.route('/api/get-free-amount')
