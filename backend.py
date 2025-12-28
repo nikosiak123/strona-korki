@@ -79,7 +79,7 @@ import imagehash
 # --- Konfiguracja ---
 PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
 PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
-COOKIES_FILE = "/var/www/korki/cookies.pkl"
+COOKIES_FILE = "zakrecone_cookies.json"
 HASH_DIFFERENCE_THRESHOLD = 10
 
 
@@ -297,7 +297,7 @@ def calculate_image_hash(image_source):
 def load_cookies(driver, file_path):
     if not os.path.exists(file_path): return False
     try:
-        with open(file_path, 'rb') as file: cookies = pickle.load(file)
+        with open(file_path, 'r') as file: cookies = json.load(file)
         if not cookies: return False
         driver.get("https://www.facebook.com"); time.sleep(1)
         for cookie in cookies:
