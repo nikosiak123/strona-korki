@@ -2658,6 +2658,21 @@ def catch_all(path):
     except FileNotFoundError:
         abort(404)
 
+@app.route('/stats')
+def stats():
+    try:
+        import sys
+        sys.path.append('/home/nikodnaj/strona')
+        from database_stats import get_stats
+        stats_data = get_stats()
+        html = "<h1>Statystyki komentarzy Facebook</h1><table border='1'><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr>"
+        for stat in stats_data:
+            html += f"<tr><td>{stat['Data']}</td><td>{stat['Przeslane']}</td><td>{stat['Odrzucone']}</td><td>{stat['Oczekuje']}</td><td>{stat['LastCommentTime'] or 'Brak'}</td></tr>"
+        html += "</table>"
+        return html
+    except Exception as e:
+        return f"Błąd: {e}"
+
 if __name__ == '__main__':
     # scheduler = BackgroundScheduler()
     # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)  # Zwiększony interwał
