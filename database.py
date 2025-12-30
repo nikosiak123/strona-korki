@@ -417,3 +417,6 @@ class DatabaseTable:
 
 # Inicjalizacja przy imporcie
 # init_database()  # Usunięte - wywoływane w backend.py
+
+if __name__ == '__main__':
+    init_database()
