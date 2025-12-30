@@ -115,6 +115,17 @@
             color: #D32F2F;
         }
 
+        .test-warning {
+            background-color: #FFF3E0;
+            color: #E65100;
+            padding: 0.75rem 1.5rem;
+            margin-top: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid #FF9800;
+        }
+
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
@@ -688,7 +699,8 @@
                             </div>
                             <div class="lesson-actions">${actionsHtml}</div>
                         </div>
-                        ${paymentInfoHtml} 
+                        ${paymentInfoHtml}
+                        ${lesson.isTest ? '<div class="test-warning">⚠️ WAŻNE: Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.</div>' : ''}
                     </div>
                 `;
 
