@@ -86,8 +86,12 @@ HASH_DIFFERENCE_THRESHOLD = 10
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
 
+print("--- Uruchamianie backend.py ---")
+
 # Jawne wywołanie migracji bazy danych na starcie
+print("--- Inicjalizacja bazy danych ---")
 init_database()
+print("--- Baza danych zainicjalizowana ---")
 
 # Inicjalizacja tabel bazy danych
 tutors_table = DatabaseTable('Korepetytorzy')
@@ -2915,4 +2919,5 @@ if __name__ == '__main__':
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
+    print("--- Uruchamianie serwera na porcie 8080 ---")
     app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
