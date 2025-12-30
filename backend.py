@@ -193,9 +193,9 @@ def regulamin():
 def rezerwacja_stala():
     return send_from_directory('.', 'rezerwacja-stala.html')
 
-@app.route('/rezerwacja-testowa')
-def rezerwacja_testowa():
-    return send_from_directory('.', 'rezerwacja-testowa.html')
+@app.route('/potwierdzenie-lekcji')
+def potwierdzenie_lekcji():
+    return send_from_directory('.', 'potwierdzenie-lekcji.html')
 
 # --- Endpointy dla plików statycznych ---
 
@@ -285,6 +285,101 @@ Bardzo pomogłoby nam, gdybyś wypełnił krótką ankietę (zajmuje mniej niż 
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
     logging.info(f"MESSENGER: Wysłano wiadomość follow-up do {psid}.")
+
+def send_confirmation_reminder(management_token):
+    """Wysyła przypomnienie o konieczności potwierdzenia lekcji testowej."""
+    
+    if not MESSENGER_PAGE_TOKEN:
+        logging.warning("MESSENGER: Nie można wysłać przypomnienia o potwierdzeniu - brak tokena.")
+        return
+
+    # Znajdź rezerwację po tokenie
+    reservation = reservations_table.first(formula=f"{{ManagementToken}} = '{management_token}'")
+    if not reservation:
+        logging.error(f"Nie znaleziono rezerwacji dla tokenu: {management_token}")
+        return
+    
+    fields = reservation.get('fields', {})
+    client_id = fields.get('Klient')
+    lesson_date = fields.get('Data')
+    lesson_time = fields.get('Godzina')
+    subject = fields.get('Przedmiot', 'nieznany przedmiot')
+    
+    # Sprawdź czy lekcja jest już potwierdzona
+    if fields.get('confirmed', False):
+        logging.info(f"Lekcja {management_token} jest już potwierdzona, pomijam przypomnienie.")
+        return
+
+    # Pobieramy dane klienta
+    client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
+    psid = client_record['fields'].get('ClientID') if client_record else None
+
+    if not psid:
+        logging.error(f"MESSENGER: Nie znaleziono PSID dla ClientID: {client_id}. Anulowano wysyłkę.")
+        return
+
+    confirmation_link = f"https://zakręcone-korepetycje.pl/potwierdzenie-lekcji?token={management_token}"
+    dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
+    
+    message_to_send = f"""🔔 PRZYPOMNIENIE: Potwierdź swoją lekcję testową!
+
+Masz zaplanowaną lekcję testową z {subject} na {lesson_date} o godzinie {lesson_time}.
+
+Aby lekcja się odbyła, musisz ją potwierdzić w ciągu najbliższych 24 godzin.
+
+Potwierdź teraz: {confirmation_link}
+
+Możesz też potwierdzić w panelu klienta: {dashboard_link}
+
+Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana."""
+    
+    send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
+    logging.info(f"MESSENGER: Wysłano przypomnienie o potwierdzeniu do {psid} dla lekcji {management_token}.")
+
+def check_unconfirmed_lessons():
+    """Sprawdza niepotwierdzone lekcje testowe i odwołuje te, które minął deadline."""
+    now = datetime.now()
+    logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
+    
+    # Znajdź wszystkie niepotwierdzone lekcje testowe
+    unconfirmed_lessons = reservations_table.all(formula="{JestTestowa} = 1 AND {confirmed} = 0")
+    
+    for lesson in unconfirmed_lessons:
+        fields = lesson.get('fields', {})
+        lesson_datetime_str = f"{fields.get('Data')} {fields.get('Godzina')}"
+        
+        try:
+            lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
+            time_until_lesson = lesson_start - now
+            
+            # Jeśli zostało mniej niż 6 godzin do lekcji i nie jest potwierdzona
+            if time_until_lesson <= timedelta(hours=6):
+                logging.info(f"Odwołuję niepotwierdzoną lekcję testową: {fields.get('ManagementToken')}")
+                
+                # Odwołaj lekcję
+                reservations_table.update(lesson['id'], {"Status": "Odwołana - brak potwierdzenia"})
+                
+                # Powiadom korepetytora
+                notify_tutor_about_lesson_change(
+                    fields.get('Korepetytor'), 
+                    "cancelled", 
+                    f"Przedmiot: {fields.get('Przedmiot')}, Data: {fields.get('Data')}, Godzina: {fields.get('Godzina')}, Klient: {fields.get('Klient')} - ODWOŁANA (brak potwierdzenia)"
+                )
+                
+                # Wyślij wiadomość do klienta
+                if MESSENGER_PAGE_TOKEN:
+                    client_record = clients_table.first(formula=f"{{ClientID}} = '{fields.get('Klient').strip()}'")
+                    if client_record:
+                        psid = client_record['fields'].get('ClientID')
+                        message = f"""❌ Twoja lekcja testowa z {fields.get('Przedmiot')} na {fields.get('Data')} o {fields.get('Godzina')} została odwołana.
+
+Przyczyna: Brak potwierdzenia lekcji w wymaganym terminie (24h przed lekcją).
+
+Jeśli nadal jesteś zainteresowany korepetycjami, możesz zarezerwować nową lekcję w panelu klienta."""
+                        send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+                        
+        except ValueError as e:
+            logging.error(f"Błąd parsowania daty dla lekcji {fields.get('ManagementToken')}: {e}")
 
 def calculate_image_hash(image_source):
     try:
@@ -1955,6 +2050,14 @@ def create_reservation():
                 "Typ": "Jednorazowa", "Status": "Oczekuje na płatność", "TeamsLink": teams_link,
                 "JestTestowa": is_test_lesson
             }
+            
+            # Dla lekcji testowych ustaw deadline potwierdzenia na 24h przed lekcją
+            if is_test_lesson:
+                lesson_datetime_str = f"{data['selectedDate']} {data['selectedTime']}"
+                lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
+                confirmation_deadline = lesson_start - timedelta(hours=24)
+                new_one_time_reservation["confirmation_deadline"] = confirmation_deadline.strftime("%Y-%m-%d %H:%M:%S")
+            
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
             
@@ -1983,7 +2086,17 @@ def create_reservation():
                     args=[client_uuid, data['selectedDate'], data['selectedTime'], data['subject']]
                 )
                 logging.info(f"SCHEDULER: Zaplanowano follow-up dla {client_uuid} na {follow_up_time}.")
-
+                
+                # 4. Dodanie zadania przypomnienia o potwierdzeniu na 24h przed lekcją
+                confirmation_reminder_time = lesson_start_aware - timedelta(hours=24)
+                scheduler.add_job(
+                    func=send_confirmation_reminder,
+                    trigger='date',
+                    run_date=confirmation_reminder_time,
+                    id=f'confirmation_reminder_{management_token}',
+                    args=[management_token]
+                )
+                logging.info(f"SCHEDULER: Zaplanowano przypomnienie o potwierdzeniu dla {client_uuid} na {confirmation_reminder_time}.")
                 
                 # Uruchomienie wyszukiwarki profilu Facebook (w tle)
                 client_fields = client_record.get('fields', {})
@@ -2022,6 +2135,14 @@ def create_reservation():
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
                     f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
                 )
+                
+                # Dodaj ostrzeżenie o potwierdzeniu dla lekcji testowej
+                if is_test_lesson:
+                    message_to_send += (
+                        f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia 24 godziny przed terminem.\n"
+                        f"Otrzymasz przypomnienie na Messenger z linkiem do potwierdzenia.\n"
+                        f"Możesz też potwierdzić lekcję w panelu klienta.\n\n"
+                    )
                 
                 # Dodaj informację o kontakcie z korepetytorem dla lekcji testowej
                 if tutor_contact_link:
@@ -2213,7 +2334,8 @@ def get_client_dashboard():
                 "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
                 "isPaid": fields.get('Oplacona', False),
                 "Typ": fields.get('Typ'),
-                "isTest": fields.get('JestTestowa', False)
+                "isTest": fields.get('JestTestowa', False),
+                "confirmed": fields.get('confirmed', False)
             }
             
             inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
@@ -2476,6 +2598,119 @@ def reschedule_reservation():
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany terminu.")
 
+@app.route('/api/get-lesson-by-token')
+def get_lesson_by_token():
+    """Pobiera szczegóły lekcji na podstawie tokenu zarządzania."""
+    token = request.args.get('token')
+    if not token:
+        abort(400, "Brak tokenu.")
+    
+    record = find_reservation_by_token(token)
+    if not record:
+        abort(404, "Nie znaleziono lekcji.")
+    
+    return jsonify(record)
+
+@app.route('/api/confirm-lesson', methods=['POST'])
+def confirm_lesson():
+    """Potwierdza lekcję testową."""
+    data = request.json
+    token = data.get('token')
+    payment_option = data.get('paymentOption', 'later')
+    
+    if not token:
+        abort(400, "Brak tokenu.")
+    
+    record = find_reservation_by_token(token)
+    if not record:
+        abort(404, "Nie znaleziono lekcji.")
+    
+    fields = record.get('fields', {})
+    
+    # Sprawdź czy to lekcja testowa
+    if not fields.get('JestTestowa', False):
+        abort(400, "Tylko lekcje testowe wymagają potwierdzenia.")
+    
+    # Sprawdź czy już potwierdzona
+    if fields.get('confirmed', False):
+        return jsonify({"success": True, "message": "Lekcja jest już potwierdzona."})
+    
+    # Potwierdź lekcję
+    update_data = {"confirmed": True}
+    
+    # Jeśli płatność teraz, oznacz jako opłaconą
+    if payment_option == 'now':
+        update_data["Oplacona"] = True
+        update_data["Status"] = "Opłacona"
+    
+    reservations_table.update(record['id'], update_data)
+    
+    # Wyślij potwierdzenie przez Messenger
+    if MESSENGER_PAGE_TOKEN:
+        client_id = fields.get('Klient')
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
+        if client_record:
+            psid = client_record['fields'].get('ClientID')
+            payment_text = "z obowiązkiem zapłaty teraz" if payment_option == 'now' else "z możliwością zapłaty później"
+            message = f"""✅ Twoja lekcja testowa została potwierdzona {payment_text}!
+
+📅 Data: {fields.get('Data')}
+🕐 Godzina: {fields.get('Godzina')}
+📚 Przedmiot: {fields.get('Przedmiot')}
+👨‍🏫 Korepetytor: {fields.get('Korepetytor')}
+
+Link do spotkania: {fields.get('TeamsLink')}
+
+Pamiętaj, aby dołączyć do spotkania kilka minut przed czasem."""
+            send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+    
+    return jsonify({"success": True, "message": "Lekcja została potwierdzona."})
+
+@app.route('/api/cancel-lesson', methods=['POST'])
+def cancel_lesson():
+    """Odwołuje lekcję testową."""
+    data = request.json
+    token = data.get('token')
+    
+    if not token:
+        abort(400, "Brak tokenu.")
+    
+    record = find_reservation_by_token(token)
+    if not record:
+        abort(404, "Nie znaleziono lekcji.")
+    
+    fields = record.get('fields', {})
+    
+    # Sprawdź czy to lekcja testowa
+    if not fields.get('JestTestowa', False):
+        abort(400, "Tylko lekcje testowe można odwoływać w ten sposób.")
+    
+    # Odwołaj lekcję
+    reservations_table.update(record['id'], {"Status": "Odwołana przez klienta"})
+    
+    # Dodaj wolną kwotę jeśli była opłacona
+    if fields.get('Oplacona'):
+        handle_paid_lesson_cancellation(record)
+    
+    # Powiadom korepetytora
+    lesson_details = f"Przedmiot: {fields.get('Przedmiot')}, Data: {fields.get('Data')}, Godzina: {fields.get('Godzina')}, Klient: {fields.get('Klient')}"
+    notify_tutor_about_lesson_change(fields.get('Korepetytor'), "cancelled", lesson_details)
+    
+    # Wyślij wiadomość do klienta
+    if MESSENGER_PAGE_TOKEN:
+        client_id = fields.get('Klient')
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
+        if client_record:
+            psid = client_record['fields'].get('ClientID')
+            message = f"""❌ Twoja lekcja testowa została odwołana.
+
+📅 Data: {fields.get('Data')}
+🕐 Godzina: {fields.get('Godzina')}
+📚 Przedmiot: {fields.get('Przedmiot')}"""
+            send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+    
+    return jsonify({"success": True, "message": "Lekcja została odwołana."})
+
 # ===================================
 # ENDPOINTY PANELU ADMINISTRACYJNEGO
 # ===================================
@@ -2674,9 +2909,10 @@ def stats():
         return f"Błąd: {e}"
 
 if __name__ == '__main__':
-    # scheduler = BackgroundScheduler()
-    # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)  # Zwiększony interwał
-    # scheduler.start()
-    # # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
-    # atexit.register(lambda: scheduler.shutdown())
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
+    scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=30)  # Sprawdzaj co 30 minut
+    scheduler.start()
+    # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
+    atexit.register(lambda: scheduler.shutdown())
     app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)

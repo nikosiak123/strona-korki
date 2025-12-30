@@ -600,6 +600,10 @@
                 if (lesson.isOngoing) {
                     cardClass += ' ongoing';
                 }
+                // Dodaj klasę dla niepotwierdzonych lekcji testowych
+                if (lesson.isTest && !lesson.confirmed && !isPast) {
+                    cardClass += ' unconfirmed';
+                }
                 card.className = cardClass;
                 
                 const editUrl = lesson.managementToken ? `/edit?token=${lesson.managementToken}` : '#';
@@ -614,8 +618,16 @@
                 }
 
                 if (!isPast) {
-                    console.log('Lekcja:', lesson.date, lesson.time, 'Status:', lesson.status, 'isPaid:', lesson.isPaid, 'isTest:', lesson.isTest);
-                    if (lesson.isOngoing) {
+                    console.log('Lekcja:', lesson.date, lesson.time, 'Status:', lesson.status, 'isPaid:', lesson.isPaid, 'isTest:', lesson.isTest, 'confirmed:', lesson.confirmed);
+                    
+                    // Specjalna obsługa dla niepotwierdzonych lekcji testowych
+                    if (lesson.isTest && !lesson.confirmed) {
+                        statusText = '<span style="color: #FFA726; font-weight: bold;">OCZEKUJE NA POTWIERDZENIE</span>';
+                        actionsHtml = `
+                            <button class="btn-confirm" data-token="${lesson.managementToken}">Potwierdź</button>
+                            <button class="btn-unsubscribe" data-token="${lesson.managementToken}">Odwołaj</button>
+                        `;
+                    } else if (lesson.isOngoing) {
                         // Lekcja w trakcie
                         statusText = '<span style="color: #FF9800; font-weight: bold;">W TRAKCIE</span>';
                         let payButtonHtml = '';
@@ -723,6 +735,50 @@
                     joinButton.addEventListener('click', () => {
                         const teamsLink = joinButton.dataset.teamsLink;
                         showJoinModal(teamsLink);
+                    });
+                }
+
+                // Event listener dla przycisku potwierdzania lekcji testowej
+                const confirmButton = card.querySelector('.btn-confirm');
+                if (confirmButton) {
+                    confirmButton.addEventListener('click', () => {
+                        const token = confirmButton.dataset.token;
+                        window.location.href = `/potwierdzenie-lekcji?token=${token}`;
+                    });
+                }
+
+                // Event listener dla przycisku odwoływania lekcji testowej
+                const cancelButton = card.querySelector('.btn-unsubscribe');
+                if (cancelButton) {
+                    cancelButton.addEventListener('click', async () => {
+                        if (!confirm('Czy na pewno chcesz odwołać tę lekcję testową?')) return;
+                        
+                        const token = cancelButton.dataset.token;
+                        cancelButton.textContent = 'Odwołuję...';
+                        cancelButton.disabled = true;
+                        
+                        try {
+                            const response = await fetch('/api/cancel-lesson', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({ token: token })
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                alert('Lekcja została odwołana.');
+                                window.location.reload();
+                            } else {
+                                alert('Błąd: ' + (result.error || 'Nie udało się odwołać lekcji.'));
+                                cancelButton.textContent = 'Odwołaj';
+                                cancelButton.disabled = false;
+                            }
+                        } catch (error) {
+                            alert('Błąd połączenia: ' + error.message);
+                            cancelButton.textContent = 'Odwołaj';
+                            cancelButton.disabled = false;
+                        }
                     });
                 }
                 

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potwierdzenie Lekcji - Zakręcone Korepetycje</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .confirmation-container { max-width: 600px; margin: 4rem auto; padding: 2.5rem; background-color: var(--container-bg-color); border-radius: 16px; box-shadow: 0 8px 24px var(--shadow-color); text-align: center; }
+        .confirmation-container h1 { font-size: 2rem; color: var(--text-dark); margin-bottom: 1rem; }
+        .confirmation-container p { font-size: 1.1rem; color: var(--text-medium); line-height: 1.8; }
+        .details { margin: 2rem 0; font-size: 1.2rem; font-weight: 600; }
+        .confirmation-buttons { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; }
+        .confirmation-btn { padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 700; text-decoration: none; transition: all 0.3s ease; cursor: pointer; border: none; }
+        .confirm-btn { background-color: #4CAF50; color: white; }
+        .cancel-btn { background-color: #f44336; color: white; }
+        .back-btn { background-color: #E0E0E0; color: var(--text-dark); }
+        .warning { margin-top: 1.5rem; padding: 1rem; background-color: #FFF3CD; border: 1px solid #FFEAA7; border-radius: 8px; font-size: 0.95rem; color: #856404; }
+        .success { margin-top: 1.5rem; padding: 1rem; background-color: #D4EDDA; border: 1px solid #C3E6CB; border-radius: 8px; font-size: 0.95rem; color: #155724; }
+        .error { margin-top: 1.5rem; padding: 1rem; background-color: #F8D7DA; border: 1px solid #F5C6CB; border-radius: 8px; font-size: 0.95rem; color: #721C24; }
+    </style>
+</head>
+<body>
+    <div class="confirmation-container">
+        <h1 id="pageTitle">Potwierdź swoją lekcję testową</h1>
+        
+        <div id="lessonDetails" class="details">
+            <!-- Szczegóły lekcji będą wczytane dynamicznie -->
+        </div>
+        
+        <div id="warningMessage" class="warning" style="display: none;">
+            ⚠️ <strong>WAŻNE:</strong> Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. 
+            Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.
+        </div>
+        
+        <div id="confirmationSection">
+            <p>Wybierz opcję płatności:</p>
+            <div class="confirmation-buttons">
+                <button class="confirmation-btn confirm-btn" onclick="confirmLesson('now')">Potwierdź i zapłać teraz</button>
+                <button class="confirmation-btn confirm-btn" onclick="confirmLesson('later')">Potwierdź i zapłać później</button>
+            </div>
+            <div class="confirmation-buttons" style="margin-top: 1rem;">
+                <button class="confirmation-btn cancel-btn" onclick="cancelLesson()">Odwołaj lekcję</button>
+                <button class="confirmation-btn back-btn" onclick="goBack()">Wróć do panelu</button>
+            </div>
+        </div>
+        
+        <div id="successMessage" class="success" style="display: none;">
+            ✅ Lekcja została pomyślnie potwierdzona! Otrzymasz wkrótce wiadomość z dalszymi instrukcjami.
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;">
+            ❌ Wystąpił błąd podczas potwierdzania lekcji. Spróbuj ponownie lub skontaktuj się z obsługą.
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        let lessonData = null;
+        
+        // Funkcja do pobierania danych lekcji
+        async function loadLessonData() {
+            if (!token) {
+                showError('Brak tokenu potwierdzania w URL.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/get-lesson-by-token?token=${token}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                lessonData = data;
+                displayLessonDetails(data);
+                
+            } catch (error) {
+                console.error('Błąd ładowania danych lekcji:', error);
+                showError('Nie udało się wczytać danych lekcji.');
+            }
+        }
+        
+        // Funkcja wyświetlająca szczegóły lekcji
+        function displayLessonDetails(data) {
+            const detailsDiv = document.getElementById('lessonDetails');
+            const fields = data.fields;
+            
+            detailsDiv.innerHTML = `
+                <p><strong>Przedmiot:</strong> ${fields.Przedmiot || 'Nieznany'}</p>
+                <p><strong>Data:</strong> ${fields.Data}</p>
+                <p><strong>Godzina:</strong> ${fields.Godzina}</p>
+                <p><strong>Korepetytor:</strong> ${fields.Korepetytor || 'Nieznany'}</p>
+                <p><strong>Status:</strong> ${fields.confirmed ? 'Potwierdzona' : 'Oczekuje na potwierdzenie'}</p>
+            `;
+            
+            // Jeśli lekcja jest już potwierdzona, ukryj przyciski
+            if (fields.confirmed) {
+                document.getElementById('confirmationSection').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('pageTitle').textContent = 'Lekcja potwierdzona';
+            } else {
+                document.getElementById('warningMessage').style.display = 'block';
+            }
+        }
+        
+        // Funkcja potwierdzająca lekcję
+        async function confirmLesson(paymentOption) {
+            if (!lessonData) return;
+            
+            try {
+                const response = await fetch('/api/confirm-lesson', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        token: token,
+                        paymentOption: paymentOption
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('confirmationSection').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('pageTitle').textContent = 'Lekcja potwierdzona';
+                    
+                    // Odśwież szczegóły
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showError(result.error || 'Błąd podczas potwierdzania lekcji.');
+                }
+                
+            } catch (error) {
+                console.error('Błąd potwierdzania lekcji:', error);
+                showError('Błąd połączenia. Spróbuj ponownie.');
+            }
+        }
+        
+        // Funkcja odwołująca lekcję
+        async function cancelLesson() {
+            if (!confirm('Czy na pewno chcesz odwołać tę lekcję?')) return;
+            
+            try {
+                const response = await fetch('/api/cancel-lesson', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        token: token
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Lekcja została odwołana.');
+                    window.location.href = '/moje-lekcje';
+                } else {
+                    showError(result.error || 'Błąd podczas odwoływania lekcji.');
+                }
+                
+            } catch (error) {
+                console.error('Błąd odwoływania lekcji:', error);
+                showError('Błąd połączenia. Spróbuj ponownie.');
+            }
+        }
+        
+        // Funkcja powrotu do panelu
+        function goBack() {
+            window.location.href = '/moje-lekcje';
+        }
+        
+        // Funkcje pomocnicze
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = '❌ ' + message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('confirmationSection').style.display = 'none';
+        }
+        
+        // Ładowanie danych przy starcie
+        document.addEventListener('DOMContentLoaded', loadLessonData);
+    </script>
+</body>
+</html>

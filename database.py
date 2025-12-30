@@ -95,6 +95,15 @@ def init_database():
         cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN WolnaKwotaUzyta INTEGER DEFAULT 0")
         print("✓ Kolumna WolnaKwotaUzyta dodana pomyślnie.")
     
+    # Migracja: Dodaj kolumny dla systemu potwierdzeń lekcji testowych
+    try:
+        cursor.execute("SELECT confirmed FROM Rezerwacje LIMIT 1")
+    except sqlite3.OperationalError:
+        print("Migracja: Dodawanie kolumn confirmed i confirmation_deadline do tabeli Rezerwacje...")
+        cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN confirmed INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE Rezerwacje ADD COLUMN confirmation_deadline TEXT")
+        print("✓ Kolumny confirmed i confirmation_deadline dodane pomyślnie.")
+    
     # Tabela StaleRezerwacje
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS StaleRezerwacje (
@@ -165,6 +174,7 @@ class DatabaseTable:
         if self.table_name == 'Rezerwacje':
             fields['JestTestowa'] = bool(fields.get('JestTestowa', 0))
             fields['Oplacona'] = bool(fields.get('Oplacona', 0))
+            fields['confirmed'] = bool(fields.get('confirmed', 0))
         elif self.table_name == 'StaleRezerwacje':
             fields['Aktywna'] = bool(fields.get('Aktywna', 1))
         
