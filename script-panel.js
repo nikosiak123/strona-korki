@@ -6,7 +6,7 @@ const availableLevels = [
     { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
 ];
 
-const API_BASE_URL = 'http://10.186.0.2:8080'; // Adres serwera na VM
+const API_BASE_URL = ''; // Względny adres, przez Nginx proxy
 
 const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
 const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
