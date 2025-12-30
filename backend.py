@@ -2639,6 +2639,17 @@ def confirm_lesson():
     if fields.get('confirmed', False):
         return jsonify({"success": True, "message": "Lekcja jest już potwierdzona."})
     
+    # Sprawdź czas do lekcji - potwierdzenie dostępne tylko 24h przed
+    lesson_datetime_str = f"{fields.get('Data')} {fields.get('Godzina')}"
+    try:
+        lesson_datetime = datetime.strptime(lesson_datetime_str, '%Y-%m-%d %H:%M')
+        now = datetime.now()
+        time_diff = lesson_datetime - now
+        if time_diff.total_seconds() > 24 * 3600:  # Więcej niż 24h
+            abort(400, "Potwierdzenie lekcji testowej jest dostępne tylko 24 godziny przed jej rozpoczęciem.")
+    except ValueError:
+        abort(400, "Nieprawidłowy format daty lub godziny.")
+    
     # Potwierdź lekcję
     update_data = {"confirmed": True}
     

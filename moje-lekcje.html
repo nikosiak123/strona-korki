@@ -633,11 +633,20 @@
                     
                     // Specjalna obsługa dla niepotwierdzonych lekcji testowych
                     if (lesson.isTest && !lesson.confirmed) {
-                        statusText = '<span style="color: #FFA726; font-weight: bold;">OCZEKUJE NA POTWIERDZENIE</span>';
-                        actionsHtml = `
-                            <button class="btn-confirm" data-token="${lesson.managementToken}">Potwierdź</button>
-                            <button class="btn-unsubscribe" data-token="${lesson.managementToken}">Odwołaj</button>
-                        `;
+                        // Sprawdź czas do lekcji
+                        const lessonDateTime = new Date(`${lesson.date}T${lesson.time}`);
+                        const now = new Date();
+                        const timeDiffHours = (lessonDateTime - now) / (1000 * 60 * 60);
+                        if (timeDiffHours <= 24) {
+                            statusText = '<span style="color: #FFA726; font-weight: bold;">OCZEKUJE NA POTWIERDZENIE</span>';
+                            actionsHtml = `
+                                <button class="btn-confirm" data-token="${lesson.managementToken}">Potwierdź</button>
+                                <button class="btn-unsubscribe" data-token="${lesson.managementToken}">Odwołaj</button>
+                            `;
+                        } else {
+                            statusText = '<span style="color: #9E9E9E;">OCZEKUJE NA POTWIERDZENIE (dostępne za ' + Math.ceil(timeDiffHours - 24) + 'h)</span>';
+                            actionsHtml = '<span>Potwierdzenie dostępne wkrótce</span>';
+                        }
                     } else if (lesson.isOngoing) {
                         // Lekcja w trakcie
                         statusText = '<span style="color: #FF9800; font-weight: bold;">W TRAKCIE</span>';
@@ -700,7 +709,7 @@
                             <div class="lesson-actions">${actionsHtml}</div>
                         </div>
                         ${paymentInfoHtml}
-                        ${lesson.isTest ? '<div class="test-warning">⚠️ WAŻNE: Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.</div>' : ''}
+                        ${lesson.isTest && !lesson.confirmed ? '<div class="test-warning">⚠️ WAŻNE: Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.</div>' : ''}
                     </div>
                 `;
 
