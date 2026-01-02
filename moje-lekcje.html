@@ -709,7 +709,7 @@
                             <div class="lesson-actions">${actionsHtml}</div>
                         </div>
                         ${paymentInfoHtml}
-                        ${lesson.isTest && !lesson.confirmed ? '<div class="test-warning">⚠️ WAŻNE: Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.</div>' : ''}
+                        ${lesson.isTest && !lesson.confirmed && !isPast ? '<div class="test-warning">⚠️ WAŻNE: Lekcja testowa wymaga potwierdzenia 24 godziny przed jej rozpoczęciem. Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana.</div>' : ''}
                     </div>
                 `;
 
