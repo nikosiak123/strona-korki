@@ -1191,6 +1191,7 @@ def initiate_payment():
         session_id = str(uuid.uuid4())
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
+        base_url = "https://zakręcone-korepetycje.pl" if not P24_SANDBOX else f"{request.host_url.rstrip('/')}"
         payload = {
             "merchantId": P24_MERCHANT_ID,
             "posId": P24_POS_ID,
@@ -1201,8 +1202,8 @@ def initiate_payment():
             "email": client_email,
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
-            "urlReturn": f"{request.host_url}potwierdzenie-platnosci.html?token={token}",
-            "urlStatus": f"{request.host_url}api/payment-notification",
+            "urlReturn": f"{base_url}/potwierdzenie-platnosci.html?token={token}",
+            "urlStatus": f"{base_url}/api/payment-notification",
             "sign": sign
         }
 
