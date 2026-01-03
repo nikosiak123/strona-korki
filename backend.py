@@ -1201,7 +1201,7 @@ def initiate_payment():
             "email": client_email,
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
-            "urlReturn": f"{request.host_url}potwierdzenie-platnosci.html?token={token}",
+            "urlReturn": f"{request.host_url.replace('https://', 'http://')}potwierdzenie-platnosci.html?token={token}",
             "urlStatus": f"{request.host_url}api/payment-notification",
             "sign": sign
         }
