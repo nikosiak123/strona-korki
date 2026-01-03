@@ -1201,8 +1201,8 @@ def initiate_payment():
             "email": client_email,
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
-            "urlReturn": f"{request.host_url.replace('http://', 'https://').replace('ę', 'e')}potwierdzenie-platnosci.html?token={token}",
-            "urlStatus": f"{request.host_url.replace('http://', 'https://').replace('ę', 'e')}api/payment-notification",
+            "urlReturn": f"{request.host_url.replace('http://', 'https://').replace('zakręcone-korepetycje.pl', 'xn--zakrcone-korepetycje-8ac.pl')}potwierdzenie-platnosci.html?token={token}",
+            "urlStatus": f"{request.host_url.replace('http://', 'https://').replace('zakręcone-korepetycje.pl', 'xn--zakrcone-korepetycje-8ac.pl')}api/payment-notification",
             "sign": sign
         }
 
