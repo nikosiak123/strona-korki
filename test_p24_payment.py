@@ -27,13 +27,13 @@ def generate_p24_sign(session_id, merchant_id, amount, currency, crc):
 
 # Symulacja danych podobnych do logów
 session_id = str(uuid.uuid4())  # Nowy unikalny session_id
-amount = 6500  # Kwota w groszach
+amount = 7000  # Kwota w groszach
 currency = "PLN"
-description = "Lekcja matematyka"
+description = "Lekcja Matematyka"
 email = "klient@example.com"
 country = "PL"
 language = "pl"
-urlReturn = "http://zakrecone-korepetycje.pl/potwierdzenie-platnosci.html?token=test123"
+urlReturn = "http://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token=c82cda34-4f4c-4793-b17b-b9a9f191174b"
 urlStatus = "https://zakręcone-korepetycje.pl/api/payment-notification"
 
 # Generowanie podpisu

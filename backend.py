@@ -1201,16 +1201,20 @@ def initiate_payment():
             "email": client_email,
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
-            "urlReturn": f"{request.host_url.replace('https://', 'http://')}potwierdzenie-platnosci.html?token={token}",
+            "urlReturn": f"{request.host_url.replace('http://', 'https://')}potwierdzenie-platnosci.html?token={token}",
             "urlStatus": f"{request.host_url.replace('http://', 'https://')}api/payment-notification",
             "sign": sign
         }
 
+        # Przelewy24 może odrzucać URL-e z escapowanymi znakami Unicode
+        payload_json = json.dumps(payload, ensure_ascii=False)
+
         logging.info(f"P24 payload: {payload}")
 
         response = requests.post(
-            f"{P24_API_URL}/api/v1/transaction/register", 
-            json=payload, 
+            f"{P24_API_URL}/api/v1/transaction/register",
+            data=payload_json,
+            headers={'Content-Type': 'application/json'},
             auth=(str(P24_POS_ID), P24_API_KEY)
         )
 
