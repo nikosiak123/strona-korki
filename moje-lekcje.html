@@ -473,6 +473,13 @@
 
             function showPaymentStep(lesson, managementToken) {
                 console.log('showPaymentStep wywołane dla lekcji:', lesson, 'token:', managementToken);
+
+                // Zaktualizuj UI: zmień przycisk na potwierdzony
+                const confirmBtn = document.querySelector(`.btn-confirm[data-id="${lesson.id}"]`);
+                if (confirmBtn) {
+                    confirmBtn.outerHTML = '<span class="confirmed-info">Najbliższa lekcja potwierdzona</span>';
+                }
+
                 modalTitle.textContent = "Wybierz metodę płatności";
                 modalText.innerHTML = `Lekcja została potwierdzona. Jak chcesz za nią zapłacić?
                                      <br><br>
