@@ -357,6 +357,12 @@
                 const confirmButton = card.querySelector('.btn-confirm');
                 if (confirmButton) {
                     confirmButton.addEventListener('click', async () => {
+                        // Sprawdź czy lekcja nie jest już potwierdzona
+                        if (lesson.isNextLessonConfirmed) {
+                            alert('Najbliższa lekcja jest już potwierdzona.');
+                            return;
+                        }
+
                         confirmButton.textContent = 'Sprawdzam...';
                         confirmButton.disabled = true;
             
@@ -519,8 +525,11 @@
                     modalInfo.textContent = "Lekcja została potwierdzona. Informacje o płatności znajdziesz w swoim panelu klienta.";
                     modalInfo.style.display = 'block';
                     modalButtons.style.display = 'none';
-                    // Lekcja już potwierdzona, nie trzeba nic więcej robić
-                    setTimeout(() => modalOverlay.classList.remove('active'), 4000);
+                    // Lekcja już potwierdzona, odśwież stronę po zamknięciu modal
+                    setTimeout(() => {
+                        modalOverlay.classList.remove('active');
+                        window.location.reload();
+                    }, 4000);
                 };
             }
 
