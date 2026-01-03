@@ -916,6 +916,12 @@ def check_if_client_has_cyclic_with_tutor(client_id, tutor_name):
     formula = f"AND({{Klient_ID}} = '{client_id}', {{Korepetytor}} = '{tutor_name}', {{Aktywna}} = 1)"
     return cyclic_reservations_table.first(formula=formula) is not None
 
+def check_if_client_has_any_lessons_with_tutor(client_id, tutor_name):
+    """Sprawdza, czy klient miał jakiekolwiek zajęcia z korepetytorem (oprócz anulowanych)."""
+    formula = f"AND({{Klient}} = '{client_id}', {{Korepetytor}} = '{tutor_name}', NOT({{Status}} = 'Anulowana (brak płatności)'), NOT({{Status}} = 'Przeniesiona (zakończona)'))"
+    lessons = reservations_table.all(formula=formula)
+    return len(lessons) > 0
+
 # === Koniec funkcji pomocniczych ===
 
 # === Funkcje płatności Przelewy24 ===
@@ -1720,12 +1726,12 @@ def get_schedule():
                 teaches_level = all(tag in tutor_levels for tag in required_level_tags)
                 teaches_subject = subject in tutor_subjects
                 
-                # Wyjątek: jeśli klient ma stałe zajęcia z tym korepetytorem, pokaż go nawet jeśli poziomy się zmieniły
-                has_cyclic = False
+                # Wyjątek: jeśli klient miał jakiekolwiek zajęcia z tym korepetytorem, pokaż go nawet jeśli poziomy się zmieniły
+                has_any_lessons = False
                 if client_id and not teaches_level:
-                    has_cyclic = check_if_client_has_cyclic_with_tutor(client_id, tutor_name)
-                
-                if (teaches_level and teaches_subject) or has_cyclic:
+                    has_any_lessons = check_if_client_has_any_lessons_with_tutor(client_id, tutor_name)
+
+                if (teaches_level and teaches_subject) or has_any_lessons:
                     # Sprawdzenie limitu godzin tygodniowo
                     tutor_limit = fields.get('LimitGodzinTygodniowo')
                     
@@ -2006,20 +2012,15 @@ def create_reservation():
         tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_for_reservation}'")
         if tutor_record:
             tutor_limit = tutor_record['fields'].get('LimitGodzinTygodniowo')
-            
+
             if tutor_limit is not None:
                 lesson_date = datetime.strptime(data['selectedDate'], '%Y-%m-%d').date()
                 week_start = get_week_start(lesson_date)
                 current_hours = get_tutor_hours_for_week(tutor_for_reservation, week_start)
-                
-                # Blokada dla nowych rezerwacji cyklicznych
-                if is_cyclic and current_hours >= tutor_limit:
-                    abort(409, f"Korepetytor osiągnął limit godzin ({tutor_limit}h) w tym tygodniu.")
-                
-                # Blokada dla jednorazowych - TYLKO jeśli uczeń nie ma stałych zajęć
-                if not is_cyclic and current_hours >= tutor_limit:
-                    has_cyclic = check_if_client_has_cyclic_with_tutor(client_uuid, tutor_for_reservation)
-                    if not has_cyclic:
+
+                if current_hours >= tutor_limit:
+                    has_any_lessons = check_if_client_has_any_lessons_with_tutor(client_uuid, tutor_for_reservation)
+                    if not has_any_lessons:
                         abort(409, f"Korepetytor osiągnął limit godzin ({tutor_limit}h) w tym tygodniu.")
 
         if is_cyclic:
