@@ -565,6 +565,10 @@
             modalOverlay.onclick = (e) => {
                 if (e.target === modalOverlay) {
                     modalOverlay.classList.remove('active');
+                    // Jeśli to okno z informacją o potwierdzeniu, odśwież stronę natychmiast
+                    if (modalInfo.style.display === 'block') {
+                        window.location.reload();
+                    }
                 }
             };
 
