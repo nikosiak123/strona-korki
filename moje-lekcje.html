@@ -359,7 +359,7 @@
                     confirmButton.addEventListener('click', async () => {
                         // Sprawdź czy lekcja nie jest już potwierdzona
                         if (lesson.isNextLessonConfirmed) {
-                            alert('Najbliższa lekcja jest już potwierdzona.');
+                            window.location.reload();
                             return;
                         }
 
