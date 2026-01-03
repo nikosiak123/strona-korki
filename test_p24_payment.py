@@ -26,59 +26,72 @@ def generate_p24_sign(session_id, merchant_id, amount, currency, crc):
     return hashlib.sha384(sign_json.encode('utf-8')).hexdigest()
 
 # Symulacja danych podobnych do logów
-session_id = str(uuid.uuid4())  # Nowy unikalny session_id
-amount = 7000  # Kwota w groszach
+amount = 6500  # Kwota w groszach
 currency = "PLN"
-description = "Lekcja Matematyka"
+description = "Lekcja matematyka"
 email = "klient@example.com"
 country = "PL"
 language = "pl"
-urlReturn = "http://zakręcone-korepetycje.pl/potwierdzenie-platnosci.html?token=c82cda34-4f4c-4793-b17b-b9a9f191174b"
 urlStatus = "https://zakręcone-korepetycje.pl/api/payment-notification"
 
-# Generowanie podpisu
-sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, currency, P24_CRC_KEY)
+# Testuj różne urlReturn
+urlReturn_options = [
+    "https://google.com",
+    "http://zakręcone-korepetycje.pl/",
+    "https://zakręcone-korepetycje.pl/",
+    "http://zakrecone-korepetycje.pl/",
+    "https://zakrecone-korepetycje.pl/",
+    "http://xn--zakrcone-korepetycje-8ac.pl/",
+    "https://xn--zakrcone-korepetycje-8ac.pl/"
+]
 
-payload = {
-    "merchantId": P24_MERCHANT_ID,
-    "posId": P24_POS_ID,
-    "sessionId": session_id,
-    "amount": amount,
-    "currency": currency,
-    "description": description,
-    "email": email,
-    "country": country,
-    "language": language,
-    "urlReturn": urlReturn,
-    "urlStatus": urlStatus,
-    "sign": sign
-}
+for urlReturn in urlReturn_options:
+    print(f"\n=== Testing urlReturn: {urlReturn} ===")
+    session_id = str(uuid.uuid4())  # Nowy session_id dla każdego testu
 
-print("P24 payload:", json.dumps(payload, indent=2))
+    # Generowanie podpisu
+    sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, currency, P24_CRC_KEY)
 
-try:
-    response = requests.post(
-        f"{P24_API_URL}/api/v1/transaction/register",
-        json=payload,
-        auth=(str(P24_POS_ID), P24_API_KEY),
-        timeout=10
-    )
+    payload = {
+        "merchantId": P24_MERCHANT_ID,
+        "posId": P24_POS_ID,
+        "sessionId": session_id,
+        "amount": amount,
+        "currency": currency,
+        "description": description,
+        "email": email,
+        "country": country,
+        "language": language,
+        "urlReturn": urlReturn,
+        "urlStatus": urlStatus,
+        "sign": sign
+    }
 
-    print(f"P24 request sent, status: {response.status_code}")
-    print(f"Response: {response.text}")
+    print("P24 payload:", json.dumps(payload, indent=2))
 
-    if response.status_code == 200:
-        result = response.json()
-        print("P24 Response:", json.dumps(result, indent=2))
+    try:
+        response = requests.post(
+            f"{P24_API_URL}/api/v1/transaction/register",
+            json=payload,
+            auth=(str(P24_POS_ID), P24_API_KEY),
+            timeout=10
+        )
 
-        if 'data' in result and 'token' in result['data']:
-            p24_token = result['data']['token']
-            payment_url = f"{P24_API_URL}/trnRequest/{p24_token}"
-            print(f"Generated payment URL: {payment_url}")
+        print(f"P24 request sent, status: {response.status_code}")
+        print(f"Response: {response.text}")
+
+        if response.status_code == 200:
+            result = response.json()
+            print("P24 Response:", json.dumps(result, indent=2))
+
+            if 'data' in result and 'token' in result['data']:
+                p24_token = result['data']['token']
+                payment_url = f"{P24_API_URL}/trnRequest/{p24_token}"
+                print(f"Generated payment URL: {payment_url}")
+            else:
+                print("ERROR: Brak tokena w odpowiedzi")
         else:
-            print("ERROR: Brak tokena w odpowiedzi")
-    else:
-        print(f"P24 Error: {response.status_code} - {response.text}")
+            print(f"P24 Error: {response.status_code} - {response.text}")
 
-except Exception as e:
-    print(f"Exception: {e}")
+    except Exception as e:
+        print(f"Exception: {e}")
