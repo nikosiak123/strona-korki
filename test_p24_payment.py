@@ -33,7 +33,7 @@ description = "Lekcja matematyka"
 email = "klient@example.com"
 country = "PL"
 language = "pl"
-urlReturn = "http://zakrecone-korepetycje.pl/"
+urlReturn = "http://zakrecone-korepetycje.pl/potwierdzenie-platnosci.html?token=test123"
 urlStatus = "https://zakręcone-korepetycje.pl/api/payment-notification"
 
 # Generowanie podpisu
