@@ -1202,7 +1202,7 @@ def initiate_payment():
             "country": "PL",      # DODANE
             "language": "pl",     # DODANE
             "urlReturn": f"{request.host_url.replace('https://', 'http://')}potwierdzenie-platnosci.html?token={token}",
-            "urlStatus": f"{request.host_url.replace('https://', 'http://')}api/payment-notification",
+            "urlStatus": f"{request.host_url.replace('http://', 'https://')}api/payment-notification",
             "sign": sign
         }
 
