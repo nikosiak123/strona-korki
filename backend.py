@@ -169,9 +169,9 @@ def panel_korepetytora():
 def moje_lekcje():
     return send_from_directory('.', 'moje-lekcje')
 
-@app.route('/baza-danych')
-def baza_danych():
-    return send_from_directory('.', 'baza-danych.html')
+@app.route('/panel-systemowy')
+def panel_systemowy():
+    return send_from_directory('.', 'panel-systemowy.html')
 
 @app.route('/confirmation')
 def confirmation():
@@ -329,7 +329,7 @@ def send_confirmation_reminder(management_token):
 
 Masz zaplanowaną lekcję testową z {subject} na {lesson_date} o godzinie {lesson_time}.
 
-Aby lekcja się odbyła, musisz ją potwierdzić w ciągu najbliższych 24 godzin.
+Aby lekcja się odbyła, musisz ją potwierdzić w ciągu najbliższych 18 godzin.
 
 Potwierdź teraz: {confirmation_link}
 
@@ -2679,9 +2679,7 @@ def confirm_lesson():
 📚 Przedmiot: {fields.get('Przedmiot')}
 👨‍🏫 Korepetytor: {fields.get('Korepetytor')}
 
-Link do spotkania: {fields.get('TeamsLink')}
-
-Pamiętaj, aby dołączyć do spotkania kilka minut przed czasem."""
+Link do spotkania: {fields.get('TeamsLink')}"""
             send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
     
     return jsonify({"success": True, "message": "Lekcja została potwierdzona."})
@@ -2841,6 +2839,135 @@ def delete_table_record(table_name, record_id):
     except Exception as e:
         traceback.print_exc()
         abort(500, f"Błąd podczas usuwania rekordu: {str(e)}")
+
+@app.route('/api/admin/manual-users', methods=['GET'])
+def get_manual_users():
+    require_admin()
+    try:
+        import os
+        conversation_store_dir = "conversation_store"
+        manual_users = []
+        
+        if os.path.exists(conversation_store_dir):
+            for filename in os.listdir(conversation_store_dir):
+                if filename.endswith('.json'):
+                    psid = filename[:-5]  # remove .json
+                    filepath = os.path.join(conversation_store_dir, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            history_data = json.load(f)
+                        
+                        # Sprawdź czy ostatni komunikat to MANUAL_MODE
+                        if history_data and history_data[-1].get('role') == 'model' and history_data[-1].get('parts', [{}])[0].get('text') == 'MANUAL_MODE':
+                            # Pobierz nazwę klienta
+                            client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+                            client_name = client_record['fields'].get('Imie', 'Nieznany') if client_record else 'Nieznany'
+                            
+                            # Sprawdź czy ma nieodczytane wiadomości (ostatnia wiadomość od user)
+                            has_unread = history_data and history_data[-1].get('role') == 'user'
+                            
+                            # Ostatnia wiadomość
+                            last_msg = ''
+                            for msg in reversed(history_data):
+                                if msg.get('parts'):
+                                    last_msg = msg['parts'][0].get('text', '')
+                                    if last_msg:
+                                        break
+                            
+                            manual_users.append({
+                                'psid': psid,
+                                'name': client_name,
+                                'lastMessage': last_msg[:100] + '...' if len(last_msg) > 100 else last_msg,
+                                'hasUnread': has_unread
+                            })
+                    except Exception as e:
+                        logging.error(f"Błąd przetwarzania pliku {filename}: {e}")
+        
+        # Sortuj po nieodczytanych na górze
+        manual_users.sort(key=lambda x: (not x['hasUnread'], x['name']))
+        
+        return jsonify({'users': manual_users})
+    except Exception as e:
+        logging.error(f"Błąd w get_manual_users: {e}", exc_info=True)
+        return jsonify({'users': []}), 500
+
+@app.route('/api/admin/user-chat/<psid>', methods=['GET'])
+def get_user_chat(psid):
+    require_admin()
+    try:
+        from bot import load_history  # Import z bot.py
+        history = load_history(psid)
+        
+        messages = []
+        for msg in history:
+            if msg.parts:
+                role = 'user' if msg.role == 'user' else 'bot'
+                text = msg.parts[0].text
+                messages.append({'role': role, 'text': text})
+        
+        return jsonify({'messages': messages})
+    except Exception as e:
+        logging.error(f"Błąd w get_user_chat: {e}", exc_info=True)
+        return jsonify({'messages': []}), 500
+
+@app.route('/api/admin/send-message', methods=['POST'])
+def admin_send_message():
+    require_admin()
+    try:
+        data = request.json
+        psid = data.get('psid')
+        message = data.get('message')
+        
+        if not psid or not message:
+            return jsonify({'error': 'Brak PSID lub wiadomości'}), 400
+        
+        # Znajdź stronę dla tego PSID (zakładamy pierwszą dostępną, ale można rozszerzyć)
+        page_config = PAGE_CONFIG
+        if not page_config:
+            return jsonify({'error': 'Brak konfiguracji strony'}), 500
+        
+        page_id = list(page_config.keys())[0]  # Pierwsza strona
+        page_token = page_config[page_id].get('token')
+        
+        if not page_token:
+            return jsonify({'error': 'Brak tokena strony'}), 500
+        
+        # Wyślij wiadomość
+        params = {"access_token": page_token}
+        payload = {"recipient": {"id": psid}, "message": {"text": message}, "messaging_type": "MESSAGE_TAG", "tag": "HUMAN_AGENT"}
+        
+        response = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        # Dodaj wiadomość do historii
+        from bot import load_history, save_history  # Import z bot.py
+        history = load_history(psid)
+        from vertexai.generative_models import Content, Part
+        history.append(Content(role="model", parts=[Part.from_text(message)]))
+        save_history(psid, history)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Błąd w admin_send_message: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/end-manual/<psid>', methods=['POST'])
+def end_manual_mode(psid):
+    require_admin()
+    try:
+        from bot import load_history, save_history  # Import z bot.py
+        history = load_history(psid)
+        
+        # Usuń MANUAL_MODE z historii
+        if history and history[-1].parts[0].text == 'MANUAL_MODE':
+            history.pop()  # Usuń ostatni komunikat
+        
+        save_history(psid, history)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Błąd w end_manual_mode: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/update-tutor-weekly-limit', methods=['POST'])
 def update_tutor_weekly_limit():
