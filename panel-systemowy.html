@@ -484,7 +484,6 @@
 
                 <div class="panel-selector">
                     <button class="panel-btn active" data-panel="database">Baza danych</button>
-                    <button class="panel-btn" data-panel="messages">Panel wiadomości</button>
                 </div>
 
                 <!-- Panel bazy danych -->
@@ -501,7 +500,31 @@
                     </div>
                 </div>
 
+                <!-- Panel wiadomości -->
+                <div id="messagesPanel" class="messages-panel">
+                    <div class="manual-users-list" id="manualUsersList">
+                        <p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>
+                    </div>
 
+                    <div class="chat-container" id="chatContainer">
+                        <div class="chat-header">
+                            <div>
+                                <h3 id="chatUserName">Rozmowa z użytkownikiem</h3>
+                                <a id="clientPanelLink" class="client-link" href="#" target="_blank">Panel klienta</a>
+                            </div>
+                            <button id="endManualBtn" class="delete-btn">Zakończ tryb ręczny</button>
+                        </div>
+                        <div class="chat-messages" id="chatMessages"></div>
+                        <div class="chat-input">
+                            <textarea id="messageInput" rows="3" placeholder="Wpisz wiadomość..."></textarea>
+                            <button id="sendMessageBtn">Wyślij</button>
+                        </div>
+                    </div>
+
+                    <div class="user-details" id="userDetails">
+                        <!-- Szczegóły użytkownika będą ładowane tutaj -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -655,31 +678,39 @@
                 content.innerHTML = tableHTML;
 
                 // Dodaj event listeners dla przycisków
-                content.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const recordId = btn.dataset.recordId;
-                        try {
-                            const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`);
-                            const record = await response.json();
-                            editRecord(record);
-                        } catch (error) {
-                            alert(`Błąd ładowania rekordu: ${error.message}`);
-                        }
+                try {
+                    content.querySelectorAll('.edit-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const recordId = btn.dataset.recordId;
+                            try {
+                                const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`);
+                                const record = await response.json();
+                                editRecord(record);
+                            } catch (error) {
+                                alert(`Błąd ładowania rekordu: ${error.message}`);
+                            }
+                        });
                     });
-                });
 
-                content.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const recordId = btn.dataset.recordId;
-                        deleteRecord(recordId);
+                    content.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const recordId = btn.dataset.recordId;
+                            deleteRecord(recordId);
+                        });
                     });
-                });
+                } catch (error) {
+                    console.error('Błąd dodawania event listeners:', error);
+                }
             } catch (error) {
                 content.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
             }
         }
 
         function openAddModal() {
+            if (!currentTable) {
+                alert('Najpierw wybierz tabelę.');
+                return;
+            }
             currentMode = 'add';
             currentRecord = null;
             document.getElementById('modalTitle').textContent = 'Dodaj nowy rekord';
@@ -700,7 +731,7 @@
             // Jeśli nie ma pól lub obiekt jest pusty, użyj domyślnego zestawu pól dla danej tabeli
             let fields = (record && record.fields && Object.keys(record.fields).length > 0)
                 ? record.fields
-                : getDefaultFields(currentTable);
+                : (currentTable ? getDefaultFields(currentTable) : {});
             
             // Sortuj pola w odpowiedniej kolejności dla Korepetytorzy
             let sortedKeys = Object.keys(fields);
