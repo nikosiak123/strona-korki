@@ -322,142 +322,7 @@
             color: var(--text-medium);
         }
         
-        /* Panel wiadomości */
-        .messages-panel {
-            display: none;
-        }
-        
-        .manual-users-list {
-            margin-bottom: 2rem;
-        }
-        
-        .manual-user-item {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px var(--shadow-color);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .manual-user-item:hover {
-            background-color: #FAFAFA;
-        }
-        
-        .manual-user-item.unread {
-            background-color: #FFF9C4;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .manual-user-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .manual-user-name {
-            font-weight: 700;
-        }
-        
-        .manual-user-psid {
-            color: var(--text-medium);
-            font-size: 0.9rem;
-        }
-        
-        .manual-user-last-msg {
-            margin-top: 0.5rem;
-            color: var(--text-medium);
-        }
-        
-        .chat-container {
-            display: none;
-            background-color: white;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 2px 8px var(--shadow-color);
-        }
-        
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .chat-messages {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background-color: #F9F9F9;
-            border-radius: 8px;
-        }
-        
-        .chat-message {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-        
-        .chat-message.user {
-            background-color: #E3F2FD;
-            text-align: right;
-        }
-        
-        .chat-message.bot {
-            background-color: #F5F5F5;
-        }
-        
-        .chat-input {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .chat-input textarea {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            resize: none;
-        }
-        
-        .chat-input button {
-            padding: 10px 20px;
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .chat-input button:hover {
-            background-color: var(--primary-hover-color);
-        }
-        
-        .user-details {
-            margin-top: 2rem;
-        }
-        
-        .user-details h3 {
-            margin-bottom: 1rem;
-        }
-        
-        .user-details-section {
-            margin-bottom: 2rem;
-        }
-        
-        .client-link {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-        
-        .client-link:hover {
-            text-decoration: underline;
-        }
+
     </style>
 </head>
 <body>
@@ -500,31 +365,7 @@
                     </div>
                 </div>
 
-                <!-- Panel wiadomości -->
-                <div id="messagesPanel" class="messages-panel">
-                    <div class="manual-users-list" id="manualUsersList">
-                        <p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>
-                    </div>
 
-                    <div class="chat-container" id="chatContainer">
-                        <div class="chat-header">
-                            <div>
-                                <h3 id="chatUserName">Rozmowa z użytkownikiem</h3>
-                                <a id="clientPanelLink" class="client-link" href="#" target="_blank">Panel klienta</a>
-                            </div>
-                            <button id="endManualBtn" class="delete-btn">Zakończ tryb ręczny</button>
-                        </div>
-                        <div class="chat-messages" id="chatMessages"></div>
-                        <div class="chat-input">
-                            <textarea id="messageInput" rows="3" placeholder="Wpisz wiadomość..."></textarea>
-                            <button id="sendMessageBtn">Wyślij</button>
-                        </div>
-                    </div>
-
-                    <div class="user-details" id="userDetails">
-                        <!-- Szczegóły użytkownika będą ładowane tutaj -->
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -850,5 +691,4 @@
 
     </script>
 </body>
-</html></content>
-</xai:function_call">NameError: name 'currentUserPSID' is not defined
+</html>
