@@ -842,18 +842,21 @@
                 let html = '<h3>Użytkownicy w trybie ręcznym:</h3>';
                 data.users.forEach(user => {
                     const unreadClass = user.hasUnread ? 'unread' : '';
+                    const escapedPsid = user.psid.replace(/'/g, "\\'");
+                    const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     html += `
-                        <div class="manual-user-item ${unreadClass}" onclick="selectUser('${user.psid}')">
+                        <div class="manual-user-item ${unreadClass}" onclick="selectUser('${escapedPsid}')">
                             <div class="manual-user-header">
                                 <div>
-                                    <div class="manual-user-name">${user.name || 'Nieznany użytkownik'}</div>
+                                    <div class="manual-user-name">${escapedName}</div>
                                     <div class="manual-user-psid">PSID: ${user.psid}</div>
                                 </div>
                                 <div>
-                                    <button class="delete-btn" onclick="event.stopPropagation(); endManualMode('${user.psid}')">Zakończ tryb</button>
+                                    <button class="delete-btn" onclick="event.stopPropagation(); endManualMode('${escapedPsid}')">Zakończ tryb</button>
                                 </div>
                             </div>
-                            <div class="manual-user-last-msg">${user.lastMessage || 'Brak wiadomości'}</div>
+                            <div class="manual-user-last-msg">${escapedLastMsg}</div>
                         </div>
                     `;
                 });
