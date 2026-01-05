@@ -550,13 +550,23 @@
         let currentPanel = 'database';
         let currentUserPSID = null;
 
+        // Ignoruj błędy JS, aby nie wyświetlały się na stronie
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('JS Error:', msg, url, line, col, error);
+            return true; // Zapobiega domyślnemu wyświetlaniu
+        };
+
         // Sprawdź autoryzację przy załadowaniu strony
         document.addEventListener('DOMContentLoaded', async () => {
-            const response = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
-            const data = await response.json();
-            
-            if (data.authenticated) {
-                showAdminPanel();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
+                const data = await response.json();
+
+                if (data.authenticated) {
+                    showAdminPanel();
+                }
+            } catch (error) {
+                console.error('Błąd ładowania:', error);
             }
         });
 
