@@ -49,7 +49,7 @@
         </div>
         
         <div id="successMessage" class="success" style="display: none;">
-            ✅ Lekcja została pomyślnie potwierdzona! <a href="moje-lekcje.html">Przejdź do panelu</a>
+            ✅ Lekcja została pomyślnie potwierdzona! <a id="panelLink" href="#">Przejdź do panelu</a>
         </div>
         
         <div id="errorMessage" class="error" style="display: none;">
@@ -62,6 +62,7 @@
         const token = urlParams.get('token');
         
         let lessonData = null;
+        let clientID = null;
         
         // Funkcja do pobierania danych lekcji
         async function loadLessonData() {
@@ -80,6 +81,7 @@
                 }
                 
                 lessonData = data;
+                clientID = data.fields.Klient;
                 displayLessonDetails(data);
                 
             } catch (error) {
@@ -106,6 +108,8 @@
                 document.getElementById('confirmationSection').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
                 document.getElementById('pageTitle').textContent = 'Lekcja potwierdzona';
+                const panelLink = document.getElementById('panelLink');
+                panelLink.href = clientID ? `moje-lekcje.html?clientID=${clientID}` : 'moje-lekcje.html';
             } else {
                 document.getElementById('warningMessage').style.display = 'block';
             }
@@ -133,7 +137,11 @@
                     document.getElementById('confirmationSection').style.display = 'none';
                     document.getElementById('successMessage').style.display = 'block';
                     document.getElementById('pageTitle').textContent = 'Lekcja potwierdzona';
-                    
+
+                    // Set panel link
+                    const panelLink = document.getElementById('panelLink');
+                    panelLink.href = clientID ? `moje-lekcje.html?clientID=${clientID}` : 'moje-lekcje.html';
+
                     // Odśwież szczegóły
                     setTimeout(() => {
                         window.location.reload();
@@ -167,7 +175,8 @@
                 
                 if (result.success) {
                     alert('Lekcja została odwołana.');
-                    window.location.href = '/moje-lekcje';
+                    const url = clientID ? `/moje-lekcje?clientID=${clientID}` : '/moje-lekcje';
+                    window.location.href = url;
                 } else {
                     showError(result.error || 'Błąd podczas odwoływania lekcji.');
                 }
@@ -180,7 +189,8 @@
         
         // Funkcja powrotu do panelu
         function goBack() {
-            window.location.href = '/moje-lekcje';
+            const url = clientID ? `/moje-lekcje?clientID=${clientID}` : '/moje-lekcje';
+            window.location.href = url;
         }
         
         // Funkcje pomocnicze

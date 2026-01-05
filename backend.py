@@ -2126,37 +2126,52 @@ def create_reservation():
 
 # --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
             if is_test_lesson: wiadomosc = "Lekcje można opłacić do 5 minut po rozpoczęciu zajęć. W przypadku zrezygnowania z zajeć, bardzo prosimy o odwołanie ich w panelu klienta."
-                
+
             else: wiadomosc = "Pamiętaj aby opłacić lekcję do 12h przed rozpoczęciem. Nieopłacona lekcja zostanie automatycznie odwołana."
-            
+
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
-                
+
                 # Pobierz link do korepetytora
                 tutor_contact_link = None
                 if is_test_lesson:
                     tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_for_reservation}'")
                     tutor_contact_link = tutor_record['fields'].get('LINK') if tutor_record else None
-                
+
                 message_to_send = (
                     f"Dziękujemy za rezerwację!\n\n"
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
                     f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
                 )
-                
+
                 # Dodaj ostrzeżenie o potwierdzeniu dla lekcji testowej
                 if is_test_lesson:
-                    message_to_send += (
-                        f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia 24 godziny przed terminem.\n"
-                        f"Otrzymasz przypomnienie na Messenger z linkiem do potwierdzenia.\n"
-                        f"Możesz też potwierdzić lekcję w panelu klienta.\n\n"
-                    )
-                
+                    # Oblicz czas do lekcji, aby dostosować wiadomość
+                    lesson_datetime_str = f"{data['selectedDate']} {data['selectedTime']}"
+                    lesson_datetime = datetime.strptime(lesson_datetime_str, '%Y-%m-%d %H:%M')
+                    now = datetime.now()
+                    time_diff = lesson_datetime - now
+                    hours_diff = time_diff.total_seconds() / 3600
+
+                    if hours_diff <= 24:
+                        # Jeśli rezerwacja jest 24h przed lub mniej, klient może już teraz potwierdzić
+                        message_to_send += (
+                            f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia.\n"
+                            f"Możesz już teraz potwierdzić lekcję w panelu klienta.\n\n"
+                        )
+                    else:
+                        # Jeśli więcej niż 24h, klient otrzyma przypomnienie
+                        message_to_send += (
+                            f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia 24 godziny przed terminem.\n"
+                            f"Otrzymasz przypomnienie na Messenger z linkiem do potwierdzenia.\n"
+                            f"Możesz też potwierdzić lekcję w panelu klienta.\n\n"
+                        )
+
                 # Dodaj informację o kontakcie z korepetytorem dla lekcji testowej
                 if tutor_contact_link:
                     message_to_send += f"⚠️ PAMIĘTAJ aby skontaktować się z korepetytorem przed lekcją:\n{tutor_contact_link}\n\n"
-                
+
                 message_to_send += (
                     f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n\n"
                     f"{wiadomosc}"
