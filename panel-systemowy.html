@@ -685,14 +685,35 @@
                             return `<td>${String(value).substring(0, 50)}</td>`;
                         }).join('')}
                         <td class="record-actions">
-                            <button class="edit-btn" onclick='editRecord(${JSON.stringify(record)})'>Edytuj</button>
-                            <button class="delete-btn" onclick="deleteRecord('${record.id}')">Usuń</button>
+                            <button class="edit-btn" data-action="edit" data-record-id="${record.id}">Edytuj</button>
+                            <button class="delete-btn" data-action="delete" data-record-id="${record.id}">Usuń</button>
                         </td>
                     </tr>`;
                 });
 
                 tableHTML += `</tbody></table></div>`;
                 content.innerHTML = tableHTML;
+
+                // Dodaj event listeners dla przycisków
+                content.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const recordId = btn.dataset.recordId;
+                        try {
+                            const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`);
+                            const record = await response.json();
+                            editRecord(record);
+                        } catch (error) {
+                            alert(`Błąd ładowania rekordu: ${error.message}`);
+                        }
+                    });
+                });
+
+                content.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const recordId = btn.dataset.recordId;
+                        deleteRecord(recordId);
+                    });
+                });
             } catch (error) {
                 content.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
             }
