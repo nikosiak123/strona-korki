@@ -994,8 +994,10 @@
         }
 
         document.getElementById('endManualBtn').addEventListener('click', () => {
-            if (currentUserPSID) {
+            if (typeof currentUserPSID !== 'undefined' && currentUserPSID) {
                 endManualMode(currentUserPSID);
+            } else {
+                alert('Najpierw wybierz użytkownika.');
             }
         });
     </script>
