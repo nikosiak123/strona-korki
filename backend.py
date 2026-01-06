@@ -3101,13 +3101,14 @@ def get_user_details(psid):
         messages = []
         has_unread = False
         last_msg = ''
-        for msg in history:
+        for full_i, msg in enumerate(history):
             if msg.parts:
                 text = msg.parts[0].text
                 if text in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
                     continue
                 role = 'user' if msg.role == 'user' else 'bot'
-                messages.append({'role': role, 'text': text})
+                read_status = getattr(msg, 'read', False) if role == 'user' else True
+                messages.append({'role': role, 'text': text, 'read': read_status, 'fullIndex': full_i})
 
         # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user, ignorując komunikaty trybu)
         filtered_history = [msg for msg in history if not (msg.parts and msg.parts[0].text in ['MANUAL_MODE', 'POST_RESERVATION_MODE'])]

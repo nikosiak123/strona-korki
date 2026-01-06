@@ -147,6 +147,23 @@
         .send-message button:hover {
             background-color: #0056b3;
         }
+
+        .unread-checkmark {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .unread-checkmark:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -237,11 +254,14 @@
                 // Wyświetl historię czatu
                 const chatHistory = document.getElementById('chat-history');
                 if (data.messages && data.messages.length > 0) {
-                    chatHistory.innerHTML = '<h2>Historia Czatu</h2>' + data.messages.map(message => `
-                        <div class="message ${message.role === 'user' ? 'user' : 'bot'}">
-                            <p>${message.text}</p>
-                        </div>
-                    `).join('');
+                    chatHistory.innerHTML = '<h2>Historia Czatu</h2>' + data.messages.map(message => {
+                        const checkmark = message.role === 'user' && !message.read ? `<button class="unread-checkmark" onclick="markAsRead('${getPSID()}', ${message.fullIndex})">✓</button>` : '';
+                        return `
+                            <div class="message ${message.role === 'user' ? 'user' : 'bot'}">
+                                <p>${checkmark}${message.text}</p>
+                            </div>
+                        `;
+                    }).join('');
                 } else {
                     chatHistory.innerHTML = '<h2>Historia Czatu</h2><p>Brak historii czatu.</p>';
                 }
@@ -333,6 +353,25 @@
                 loadUserData(); // Przeładuj dane
             } catch (error) {
                 alert('Błąd podczas zakończenia trybu ręcznego: ' + error.message);
+            }
+        }
+
+        // Funkcja do oznaczania wiadomości jako przeczytane
+        async function markAsRead(psid, upToFullIndex) {
+            try {
+                const response = await fetch(`/api/admin/mark-read/${psid}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({upToFullIndex})
+                });
+
+                if (response.ok) {
+                    loadUserData(); // Przeładuj dane, aby odświeżyć widok
+                } else {
+                    alert('Błąd oznaczania jako przeczytane');
+                }
+            } catch (error) {
+                alert('Błąd: ' + error.message);
             }
         }
 
