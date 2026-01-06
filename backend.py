@@ -3015,10 +3015,22 @@ def end_manual_mode(psid):
                 changed_count += 1
         logging.info(f"Zmieniono {changed_count} wystąpień MANUAL_MODE na POST_RESERVATION_MODE dla PSID {psid}")
 
-        # Obciń historię do maksymalnej długości przed zapisem (jak w save_history)
-        max_turns = 10
-        history = history[-(max_turns * 2):]
-        save_history(psid, history)
+        # Zapisz pełną historię po zmianie, bez obcinania (żeby zmienić wszystkie wystąpienia)
+        # Skopiuj logikę save_history bez obcinania
+        import os
+        HISTORY_DIR = os.path.join(os.path.dirname(__file__), "../strona/conversation_store")
+        ensure_dir(HISTORY_DIR)
+        filepath = os.path.join(HISTORY_DIR, f"{psid}.json")
+        history_data = []
+        for msg in history:
+            parts_data = [{'text': part.text} for part in msg.parts]
+            history_data.append({'role': msg.role, 'parts': parts_data})
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(history_data, f, indent=2)
+            logging.info(f"Zapisano pełną historię dla {psid}, {len(history_data)} wiadomości")
+        except Exception as e:
+            logging.error(f"BŁĄD zapisu pełnej historii dla {psid}: {e}")
         logging.info(f"Historia zapisana dla PSID {psid}")
 
         # Wyślij wiadomość o zakończeniu pomocy człowieka
