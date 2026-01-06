@@ -3006,8 +3006,10 @@ def end_manual_mode(psid):
         from bot import load_history, save_history  # Import z bot.py
         from vertexai.generative_models import Part
         history = load_history(psid)
+        logging.info(f"Załadowano historię dla {psid}: {len(history)} wiadomości")
 
         # Zamień wszystkie MANUAL_MODE na POST_RESERVATION_MODE w historii
+        logging.info(f"Sprawdzam historię dla PSID {psid}, szukam MANUAL_MODE")
         changed_count = 0
         for msg in history:
             if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
@@ -3017,6 +3019,7 @@ def end_manual_mode(psid):
         logging.info(f"Zmieniono {changed_count} wystąpień MANUAL_MODE na POST_RESERVATION_MODE dla PSID {psid}")
 
         save_history(psid, history)
+        logging.info(f"Historia zapisana dla PSID {psid}")
 
         # Wyślij wiadomość o zakończeniu pomocy człowieka
         if MESSENGER_PAGE_TOKEN:
