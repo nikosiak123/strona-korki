@@ -116,6 +116,19 @@
             margin-top: 20px;
             display: flex;
             gap: 10px;
+            align-items: center;
+        }
+        .end-manual-btn {
+            padding: 10px 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .end-manual-btn:hover {
+            background-color: #c82333;
         }
         .send-message input {
             flex: 1;
@@ -150,6 +163,7 @@
         <div class="send-message">
             <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
             <button id="send-button">Wyślij</button>
+            <button id="end-manual-btn" class="end-manual-btn">Zakończ tryb ręczny</button>
         </div>
     </div>
 
@@ -288,16 +302,38 @@
             }
         }
 
+        // Funkcja do zakończenia trybu ręcznego
+        async function endManualMode() {
+            const psid = getPSID();
+
+            try {
+                const response = await fetch(`/api/admin/end-manual/${psid}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Błąd zakończenia trybu ręcznego');
+                }
+
+                alert('Tryb ręczny został zakończony.');
+                loadUserData(); // Przeładuj dane
+            } catch (error) {
+                alert('Błąd podczas zakończenia trybu ręcznego: ' + error.message);
+            }
+        }
+
         // Załaduj dane po załadowaniu strony
         document.addEventListener('DOMContentLoaded', function() {
             loadUserData();
 
-            // Dodaj event listener do przycisku wysyłania wiadomości
+            // Dodaj event listener do przycisków
             document.addEventListener('click', function(e) {
                 if (e.target.id === 'send-button') {
                     sendMessage();
                 } else if (e.target.id === 'login-button') {
                     loginAdmin();
+                } else if (e.target.id === 'end-manual-btn') {
+                    endManualMode();
                 }
             });
 
