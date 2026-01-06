@@ -3026,6 +3026,7 @@ def end_manual_mode(psid):
         HISTORY_DIR = os.path.join(os.path.dirname(__file__), "../strona/conversation_store")
         ensure_dir(HISTORY_DIR)
         filepath = os.path.join(HISTORY_DIR, f"{psid}.json")
+        logging.info(f"Ścieżka do pliku historii: {filepath}")
         history_data = []
         for msg in history:
             parts_data = [{'text': part.text} for part in msg.parts]
