@@ -888,14 +888,13 @@
                     const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     html += `
-                        <div class="manual-user-item ${unreadClass}" onclick="selectUser('${escapedPsid}')">
+                        <div class="manual-user-item ${unreadClass}" onclick="window.location.href = '/panel-user-detail.html?psid=${user.psid}'">
                             <div class="manual-user-header">
                                 <div>
                                     <div class="manual-user-name">${escapedName}</div>
                                     <div class="manual-user-psid">PSID: ${user.psid}</div>
                                 </div>
                                 <div>
-                                    <a href="/panel-user-detail.html?psid=${user.psid}" class="client-link">Szczegóły</a>
                                     <button class="delete-btn" onclick="event.stopPropagation(); endManualMode('${escapedPsid}')">Zakończ tryb</button>
                                 </div>
                             </div>
