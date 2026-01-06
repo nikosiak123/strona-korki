@@ -147,6 +147,10 @@
             <h2>Historia Czatu</h2>
             <p>Ładowanie...</p>
         </div>
+        <div class="send-message">
+            <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
+            <button id="send-button">Wyślij</button>
+        </div>
     </div>
 
     <!-- Modal logowania -->
@@ -209,19 +213,9 @@
                         <div class="message ${message.role === 'user' ? 'user' : 'bot'}">
                             <p>${message.text}</p>
                         </div>
-                    `).join('') + `
-                        <div class="send-message">
-                            <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
-                            <button id="send-button">Wyślij</button>
-                        </div>
-                    `;
+                    `).join('');
                 } else {
-                    chatHistory.innerHTML = '<h2>Historia Czatu</h2><p>Brak historii czatu.</p>' + `
-                        <div class="send-message">
-                            <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
-                            <button id="send-button">Wyślij</button>
-                        </div>
-                    `;
+                    chatHistory.innerHTML = '<h2>Historia Czatu</h2><p>Brak historii czatu.</p>';
                 }
             } catch (error) {
                 document.getElementById('user-details').innerHTML = `<p class="error">Błąd podczas ładowania danych: ${error.message}</p>`;
