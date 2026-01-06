@@ -3004,40 +3004,23 @@ def end_manual_mode(psid):
         from bot import load_history, save_history  # Import z bot.py
         from vertexai.generative_models import Part
         history = load_history(psid)
-        logging.info(f"Załadowano historię dla {psid}: {len(history)} wiadomości")
-
-        # Zamień wszystkie MANUAL_MODE na POST_RESERVATION_MODE w historii
-        logging.info(f"Sprawdzam historię dla PSID {psid}, szukam MANUAL_MODE")
-        changed_count = 0
-        for msg in history:
-            if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
-                msg.parts[0] = Part.from_text('POST_RESERVATION_MODE')
-                changed_count += 1
-        logging.info(f"Zmieniono {changed_count} wystąpień MANUAL_MODE na POST_RESERVATION_MODE dla PSID {psid}")
-
-        # Zapisz pełną historię po zmianie, bez obcinania (żeby zmienić wszystkie wystąpienia)
-        # Skopiuj logikę save_history bez obcinania
+        # Bezpośrednia zamiana w pliku JSON dla pewności
         import os
-        import errno
-        def ensure_dir(directory):
-            try: os.makedirs(directory)
-            except OSError as e:
-                if e.errno != errno.EEXIST: raise
-        HISTORY_DIR = os.path.join(os.path.dirname(__file__), "../strona/conversation_store")
-        ensure_dir(HISTORY_DIR)
-        filepath = os.path.join(HISTORY_DIR, f"{psid}.json")
-        logging.info(f"Ścieżka do pliku historii: {filepath}")
-        history_data = []
-        for msg in history:
-            parts_data = [{'text': part.text} for part in msg.parts]
-            history_data.append({'role': msg.role, 'parts': parts_data})
+        filepath = os.path.join(os.path.dirname(__file__), "../strona/conversation_store", f"{psid}.json")
+        logging.info(f"Zamieniam MANUAL_MODE na POST_RESERVATION_MODE w pliku: {filepath}")
         try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(history_data, f, indent=2)
-            logging.info(f"Zapisano pełną historię dla {psid}, {len(history_data)} wiadomości")
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+            original_content = content
+            content = content.replace('"MANUAL_MODE"', '"POST_RESERVATION_MODE"')
+            if content != original_content:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                logging.info("Zamiana wykonana w pliku.")
+            else:
+                logging.info("Nie znaleziono MANUAL_MODE do zamiany.")
         except Exception as e:
-            logging.error(f"BŁĄD zapisu pełnej historii dla {psid}: {e}")
-        logging.info(f"Historia zapisana dla PSID {psid}")
+            logging.error(f"Błąd podczas bezpośredniej zamiany w pliku: {e}")
 
         # Wyślij wiadomość o zakończeniu pomocy człowieka
         if MESSENGER_PAGE_TOKEN:
