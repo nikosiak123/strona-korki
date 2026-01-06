@@ -326,6 +326,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadUserData();
 
+            // Automatyczne odświeżanie czatu co 1 sekundę
+            setInterval(loadUserData, 1000);
+
             // Dodaj event listener do przycisków
             document.addEventListener('click', function(e) {
                 if (e.target.id === 'send-button') {
