@@ -3092,6 +3092,9 @@ def get_user_details(psid):
                     last_msg = text
                     break
 
+        # Sprawdź czy tryb ręczny jest aktywny
+        manual_mode_active = any(msg for msg in filtered_history if msg.role == 'model' and msg.parts and msg.parts[0].text == 'MANUAL_MODE')
+
         # Szczegóły użytkownika
         user_details = {
             'psid': psid,
@@ -3100,7 +3103,8 @@ def get_user_details(psid):
             'hasUnread': has_unread,
             'freeAmount': free_amount,
             'studentParentName': full_name,
-            'reservations': reservations
+            'reservations': reservations,
+            'manualModeActive': manual_mode_active
         }
 
         return jsonify({

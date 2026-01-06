@@ -218,7 +218,21 @@
                             ${data.user.reservations.map(res => `<li>${res.date} ${res.time} - ${res.subject} (${res.statuses.join(', ')})</li>`).join('')}
                         </ul>
                     </div>
+                    <p><strong>Link do panelu klienta:</strong> <a href="/moje-lekcje?clientID=${data.user.psid}" target="_blank">Otwórz panel klienta</a></p>
+                    <p id="manual-mode-info"></p>
                 `;
+
+                // Wyświetl informacje o trybie ręcznym
+                const manualModeActive = data.user.manualModeActive;
+                const manualModeInfo = document.getElementById('manual-mode-info');
+                if (manualModeActive) {
+                    manualModeInfo.innerHTML = '<strong>Tryb ręczny:</strong> <span style="color: green;">Aktywny</span>';
+                } else {
+                    manualModeInfo.innerHTML = '<strong>Tryb ręczny:</strong> <span style="color: red;">Nieaktywny</span>';
+                }
+
+                // Ukryj przycisk zakończenia trybu ręcznego jeśli nieaktywny
+                document.getElementById('end-manual-btn').style.display = manualModeActive ? 'inline-block' : 'none';
 
                 // Wyświetl historię czatu
                 const chatHistory = document.getElementById('chat-history');
