@@ -2861,7 +2861,7 @@ def get_manual_users():
     try:
         import os
         logging.info(f"DEBUG: CWD: {os.getcwd()}")
-        conversation_store_dir = "../conversation_store"
+        conversation_store_dir = "../strona/conversation_store"
         logging.info(f"DEBUG: Sprawdzam katalog: {conversation_store_dir}, istnieje: {os.path.exists(conversation_store_dir)}")
         manual_users = []
         
