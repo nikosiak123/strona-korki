@@ -2948,14 +2948,16 @@ def get_user_chat(psid):
     try:
         from bot import load_history  # Import z bot.py
         history = load_history(psid)
-        
+
         messages = []
         for msg in history:
             if msg.parts:
-                role = 'user' if msg.role == 'user' else 'bot'
                 text = msg.parts[0].text
+                if text == 'MANUAL_MODE':
+                    continue  # Pomiń komunikat MANUAL_MODE
+                role = 'user' if msg.role == 'user' else 'bot'
                 messages.append({'role': role, 'text': text})
-        
+
         return jsonify({'messages': messages})
     except Exception as e:
         logging.error(f"Błąd w get_user_chat: {e}", exc_info=True)
@@ -2987,6 +2989,9 @@ def admin_send_message():
         history = load_history(psid)
         from vertexai.generative_models import Content, Part
         history.append(Content(role="model", parts=[Part.from_text(message)]))
+        # Jeśli ostatni komunikat to MANUAL_MODE, dodaj go ponownie, aby utrzymać tryb
+        if history and len(history) > 1 and history[-2].parts[0].text == 'MANUAL_MODE':
+            history.append(Content(role="model", parts=[Part.from_text('MANUAL_MODE')]))
         save_history(psid, history)
 
         return jsonify({'success': True})
@@ -3058,19 +3063,23 @@ def get_user_details(psid):
         last_msg = ''
         for msg in history:
             if msg.parts:
-                role = 'user' if msg.role == 'user' else 'bot'
                 text = msg.parts[0].text
+                if text == 'MANUAL_MODE':
+                    continue
+                role = 'user' if msg.role == 'user' else 'bot'
                 messages.append({'role': role, 'text': text})
 
-        # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user)
-        if history and history[-1].role == 'user':
+        # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user, ignorując MANUAL_MODE)
+        filtered_history = [msg for msg in history if not (msg.parts and msg.parts[0].text == 'MANUAL_MODE')]
+        if filtered_history and filtered_history[-1].role == 'user':
             has_unread = True
 
         # Pobierz ostatni komunikat
         for msg in reversed(history):
             if msg.parts:
-                last_msg = msg.parts[0].text
-                if last_msg:
+                text = msg.parts[0].text
+                if text and text != 'MANUAL_MODE':
+                    last_msg = text
                     break
 
         # Szczegóły użytkownika
