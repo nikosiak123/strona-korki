@@ -2877,11 +2877,11 @@ def get_manual_users():
                         with open(filepath, 'r', encoding='utf-8') as f:
                             history_data = json.load(f)
 
-                        # Sprawdź czy ostatni komunikat to MANUAL_MODE
+                        # Sprawdź czy ostatni komunikat to POST_RESERVATION_MODE
                         last_msg_role = history_data[-1].get('role') if history_data else None
                         last_msg_text = history_data[-1].get('parts', [{}])[0].get('text') if history_data else None
                         logging.info(f"DEBUG: Plik {filename}, ostatni komunikat: role={last_msg_role}, text={last_msg_text}")
-                        if history_data and history_data[-1].get('role') == 'model' and history_data[-1].get('parts', [{}])[0].get('text') == 'MANUAL_MODE':
+                        if history_data and history_data[-1].get('role') == 'model' and history_data[-1].get('parts', [{}])[0].get('text') == 'POST_RESERVATION_MODE':
                             # Pobierz nazwę klienta
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
                             client_name = client_record['fields'].get('Imie', 'Nieznany') if client_record else 'Nieznany'
@@ -2953,8 +2953,8 @@ def get_user_chat(psid):
         for msg in history:
             if msg.parts:
                 text = msg.parts[0].text
-                if text == 'MANUAL_MODE':
-                    continue  # Pomiń komunikat MANUAL_MODE
+                if text in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
+                    continue  # Pomiń komunikaty trybu
                 role = 'user' if msg.role == 'user' else 'bot'
                 messages.append({'role': role, 'text': text})
 
@@ -2989,9 +2989,9 @@ def admin_send_message():
         history = load_history(psid)
         from vertexai.generative_models import Content, Part
         history.append(Content(role="model", parts=[Part.from_text(message)]))
-        # Jeśli ostatni komunikat to MANUAL_MODE, dodaj go ponownie, aby utrzymać tryb
-        if history and len(history) > 1 and history[-2].parts[0].text == 'MANUAL_MODE':
-            history.append(Content(role="model", parts=[Part.from_text('MANUAL_MODE')]))
+        # Jeśli ostatni komunikat to POST_RESERVATION_MODE, dodaj go ponownie, aby utrzymać tryb
+        if history and len(history) > 1 and history[-2].parts[0].text == 'POST_RESERVATION_MODE':
+            history.append(Content(role="model", parts=[Part.from_text('POST_RESERVATION_MODE')]))
         save_history(psid, history)
 
         return jsonify({'success': True})
@@ -3011,10 +3011,6 @@ def end_manual_mode(psid):
         for msg in history:
             if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
                 msg.parts[0] = Part.from_text('POST_RESERVATION_MODE')
-
-        # Usuń ostatni komunikat POST_RESERVATION_MODE, aby wyjść z trybu
-        if history and history[-1].parts[0].text == 'POST_RESERVATION_MODE':
-            history.pop()  # Usuń ostatni komunikat
 
         save_history(psid, history)
 
@@ -3070,13 +3066,13 @@ def get_user_details(psid):
         for msg in history:
             if msg.parts:
                 text = msg.parts[0].text
-                if text == 'MANUAL_MODE':
+                if text in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
                     continue
                 role = 'user' if msg.role == 'user' else 'bot'
                 messages.append({'role': role, 'text': text})
 
-        # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user, ignorując MANUAL_MODE)
-        filtered_history = [msg for msg in history if not (msg.parts and msg.parts[0].text == 'MANUAL_MODE')]
+        # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user, ignorując komunikaty trybu)
+        filtered_history = [msg for msg in history if not (msg.parts and msg.parts[0].text in ['MANUAL_MODE', 'POST_RESERVATION_MODE'])]
         if filtered_history and filtered_history[-1].role == 'user':
             has_unread = True
 
@@ -3084,7 +3080,7 @@ def get_user_details(psid):
         for msg in reversed(history):
             if msg.parts:
                 text = msg.parts[0].text
-                if text and text != 'MANUAL_MODE':
+                if text and text not in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
                     last_msg = text
                     break
 
