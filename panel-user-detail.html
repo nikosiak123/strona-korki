@@ -102,20 +102,22 @@
                 const userDetails = document.getElementById('user-details');
                 userDetails.innerHTML = `
                     <h2>Szczegóły</h2>
-                    <p><strong>PSID:</strong> ${data.psid}</p>
-                    <p><strong>Imię:</strong> ${data.first_name || 'Brak'}</p>
-                    <p><strong>Nazwisko:</strong> ${data.last_name || 'Brak'}</p>
-                    <p><strong>Email:</strong> ${data.email || 'Brak'}</p>
-                    <p><strong>Numer telefonu:</strong> ${data.phone || 'Brak'}</p>
-                    <p><strong>Data rejestracji:</strong> ${data.registration_date || 'Brak'}</p>
+                    <p><strong>PSID:</strong> ${data.user.psid}</p>
+                    <p><strong>Imię:</strong> ${data.user.name || 'Brak'}</p>
+                    <p><strong>Nazwisko:</strong> ${data.user.studentParentName || 'Brak'}</p>
+                    <p><strong>Wolna kwota:</strong> ${data.user.freeAmount || 0} zł</p>
+                    <div><strong>Rezerwacje:</strong>
+                        <ul>
+                            ${data.user.reservations.map(res => `<li>${res.date} ${res.time} - ${res.subject} (${res.statuses.join(', ')})</li>`).join('')}
+                        </ul>
+                    </div>
                 `;
 
                 // Wyświetl historię czatu
                 const chatHistory = document.getElementById('chat-history');
-                if (data.chat_history && data.chat_history.length > 0) {
-                    chatHistory.innerHTML = '<h2>Historia Czatu</h2>' + data.chat_history.map(message => `
-                        <div class="message ${message.sender === 'user' ? 'user' : 'bot'}">
-                            <div class="timestamp">${new Date(message.timestamp).toLocaleString('pl-PL')}</div>
+                if (data.messages && data.messages.length > 0) {
+                    chatHistory.innerHTML = '<h2>Historia Czatu</h2>' + data.messages.map(message => `
+                        <div class="message ${message.role === 'user' ? 'user' : 'bot'}">
                             <p>${message.text}</p>
                         </div>
                     `).join('');
