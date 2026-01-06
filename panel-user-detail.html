@@ -60,6 +60,28 @@
             color: red;
             font-weight: bold;
         }
+        .send-message {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .send-message input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .send-message button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .send-message button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -120,9 +142,19 @@
                         <div class="message ${message.role === 'user' ? 'user' : 'bot'}">
                             <p>${message.text}</p>
                         </div>
-                    `).join('');
+                    `).join('') + `
+                        <div class="send-message">
+                            <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
+                            <button id="send-button">Wyślij</button>
+                        </div>
+                    `;
                 } else {
-                    chatHistory.innerHTML = '<h2>Historia Czatu</h2><p>Brak historii czatu.</p>';
+                    chatHistory.innerHTML = '<h2>Historia Czatu</h2><p>Brak historii czatu.</p>' + `
+                        <div class="send-message">
+                            <input type="text" id="message-input" placeholder="Wpisz wiadomość...">
+                            <button id="send-button">Wyślij</button>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 document.getElementById('user-details').innerHTML = `<p class="error">Błąd podczas ładowania danych: ${error.message}</p>`;
@@ -130,8 +162,55 @@
             }
         }
 
+        // Funkcja do wysyłania wiadomości
+        async function sendMessage() {
+            const psid = getPSID();
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+
+            if (!message) {
+                alert('Wpisz wiadomość przed wysłaniem.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ psid: psid, message: message })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Błąd wysyłania wiadomości');
+                }
+
+                messageInput.value = ''; // Wyczyść input
+                loadUserData(); // Przeładuj dane, aby wyświetlić nową wiadomość
+            } catch (error) {
+                alert('Błąd podczas wysyłania wiadomości: ' + error.message);
+            }
+        }
+
         // Załaduj dane po załadowaniu strony
-        document.addEventListener('DOMContentLoaded', loadUserData);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+
+            // Dodaj event listener do przycisku wysyłania
+            document.addEventListener('click', function(e) {
+                if (e.target.id === 'send-button') {
+                    sendMessage();
+                }
+            });
+
+            // Dodaj obsługę Enter w input
+            document.addEventListener('keypress', function(e) {
+                if (e.target.id === 'message-input' && e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
     </script>
 </body>
 </html>
