@@ -55,8 +55,7 @@ import traceback
 import threading
 import hashlib
 import sys
-sys.path.insert(0, '../strona')
-print(f"DEBUG: Added '../strona' to sys.path. Current sys.path: {sys.path[:3]}")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../strona')))
 from flask import Flask, jsonify, request, abort, session, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -2898,11 +2897,38 @@ def get_manual_users():
                                     if last_msg:
                                         break
                             
+                            # Pobierz dodatkowe informacje
+                            free_amount = get_free_amount(psid)
+                            full_name = f"{client_record['fields'].get('Imie', '')} {client_record['fields'].get('Nazwisko', '')}".strip() if client_record else 'Nieznany'
+
+                            # Lista rezerwacji z statusami
+                            reservations = []
+                            client_reservations = reservations_table.all(formula=f"{{Klient}} = '{psid}'")
+                            for res in client_reservations:
+                                fields = res.get('fields', {})
+                                statuses = []
+                                if fields.get('confirmed'):
+                                    statuses.append('potwierdzona')
+                                if fields.get('Oplacona') or fields.get('Status') == 'Opłacona':
+                                    statuses.append('opłacona')
+                                if fields.get('Status') == 'Przeniesiona (zakończona)':
+                                    statuses.append('odbyta')
+                                if statuses:  # Dodaj tylko jeśli ma przynajmniej jeden status
+                                    reservations.append({
+                                        'date': fields.get('Data'),
+                                        'time': fields.get('Godzina'),
+                                        'subject': fields.get('Przedmiot'),
+                                        'statuses': statuses
+                                    })
+
                             manual_users.append({
                                 'psid': psid,
                                 'name': client_name,
                                 'lastMessage': last_msg[:100] + '...' if len(last_msg) > 100 else last_msg,
-                                'hasUnread': has_unread
+                                'hasUnread': has_unread,
+                                'freeAmount': free_amount,
+                                'studentParentName': full_name,
+                                'reservations': reservations
                             })
                     except Exception as e:
                         logging.error(f"Błąd przetwarzania pliku {filename}: {e}")
@@ -2920,9 +2946,7 @@ def get_manual_users():
 def get_user_chat(psid):
     require_admin()
     try:
-        print("DEBUG: Attempting to import load_history from bot")
         from bot import load_history  # Import z bot.py
-        print("DEBUG: Successfully imported load_history from bot")
         history = load_history(psid)
         
         messages = []
@@ -2967,9 +2991,7 @@ def admin_send_message():
         response.raise_for_status()
 
         # Dodaj wiadomość do historii
-        print("DEBUG: Attempting to import load_history, save_history from bot")
         from bot import load_history, save_history  # Import z bot.py
-        print("DEBUG: Successfully imported load_history, save_history from bot")
         history = load_history(psid)
         from vertexai.generative_models import Content, Part
         history.append(Content(role="model", parts=[Part.from_text(message)]))
@@ -2984,9 +3006,7 @@ def admin_send_message():
 def end_manual_mode(psid):
     require_admin()
     try:
-        print("DEBUG: Attempting to import load_history, save_history from bot in end_manual_mode")
         from bot import load_history, save_history  # Import z bot.py
-        print("DEBUG: Successfully imported load_history, save_history from bot in end_manual_mode")
         history = load_history(psid)
         
         # Usuń MANUAL_MODE z historii
@@ -2999,6 +3019,81 @@ def end_manual_mode(psid):
     except Exception as e:
         logging.error(f"Błąd w end_manual_mode: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/user-details/<psid>', methods=['GET'])
+def get_user_details(psid):
+    require_admin()
+    try:
+        # Pobierz szczegóły klienta
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+        client_name = client_record['fields'].get('Imie', 'Nieznany') if client_record else 'Nieznany'
+        full_name = f"{client_record['fields'].get('Imie', '')} {client_record['fields'].get('Nazwisko', '')}".strip() if client_record else 'Nieznany'
+
+        # Pobierz wolną kwotę
+        free_amount = get_free_amount(psid)
+
+        # Lista rezerwacji z statusami
+        reservations = []
+        client_reservations = reservations_table.all(formula=f"{{Klient}} = '{psid}'")
+        for res in client_reservations:
+            fields = res.get('fields', {})
+            statuses = []
+            if fields.get('confirmed'):
+                statuses.append('potwierdzona')
+            if fields.get('Oplacona') or fields.get('Status') == 'Opłacona':
+                statuses.append('opłacona')
+            if fields.get('Status') == 'Przeniesiona (zakończona)':
+                statuses.append('odbyta')
+            if statuses:  # Dodaj tylko jeśli ma przynajmniej jeden status
+                reservations.append({
+                    'date': fields.get('Data'),
+                    'time': fields.get('Godzina'),
+                    'subject': fields.get('Przedmiot'),
+                    'statuses': statuses
+                })
+
+        # Pobierz historię czatu
+        from bot import load_history  # Import z bot.py
+        history = load_history(psid)
+
+        messages = []
+        has_unread = False
+        last_msg = ''
+        for msg in history:
+            if msg.parts:
+                role = 'user' if msg.role == 'user' else 'bot'
+                text = msg.parts[0].text
+                messages.append({'role': role, 'text': text})
+
+        # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user)
+        if history and history[-1].get('role') == 'user':
+            has_unread = True
+
+        # Pobierz ostatni komunikat
+        for msg in reversed(history):
+            if msg.parts:
+                last_msg = msg.parts[0].text
+                if last_msg:
+                    break
+
+        # Szczegóły użytkownika
+        user_details = {
+            'psid': psid,
+            'name': client_name,
+            'lastMessage': last_msg[:100] + '...' if len(last_msg) > 100 else last_msg,
+            'hasUnread': has_unread,
+            'freeAmount': free_amount,
+            'studentParentName': full_name,
+            'reservations': reservations
+        }
+
+        return jsonify({
+            'user': user_details,
+            'messages': messages
+        })
+    except Exception as e:
+        logging.error(f"Błąd w get_user_details: {e}", exc_info=True)
+        return jsonify({'error': 'Błąd serwera'}), 500
 
 @app.route('/api/update-tutor-weekly-limit', methods=['POST'])
 def update_tutor_weekly_limit():

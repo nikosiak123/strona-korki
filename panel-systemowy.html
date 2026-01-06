@@ -458,6 +458,17 @@
         .client-link:hover {
             text-decoration: underline;
         }
+
+        .manual-user-balance, .manual-user-names, .manual-user-reservations {
+            margin-top: 0.5rem;
+            color: var(--text-medium);
+            font-size: 0.9rem;
+        }
+
+        .manual-user-reservations {
+            max-height: 150px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -884,6 +895,7 @@
                                     <div class="manual-user-psid">PSID: ${user.psid}</div>
                                 </div>
                                 <div>
+                                    <a href="/panel-user-detail.html?psid=${user.psid}" class="client-link">Szczegóły</a>
                                     <button class="delete-btn" onclick="event.stopPropagation(); endManualMode('${escapedPsid}')">Zakończ tryb</button>
                                 </div>
                             </div>
