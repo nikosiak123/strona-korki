@@ -3013,11 +3013,13 @@ def end_manual_mode(psid):
         changed_count = 0
         for msg in history:
             if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
-                logging.info(f"Znaleziono i zmieniam MANUAL_MODE dla PSID {psid}")
                 msg.parts[0] = Part.from_text('POST_RESERVATION_MODE')
                 changed_count += 1
         logging.info(f"Zmieniono {changed_count} wystąpień MANUAL_MODE na POST_RESERVATION_MODE dla PSID {psid}")
 
+        # Obciń historię do maksymalnej długości przed zapisem (jak w save_history)
+        max_turns = 10
+        history = history[-(max_turns * 2):]
         save_history(psid, history)
         logging.info(f"Historia zapisana dla PSID {psid}")
 
