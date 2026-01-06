@@ -2972,19 +2972,11 @@ def admin_send_message():
         if not psid or not message:
             return jsonify({'error': 'Brak PSID lub wiadomości'}), 400
 
-        # Znajdź stronę dla tego PSID (zakładamy pierwszą dostępną, ale można rozszerzyć)
-        page_config = PAGE_CONFIG
-        if not page_config:
-            return jsonify({'error': 'Brak konfiguracji strony'}), 500
-
-        page_id = list(page_config.keys())[0]  # Pierwsza strona
-        page_token = page_config[page_id].get('token')
-
-        if not page_token:
-            return jsonify({'error': 'Brak tokena strony'}), 500
+        if not MESSENGER_PAGE_TOKEN:
+            return jsonify({'error': 'Brak tokena strony Messenger'}), 500
 
         # Wyślij wiadomość
-        params = {"access_token": page_token}
+        params = {"access_token": MESSENGER_PAGE_TOKEN}
         payload = {"recipient": {"id": psid}, "message": {"text": message}, "messaging_type": "MESSAGE_TAG", "tag": "HUMAN_AGENT"}
 
         response = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
@@ -2996,7 +2988,7 @@ def admin_send_message():
         from vertexai.generative_models import Content, Part
         history.append(Content(role="model", parts=[Part.from_text(message)]))
         save_history(psid, history)
-        
+
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Błąd w admin_send_message: {e}", exc_info=True)
