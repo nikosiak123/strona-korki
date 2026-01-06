@@ -3004,10 +3004,16 @@ def end_manual_mode(psid):
     require_admin()
     try:
         from bot import load_history, save_history  # Import z bot.py
+        from vertexai.generative_models import Part
         history = load_history(psid)
 
-        # Usuń MANUAL_MODE z historii
-        if history and history[-1].parts[0].text == 'MANUAL_MODE':
+        # Zamień wszystkie MANUAL_MODE na POST_RESERVATION_MODE w historii
+        for msg in history:
+            if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
+                msg.parts[0] = Part.from_text('POST_RESERVATION_MODE')
+
+        # Usuń ostatni komunikat POST_RESERVATION_MODE, aby wyjść z trybu
+        if history and history[-1].parts[0].text == 'POST_RESERVATION_MODE':
             history.pop()  # Usuń ostatni komunikat
 
         save_history(psid, history)
