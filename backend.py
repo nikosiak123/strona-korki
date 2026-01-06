@@ -3123,7 +3123,7 @@ def get_user_details(psid):
                     break
 
         # Sprawdź czy tryb ręczny jest aktywny
-        manual_mode_active = any(msg for msg in filtered_history if msg.role == 'model' and msg.parts and msg.parts[0].text == 'MANUAL_MODE')
+        manual_mode_active = any(msg for msg in history if msg.role == 'model' and msg.parts and msg.parts[0].text == 'MANUAL_MODE')
 
         # Szczegóły użytkownika
         user_details = {
