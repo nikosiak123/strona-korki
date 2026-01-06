@@ -2860,10 +2860,13 @@ def get_manual_users():
     require_admin()
     try:
         import os
-        conversation_store_dir = "conversation_store"
+        logging.info(f"DEBUG: CWD: {os.getcwd()}")
+        conversation_store_dir = "../conversation_store"
+        logging.info(f"DEBUG: Sprawdzam katalog: {conversation_store_dir}, istnieje: {os.path.exists(conversation_store_dir)}")
         manual_users = []
         
         if os.path.exists(conversation_store_dir):
+            logging.info(f"DEBUG: Znaleziono pliki: {[f for f in os.listdir(conversation_store_dir) if f.endswith('.json')]}")
             for filename in os.listdir(conversation_store_dir):
                 if filename.endswith('.json'):
                     psid = filename[:-5]  # remove .json
@@ -2871,8 +2874,11 @@ def get_manual_users():
                     try:
                         with open(filepath, 'r', encoding='utf-8') as f:
                             history_data = json.load(f)
-                        
+
                         # Sprawdź czy ostatni komunikat to MANUAL_MODE
+                        last_msg_role = history_data[-1].get('role') if history_data else None
+                        last_msg_text = history_data[-1].get('parts', [{}])[0].get('text') if history_data else None
+                        logging.info(f"DEBUG: Plik {filename}, ostatni komunikat: role={last_msg_role}, text={last_msg_text}")
                         if history_data and history_data[-1].get('role') == 'model' and history_data[-1].get('parts', [{}])[0].get('text') == 'MANUAL_MODE':
                             # Pobierz nazwę klienta
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
@@ -2900,7 +2906,8 @@ def get_manual_users():
         
         # Sortuj po nieodczytanych na górze
         manual_users.sort(key=lambda x: (not x['hasUnread'], x['name']))
-        
+        logging.info(f"DEBUG: Zwrócono {len(manual_users)} użytkowników w trybie ręcznym")
+
         return jsonify({'users': manual_users})
     except Exception as e:
         logging.error(f"Błąd w get_manual_users: {e}", exc_info=True)
