@@ -326,6 +326,11 @@
         .messages-panel {
             display: none;
         }
+
+        /* Panel statystyk */
+        .stats-panel {
+            display: none;
+        }
         
         .manual-users-list {
             margin-bottom: 2rem;
@@ -513,6 +518,7 @@
                 <div class="panel-selector">
                     <button class="panel-btn active" data-panel="database">Baza danych</button>
                     <button class="panel-btn" data-panel="messages">Panel wiadomości</button>
+                    <button class="panel-btn" data-panel="stats">Statystyki Facebook</button>
                 </div>
 
                 <!-- Panel bazy danych -->
@@ -553,6 +559,11 @@
                     <div class="user-details" id="userDetails">
                         <!-- Szczegóły użytkownika będą ładowane tutaj -->
                     </div>
+                </div>
+
+                <!-- Panel statystyk -->
+                <div id="statsPanel" class="stats-panel">
+                    <p class="loading">Ładowanie statystyk...</p>
                 </div>
             </div>
         </div>
@@ -642,9 +653,12 @@
                 
                 document.getElementById('databasePanel').style.display = currentPanel === 'database' ? 'block' : 'none';
                 document.getElementById('messagesPanel').style.display = currentPanel === 'messages' ? 'block' : 'none';
-                
+                document.getElementById('statsPanel').style.display = currentPanel === 'stats' ? 'block' : 'none';
+
                 if (currentPanel === 'messages') {
                     loadManualUsers();
+                } else if (currentPanel === 'stats') {
+                    loadStats();
                 }
             });
         });
@@ -881,6 +895,33 @@
                 }
             } catch (error) {
                 alert(`Błąd: ${error.message}`);
+            }
+        }
+
+        // Funkcje panelu statystyk
+        async function loadStats() {
+            const panel = document.getElementById('statsPanel');
+            panel.innerHTML = '<p class="loading">Ładowanie statystyk...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
+                const data = await response.json();
+
+                if (data.error) {
+                    panel.innerHTML = `<p class="error-message">${data.error}</p>`;
+                    return;
+                }
+
+                let html = '<h3>Statystyki komentarzy Facebook</h3><div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
+
+                data.forEach(stat => {
+                    html += `<tr><td>${stat.Data}</td><td>${stat.Przeslane || 0}</td><td>${stat.Odrzucone || 0}</td><td>${stat.Oczekuje || 0}</td><td>${stat.LastCommentTime || 'Brak'}</td></tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                panel.innerHTML = html;
+            } catch (error) {
+                panel.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
             }
         }
 

@@ -711,12 +711,10 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
-    
+
     warsaw_tz = pytz.timezone('Europe/Warsaw')
     current_local_time = datetime.now(warsaw_tz)
-    
-    logging.debug(f"[{current_local_time.strftime('%Y-%m-%d %H:%M:%S')}] Uruchamiam zadanie sprawdzania nieopłaconych lekcji...")
-    
+
     try:
         # --- Sprawdzamy wszystkie nieopłacone lekcje (bez warunku czasowego w Airtable) ---
         formula = f"AND(NOT({{Oplacona}}), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
@@ -762,7 +760,7 @@ def check_and_cancel_unpaid_lessons():
             return
 
         logging.info(f"AUTOMATYCZNE ANULOWANIE: Znaleziono {len(lessons_to_cancel)} nieopłaconych lekcji do zmiany statusu.")
-        
+
         records_to_update = []
         for lesson in lessons_to_cancel:
             records_to_update.append({
@@ -774,7 +772,7 @@ def check_and_cancel_unpaid_lessons():
             chunk = records_to_update[i:i+10]
             reservations_table.batch_update(chunk)
             logging.info(f"Pomyślnie zaktualizowano status dla fragmentu rezerwacji: {[rec['id'] for rec in chunk]}")
-        
+
         logging.info("AUTOMATYCZNE ANULOWANIE: Zakończono proces zmiany statusu.")
 
     except Exception as e:
@@ -3038,6 +3036,18 @@ def end_manual_mode(psid):
     except Exception as e:
         logging.error(f"Błąd w end_manual_mode: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/facebook-stats', methods=['GET'])
+def get_facebook_stats():
+    require_admin()
+    try:
+        import sys
+        sys.path.append('/home/nikodnaj/strona')
+        from database_stats import get_stats
+        stats_data = get_stats()
+        return jsonify(stats_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/admin/mark-read/<psid>', methods=['POST'])
 def mark_messages_read(psid):
