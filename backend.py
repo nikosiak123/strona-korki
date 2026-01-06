@@ -2879,7 +2879,7 @@ def get_manual_users():
                         last_msg_role = history_data[-1].get('role') if history_data else None
                         last_msg_text = history_data[-1].get('parts', [{}])[0].get('text') if history_data else None
                         logging.info(f"DEBUG: Plik {filename}, ostatni komunikat: role={last_msg_role}, text={last_msg_text}")
-                        if history_data and history_data[-1].get('role') == 'model' and history_data[-1].get('parts', [{}])[0].get('text') == 'POST_RESERVATION_MODE':
+                        if history_data and any(msg.get('role') == 'model' and msg.get('parts', [{}])[0].get('text') == 'MANUAL_MODE' for msg in history_data):
                             # Pobierz nazwę klienta
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
                             client_name = client_record['fields'].get('Imie', 'Nieznany') if client_record else 'Nieznany'
