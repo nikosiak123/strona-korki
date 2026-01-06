@@ -1,10 +1,8 @@
 # --- Mechanizm wolnej kwoty z bazą danych ---
 def get_free_amount(client_id):
-    print(f"DEBUG: get_free_amount called for client_id: {client_id}")
     client = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
     if client:
         amount = int(client['fields'].get('wolna_kwota', 0))
-        print(f"DEBUG: Found client, wolna_kwota: {amount}")
         return amount
     print("DEBUG: Client not found")
     return 0
