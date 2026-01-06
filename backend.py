@@ -3066,7 +3066,7 @@ def get_user_details(psid):
                 messages.append({'role': role, 'text': text})
 
         # Sprawdź nieodczytane wiadomości (ostatnia wiadomość od user)
-        if history and history[-1].get('role') == 'user':
+        if history and history[-1].role == 'user':
             has_unread = True
 
         # Pobierz ostatni komunikat
