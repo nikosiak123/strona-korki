@@ -3000,13 +3000,18 @@ def end_manual_mode(psid):
     try:
         from bot import load_history, save_history  # Import z bot.py
         history = load_history(psid)
-        
+
         # Usuń MANUAL_MODE z historii
         if history and history[-1].parts[0].text == 'MANUAL_MODE':
             history.pop()  # Usuń ostatni komunikat
-        
+
         save_history(psid, history)
-        
+
+        # Wyślij wiadomość o zakończeniu pomocy człowieka
+        if MESSENGER_PAGE_TOKEN:
+            message = "Pomoc człowieka została zakończona. Jeśli potrzebujesz dalszej pomocy, napisz 'pomoc'."
+            send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Błąd w end_manual_mode: {e}", exc_info=True)
