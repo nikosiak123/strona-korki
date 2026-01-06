@@ -3008,9 +3008,12 @@ def end_manual_mode(psid):
         history = load_history(psid)
 
         # Zamień wszystkie MANUAL_MODE na POST_RESERVATION_MODE w historii
+        changed_count = 0
         for msg in history:
             if msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE':
                 msg.parts[0] = Part.from_text('POST_RESERVATION_MODE')
+                changed_count += 1
+        logging.info(f"Zmieniono {changed_count} wystąpień MANUAL_MODE na POST_RESERVATION_MODE dla PSID {psid}")
 
         save_history(psid, history)
 
