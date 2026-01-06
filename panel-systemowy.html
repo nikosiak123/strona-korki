@@ -668,6 +668,31 @@
         function showAdminPanel() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
+
+            // Sprawdź zapisany panel w localStorage
+            const savedPanel = localStorage.getItem('adminCurrentPanel') || 'database';
+            currentPanel = savedPanel;
+
+            // Aktywuj odpowiednią kartę
+            document.querySelectorAll('.dashboard-card').forEach(card => {
+                if (card.dataset.panel === currentPanel) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            // Wyświetl odpowiedni panel
+            document.getElementById('databasePanel').style.display = currentPanel === 'database' ? 'block' : 'none';
+            document.getElementById('messagesPanel').style.display = currentPanel === 'messages' ? 'block' : 'none';
+            document.getElementById('statsPanel').style.display = currentPanel === 'stats' ? 'block' : 'none';
+
+            // Załaduj dane jeśli potrzebne
+            if (currentPanel === 'messages') {
+                loadManualUsers();
+            } else if (currentPanel === 'stats') {
+                loadStats();
+            }
         }
 
         // Przełączanie paneli
@@ -676,6 +701,9 @@
                 document.querySelectorAll('.dashboard-card').forEach(c => c.classList.remove('active'));
                 card.classList.add('active');
                 currentPanel = card.dataset.panel;
+
+                // Zapisz wybór w localStorage
+                localStorage.setItem('adminCurrentPanel', currentPanel);
 
                 document.getElementById('databasePanel').style.display = currentPanel === 'database' ? 'block' : 'none';
                 document.getElementById('messagesPanel').style.display = currentPanel === 'messages' ? 'block' : 'none';
