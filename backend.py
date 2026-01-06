@@ -2884,9 +2884,12 @@ def get_manual_users():
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
                             client_name = client_record['fields'].get('Imie', 'Nieznany') if client_record else 'Nieznany'
                             
+                            # Oblicz liczbę nieodczytanych wiadomości
+                            unread_count = sum(1 for msg in history_data if msg.get('role') == 'user' and not msg.get('read', False))
+
                             # Sprawdź czy ma nieodczytane wiadomości (ostatnia wiadomość od user)
-                            has_unread = history_data and history_data[-1].get('role') == 'user'
-                            
+                            has_unread = unread_count > 0
+
                             # Ostatnia wiadomość
                             last_msg = ''
                             for msg in reversed(history_data):
@@ -2894,7 +2897,7 @@ def get_manual_users():
                                     last_msg = msg['parts'][0].get('text', '')
                                     if last_msg:
                                         break
-                            
+
                             # Pobierz dodatkowe informacje
                             free_amount = get_free_amount(psid)
                             full_name = f"{client_record['fields'].get('Imie', '')} {client_record['fields'].get('Nazwisko', '')}".strip() if client_record else 'Nieznany'
@@ -2924,15 +2927,14 @@ def get_manual_users():
                                 'name': client_name,
                                 'lastMessage': last_msg[:100] + '...' if len(last_msg) > 100 else last_msg,
                                 'hasUnread': has_unread,
+                                'unreadCount': unread_count,
                                 'freeAmount': free_amount,
                                 'studentParentName': full_name,
                                 'reservations': reservations
                             })
                     except Exception as e:
                         logging.error(f"Błąd przetwarzania pliku {filename}: {e}")
-        
-        # Sortuj po nieodczytanych na górze
-        manual_users.sort(key=lambda x: (not x['hasUnread'], x['name']))
+
         logging.info(f"DEBUG: Zwrócono {len(manual_users)} użytkowników w trybie ręcznym")
 
         return jsonify({'users': manual_users})
@@ -2948,13 +2950,14 @@ def get_user_chat(psid):
         history = load_history(psid)
 
         messages = []
-        for msg in history:
+        for full_i, msg in enumerate(history):
             if msg.parts:
                 text = msg.parts[0].text
                 if text in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
                     continue  # Pomiń komunikaty trybu
                 role = 'user' if msg.role == 'user' else 'bot'
-                messages.append({'role': role, 'text': text})
+                read_status = getattr(msg, 'read', False) if role == 'user' else True
+                messages.append({'role': role, 'text': text, 'read': read_status, 'index': len(messages), 'fullIndex': full_i})
 
         return jsonify({'messages': messages})
     except Exception as e:
@@ -2982,11 +2985,15 @@ def admin_send_message():
         response = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
         response.raise_for_status()
 
-        # Dodaj wiadomość do historii
+        # Dodaj wiadomość do historii i oznacz wszystkie wiadomości użytkownika jako przeczytane
         from bot import load_history, save_history  # Import z bot.py
         history = load_history(psid)
         from vertexai.generative_models import Content, Part
         history.append(Content(role="model", parts=[Part.from_text(message)]))
+        # Oznacz wszystkie wiadomości użytkownika jako przeczytane
+        for msg in history:
+            if msg.role == 'user':
+                msg.read = True
         # Jeśli ostatni komunikat to POST_RESERVATION_MODE, dodaj go ponownie, aby utrzymać tryb
         if history and len(history) > 1 and history[-2].parts[0].text == 'POST_RESERVATION_MODE':
             history.append(Content(role="model", parts=[Part.from_text('POST_RESERVATION_MODE')]))
@@ -3030,6 +3037,29 @@ def end_manual_mode(psid):
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Błąd w end_manual_mode: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/mark-read/<psid>', methods=['POST'])
+def mark_messages_read(psid):
+    require_admin()
+    try:
+        data = request.json
+        up_to_full_index = data.get('upToFullIndex')
+        from bot import load_history, save_history
+        history = load_history(psid)
+        if up_to_full_index is not None:
+            for i in range(min(up_to_full_index + 1, len(history))):
+                if history[i].role == 'user':
+                    history[i].read = True
+        else:
+            # If no index, mark all user messages as read
+            for msg in history:
+                if msg.role == 'user':
+                    msg.read = True
+        save_history(psid, history)
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Błąd w mark_messages_read: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/user-details/<psid>', methods=['GET'])

@@ -469,6 +469,23 @@
             max-height: 150px;
             overflow-y: auto;
         }
+
+        .unread-checkmark {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .unread-checkmark:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -881,17 +898,25 @@
                     return;
                 }
 
+                // Sortuj po nieodczytanych na górze
+                data.users.sort((a, b) => {
+                    if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+                    if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
                 let html = '<h3>Użytkownicy w trybie ręcznym:</h3>';
                 data.users.forEach(user => {
-                    const unreadClass = user.hasUnread ? 'unread' : '';
+                    const unreadClass = user.unreadCount > 0 ? 'unread' : '';
                     const escapedPsid = user.psid.replace(/'/g, "\\'");
                     const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const unreadText = user.unreadCount > 0 ? ` (${user.unreadCount} nieodczytanych)` : '';
                     html += `
                         <div class="manual-user-item ${unreadClass}" onclick="window.location.href = '/panel-user-detail.html?psid=${user.psid}'">
                             <div class="manual-user-header">
                                 <div>
-                                    <div class="manual-user-name">${escapedName}</div>
+                                    <div class="manual-user-name">${escapedName}${unreadText}</div>
                                     <div class="manual-user-psid">PSID: ${user.psid}</div>
                                 </div>
                                 <div>
@@ -925,9 +950,10 @@
                 const chatMessages = document.getElementById('chatMessages');
                 chatMessages.innerHTML = '';
                 
-                data.messages.forEach(msg => {
+                data.messages.forEach((msg, index) => {
                     const msgClass = msg.role === 'user' ? 'user' : 'bot';
-                    chatMessages.innerHTML += `<div class="chat-message ${msgClass}">${msg.text}</div>`;
+                    const checkmark = msg.role === 'user' && !msg.read ? `<button class="unread-checkmark" onclick="markAsRead('${currentUserPSID}', ${msg.fullIndex})">✓</button>` : '';
+                    chatMessages.innerHTML += `<div class="chat-message ${msgClass}">${checkmark}${msg.text}</div>`;
                 });
                 
                 chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -996,14 +1022,14 @@
         document.getElementById('sendMessageBtn').addEventListener('click', async () => {
             const message = document.getElementById('messageInput').value.trim();
             if (!message || !currentUserPSID) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/admin/send-message`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({psid: currentUserPSID, message})
                 });
-                
+
                 if (response.ok) {
                     document.getElementById('messageInput').value = '';
                     await loadChat(currentUserPSID);
@@ -1015,14 +1041,33 @@
             }
         });
 
+        async function markAsRead(psid, upToFullIndex) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/mark-read/${psid}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({upToFullIndex})
+                });
+
+                if (response.ok) {
+                    await loadChat(psid);
+                    await loadManualUsers();
+                } else {
+                    alert('Błąd oznaczania jako przeczytane');
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        }
+
         async function endManualMode(psid) {
             if (!confirm('Czy na pewno chcesz zakończyć tryb ręczny dla tego użytkownika?')) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/admin/end-manual/${psid}`, {
                     method: 'POST'
                 });
-                
+
                 if (response.ok) {
                     await loadManualUsers();
                     if (currentUserPSID === psid) {
