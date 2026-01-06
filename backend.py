@@ -3018,6 +3018,11 @@ def end_manual_mode(psid):
         # Zapisz pełną historię po zmianie, bez obcinania (żeby zmienić wszystkie wystąpienia)
         # Skopiuj logikę save_history bez obcinania
         import os
+        import errno
+        def ensure_dir(directory):
+            try: os.makedirs(directory)
+            except OSError as e:
+                if e.errno != errno.EEXIST: raise
         HISTORY_DIR = os.path.join(os.path.dirname(__file__), "../strona/conversation_store")
         ensure_dir(HISTORY_DIR)
         filepath = os.path.join(HISTORY_DIR, f"{psid}.json")
