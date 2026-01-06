@@ -2977,7 +2977,7 @@ def admin_send_message():
 
         # Wyślij wiadomość
         params = {"access_token": MESSENGER_PAGE_TOKEN}
-        payload = {"recipient": {"id": psid}, "message": {"text": message}, "messaging_type": "MESSAGE_TAG", "tag": "HUMAN_AGENT"}
+        payload = {"recipient": {"id": psid}, "message": {"text": message}, "messaging_type": "MESSAGE_TAG", "tag": "POST_PURCHASE_UPDATE"}
 
         response = requests.post("https://graph.facebook.com/v19.0/me/messages", params=params, json=payload, timeout=30)
         response.raise_for_status()
