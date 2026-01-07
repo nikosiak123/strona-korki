@@ -966,13 +966,42 @@
                     return;
                 }
 
-                let html = '<h3>Statystyki komentarzy Facebook</h3><div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
+                // Wyświetl status działania skryptu
+                const statusText = data.isRunning ? 'Tak' : 'Nie';
+                const statusColor = data.isRunning ? '#4CAF50' : '#F44336';
+                let html = '<h3>Statystyki komentarzy Facebook</h3>';
+                html += `<p><strong>Skrypt analizy działa:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span> (ostatni komentarz: ${data.lastCommentTime})</p>`;
 
-                data.forEach(stat => {
+                // Wyświetl tabelę statystyk
+                html += '<div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
+
+                data.stats.forEach(stat => {
                     html += `<tr><td>${stat.Data}</td><td>${stat.Przeslane || 0}</td><td>${stat.Odrzucone || 0}</td><td>${stat.Oczekuje || 0}</td><td>${stat.LastCommentTime || 'Brak'}</td></tr>`;
                 });
 
                 html += '</tbody></table></div>';
+
+                // Pobierz błędy Facebook
+                try {
+                    const errorsResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
+                    const errorsData = await errorsResponse.json();
+                    if (errorsData.errors && errorsData.errors.length > 0) {
+                        html += '<h3>Błędy skryptu Facebook</h3>';
+                        html += '<div class="records-table"><table><thead><tr><th>Data</th><th>Lokalizacja błędu</th><th>Zrzut ekranu</th><th>Kod HTML</th></tr></thead><tbody>';
+
+                        errorsData.errors.forEach(error => {
+                            const dateStr = new Date(error.timestamp).toLocaleString('pl-PL');
+                            const pngLink = error.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.png}" target="_blank">Pobierz PNG</a>` : 'Brak';
+                            const htmlLink = error.html ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.html}" target="_blank">Pobierz HTML</a>` : 'Brak';
+                            html += `<tr><td>${dateStr}</td><td>${error.location}</td><td>${pngLink}</td><td>${htmlLink}</td></tr>`;
+                        });
+
+                        html += '</tbody></table></div>';
+                    }
+                } catch (errorsError) {
+                    console.error('Błąd ładowania błędów:', errorsError);
+                }
+
                 panel.innerHTML = html;
             } catch (error) {
                 panel.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;

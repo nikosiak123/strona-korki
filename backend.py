@@ -3051,6 +3051,38 @@ def get_facebook_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/admin/facebook-errors', methods=['GET'])
+def get_facebook_errors():
+    require_admin()
+    try:
+        # Fetch from external server
+        external_errors_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/facebook-errors')
+        response = requests.get(external_errors_url)
+        response.raise_for_status()
+        data = response.json()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/download-error', methods=['GET'])
+def download_error():
+    require_admin()
+    try:
+        filename = request.args.get('file')
+        if not filename:
+            abort(400, "Brak parametru file.")
+
+        # Fetch from external server
+        external_download_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/download-error') + f'?file={filename}'
+        response = requests.get(external_download_url)
+        response.raise_for_status()
+
+        # Return the file content
+        from flask import Response
+        return Response(response.content, mimetype=response.headers.get('content-type'), headers={"Content-Disposition": response.headers.get('content-disposition', f'attachment; filename={filename}')})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/admin/mark-read/<psid>', methods=['POST'])
 def mark_messages_read(psid):
     require_admin()
