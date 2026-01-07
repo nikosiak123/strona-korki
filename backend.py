@@ -120,6 +120,9 @@ BREVO_API_KEY = "xkeysib-71509d7761332d21039863c415d8daf17571f869f95308428cd4bb5
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 FROM_EMAIL = "edu.najechalski@gmail.com"
 
+# Konfiguracja zewnętrznego serwera dla statystyk Facebook
+EXTERNAL_STATS_URL = "http://34.116.200.90:5000/api/facebook-stats"
+
 MESSENGER_PAGE_TOKEN = None
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
@@ -3041,11 +3044,10 @@ def end_manual_mode(psid):
 def get_facebook_stats():
     require_admin()
     try:
-        import sys
-        sys.path.append('/home/nikodnaj/strona')
-        from database_stats import get_stats
-        stats_data = get_stats()
-        return jsonify(stats_data)
+        response = requests.get(EXTERNAL_STATS_URL)
+        response.raise_for_status()
+        data = response.json()
+        return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
