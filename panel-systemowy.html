@@ -985,8 +985,8 @@
                 try {
                     const errorsResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
                     const errorsData = await errorsResponse.json();
+                    html += '<h3>Błędy skryptu Facebook</h3>';
                     if (errorsData.errors && errorsData.errors.length > 0) {
-                        html += '<h3>Błędy skryptu Facebook</h3>';
                         html += '<div class="records-table"><table><thead><tr><th>Data</th><th>Lokalizacja błędu</th><th>Zrzut ekranu</th><th>Kod HTML</th></tr></thead><tbody>';
 
                         errorsData.errors.forEach(error => {
@@ -997,9 +997,12 @@
                         });
 
                         html += '</tbody></table></div>';
+                    } else {
+                        html += '<p class="no-records">Brak błędów do wyświetlenia</p>';
                     }
                 } catch (errorsError) {
                     console.error('Błąd ładowania błędów:', errorsError);
+                    html += '<h3>Błędy skryptu Facebook</h3><p class="error-message">Błąd ładowania błędów: ' + errorsError.message + '</p>';
                 }
 
                 panel.innerHTML = html;
