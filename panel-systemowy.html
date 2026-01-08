@@ -767,8 +767,8 @@
                 // Sortuj kolumny w odpowiedniej kolejności
                 let fields = Object.keys(data.records[0].fields);
                 if (tableName === 'Korepetytorzy') {
-                    const dayOrder = ['Czwartek', 'Poniedzialek', 'Wtorek', 'Sroda', 'Piatek', 'Sobota', 'Niedziela'];
-                    const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedzialek', 'Wtorek', 'Sroda', 'Czwartek', 'Piatek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
+                    const dayOrder = ['Czwartek', 'Poniedziałek', 'Wtorek', 'Środa', 'Piątek', 'Sobota', 'Niedziela'];
+                    const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
                     fields = correctOrder.filter(f => fields.includes(f));
                     // Dodaj pozostałe pola, których nie ma w correctOrder
                     fields.push(...Object.keys(data.records[0].fields).filter(f => !correctOrder.includes(f)));
@@ -941,7 +941,7 @@
         function getDefaultFields(tableName) {
             const defaults = {
                 'Klienci': {ClientID: '', Imie: '', Nazwisko: '', LINK: ''},
-'Korepetytorzy': {TutorID: '', ImieNazwisko: '', LINK: '', Poniedzialek: '', Wtorek: '', Sroda: '', Czwartek: '', Piatek: '', Sobota: '', Niedziela: '', Przedmioty: '[]', PoziomNauczania: '[]'},
+'Korepetytorzy': {TutorID: '', ImieNazwisko: '', LINK: '', Poniedziałek: '', Wtorek: '', Środa: '', Czwartek: '', Piątek: '', Sobota: '', Niedziela: '', Przedmioty: '[]', PoziomNauczania: '[]'},
                 'Rezerwacje': {Klient: '', Korepetytor: '', Data: '', Godzina: '', Przedmiot: '', Status: 'Oczekuje na płatność'},
                 'StaleRezerwacje': {Klient_ID: '', Korepetytor: '', DzienTygodnia: '', Godzina: '', Przedmiot: '', Aktywna: true}
             };
