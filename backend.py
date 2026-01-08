@@ -1851,7 +1851,9 @@ def get_schedule():
                             })
                             slots_for_day += 1
                         else:
-                            logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
+                            # Loguj szczegółowo powód odrzucenia - konflikt z inną lekcją lub rezerwacją cykliczną
+                            conflict_info = booked_slots[key]
+                            logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - konflikt z {conflict_info.get('status')} dla studenta {conflict_info.get('studentName')}")
                     else:
                         # Loguj powody odrzucenia przez zakres godzin pracy
                         if not (start_work_time <= current_time_only):
