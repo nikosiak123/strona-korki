@@ -349,7 +349,7 @@ def check_unconfirmed_lessons():
     logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
     
     # Znajdź wszystkie niepotwierdzone lekcje testowe
-    unconfirmed_lessons = reservations_table.all(formula="{JestTestowa} = 1 AND {confirmed} = 0")
+    unconfirmed_lessons = reservations_table.all(formula="AND({JestTestowa} = 1, {confirmed} = 0, NOT({Status} = 'Odwołana - brak potwierdzenia'))")
     
     for lesson in unconfirmed_lessons:
         fields = lesson.get('fields', {})
@@ -720,8 +720,8 @@ def check_and_cancel_unpaid_lessons():
 
     try:
         # --- Sprawdzamy wszystkie nieopłacone lekcje (bez warunku czasowego w Airtable) ---
-        formula = f"AND(NOT({{Oplacona}}), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'))"
-        
+        formula = f"AND(NOT({{Oplacona}}), OR({{Status}} = 'Oczekuje na płatność', {{Status}} = 'Termin płatności minął'), NOT({{Status}} = 'Anulowana (brak płatności)'))"
+
         potential_lessons = reservations_table.all(formula=formula)
         
         if not potential_lessons:
