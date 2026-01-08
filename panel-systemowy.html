@@ -897,10 +897,16 @@
                     `;
                 } else {
                     // Zwykły input text dla innych pól
+                    let placeholder = '';
+                    if (key === 'Data') placeholder = 'np. 2026-01-08';
+                    else if (key === 'Godzina') placeholder = 'np. 14:00';
+                    else if (key === 'Przedmioty') placeholder = 'np. ["matematyka", "fizyka"]';
+                    else if (key === 'PoziomNauczania') placeholder = 'np. ["podstawowka", "liceum_podstawa"]';
+
                     formHTML += `
                         <div class="form-group">
                             <label>${key}</label>
-                            <input type="text" name="${key}" value="${escapedValue}" />
+                            <input type="text" name="${key}" value="${escapedValue}" placeholder="${placeholder}" />
                         </div>
                     `;
                 }
