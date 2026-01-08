@@ -626,7 +626,7 @@
             'Aktywna': ['true', 'false'],
             'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
             'Przedmiot': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
-            'Przedmioty': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
+            'Przedmioty': ['polski', 'matematyka', 'angielski'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa', 'liceum_rozszerzenie']
         };
 
@@ -898,7 +898,12 @@
                                 selected = '';
                             }
                         } else {
-                            selected = (inputValue === option) ? ' selected' : '';
+                            // Dla single, sprawdź czy wartość to opcja lub czy jest w tablicy (dla kompatybilności)
+                            if (Array.isArray(inputValue)) {
+                                selected = inputValue.includes(option) ? ' selected' : '';
+                            } else {
+                                selected = (inputValue === option) ? ' selected' : '';
+                            }
                         }
                         selectHTML += `<option value="${option}"${selected}>${option}</option>`;
                     });
@@ -971,7 +976,13 @@
                     formData[select.name] = selectedValues;
                 } else {
                     // Dla pojedynczego select
-                    formData[select.name] = select.value;
+                    const value = select.value;
+                    // Dla kompatybilności, niektóre pola mogą wymagać tablicy
+                    if (['Przedmioty'].includes(select.name)) {
+                        formData[select.name] = [value];
+                    } else {
+                        formData[select.name] = value;
+                    }
                 }
             });
 
