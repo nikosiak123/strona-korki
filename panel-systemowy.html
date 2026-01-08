@@ -613,6 +613,19 @@
         let currentRecord = null;
         let currentMode = 'edit'; // 'edit' lub 'add'
         let currentPanel = 'database';
+
+        // Opcje dla pól z wyborem zamiast ręcznego wpisywania
+        const fieldOptions = {
+            'Status': ['Oczekuje na płatność', 'Opłacona', 'Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Przeniesiona', 'Przeniesiona (zakończona)', 'Dostępny', 'Niedostępny'],
+            'TypSzkoly': ['szkola_podstawowa', 'liceum', 'technikum'],
+            'Poziom': ['podstawowy', 'rozszerzony'],
+            'Klasa': ['1', '2', '3', '4', '5', '6', '7', '8', 'matura'],
+            'JestTestowa': ['true', 'false'],
+            'Oplacona': ['true', 'false'],
+            'confirmed': ['true', 'false'],
+            'Aktywna': ['true', 'false'],
+            'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+        };
         let currentUserPSID = null;
 
         // Ignoruj błędy JS, aby nie wyświetlały się na stronie
@@ -862,13 +875,32 @@
                 
                 // Escape cudzysłowów w wartości
                 const escapedValue = inputValue.replace(/"/g, '&quot;');
-                
-                formHTML += `
-                    <div class="form-group">
-                        <label>${key}</label>
-                        <input type="text" name="${key}" value="${escapedValue}" />
-                    </div>
-                `;
+
+                // Sprawdź czy pole ma opcje wyboru
+                if (fieldOptions[key]) {
+                    // Użyj select dla pól z opcjami
+                    let selectHTML = `<select name="${key}">`;
+                    fieldOptions[key].forEach(option => {
+                        const selected = (inputValue === option) ? ' selected' : '';
+                        selectHTML += `<option value="${option}"${selected}>${option}</option>`;
+                    });
+                    selectHTML += '</select>';
+
+                    formHTML += `
+                        <div class="form-group">
+                            <label>${key}</label>
+                            ${selectHTML}
+                        </div>
+                    `;
+                } else {
+                    // Zwykły input text dla innych pól
+                    formHTML += `
+                        <div class="form-group">
+                            <label>${key}</label>
+                            <input type="text" name="${key}" value="${escapedValue}" />
+                        </div>
+                    `;
+                }
             }
             
             formContainer.innerHTML = formHTML;
