@@ -626,8 +626,12 @@
             'Aktywna': ['true', 'false'],
             'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
             'Przedmiot': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
+            'Przedmioty': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa', 'liceum_rozszerzenie']
         };
+
+        // Pola wielowartościowe (multiple select)
+        const multipleFields = ['Przedmioty', 'PoziomNauczania'];
         let currentUserPSID = null;
 
         // Ignoruj błędy JS, aby nie wyświetlały się na stronie
@@ -881,12 +885,27 @@
                 // Sprawdź czy pole ma opcje wyboru
                 if (fieldOptions[key]) {
                     // Użyj select dla pól z opcjami
-                    let selectHTML = `<select name="${key}">`;
+                    const isMultiple = multipleFields.includes(key);
+                    let selectHTML = `<select name="${key}"${isMultiple ? ' multiple' : ''}>`;
                     fieldOptions[key].forEach(option => {
-                        const selected = (inputValue === option) ? ' selected' : '';
+                        let selected = '';
+                        if (isMultiple) {
+                            // Dla multiple, sprawdź czy wartość zawiera opcję (zakładając JSON array)
+                            try {
+                                const selectedArray = JSON.parse(inputValue || '[]');
+                                selected = selectedArray.includes(option) ? ' selected' : '';
+                            } catch {
+                                selected = '';
+                            }
+                        } else {
+                            selected = (inputValue === option) ? ' selected' : '';
+                        }
                         selectHTML += `<option value="${option}"${selected}>${option}</option>`;
                     });
                     selectHTML += '</select>';
+                    if (isMultiple) {
+                        selectHTML += '<small style="color: #666;">Przytrzymaj Ctrl (lub Cmd na Mac) aby wybrać wiele opcji</small>';
+                    }
 
                     formHTML += `
                         <div class="form-group">
@@ -926,21 +945,34 @@
 
         document.getElementById('saveRecordBtn').addEventListener('click', async () => {
             const formData = {};
+            // Obsługa inputów tekstowych
             document.querySelectorAll('#modalForm input').forEach(input => {
                 let value = input.value;
-                
+
                 // Próba parsowania JSON dla tablic
                 if (value.startsWith('[') || value.startsWith('{')) {
                     try {
                         value = JSON.parse(value);
                     } catch (e) {}
                 }
-                
+
                 // Konwersja boolean
                 if (value === 'true') value = true;
                 if (value === 'false') value = false;
-                
+
                 formData[input.name] = value;
+            });
+
+            // Obsługa selectów
+            document.querySelectorAll('#modalForm select').forEach(select => {
+                if (select.multiple) {
+                    // Dla multiple select, zbieramy wybrane opcje jako tablicę
+                    const selectedValues = Array.from(select.selectedOptions).map(option => option.value);
+                    formData[select.name] = selectedValues;
+                } else {
+                    // Dla pojedynczego select
+                    formData[select.name] = select.value;
+                }
             });
 
             try {
