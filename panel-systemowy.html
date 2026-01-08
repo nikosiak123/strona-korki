@@ -861,9 +861,7 @@
             let sortedKeys = Object.keys(fields);
             if (currentTable === 'Korepetytorzy') {
                 const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedzialek', 'Wtorek', 'Sroda', 'Czwartek', 'Piatek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
-                sortedKeys = correctOrder.filter(f => sortedKeys.includes(f));
-                // Dodaj pozostałe pola, których nie ma w correctOrder
-                sortedKeys.push(...Object.keys(fields).filter(f => !correctOrder.includes(f)));
+                sortedKeys = correctOrder;
             }
             
             let formHTML = '';
