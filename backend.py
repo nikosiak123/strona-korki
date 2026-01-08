@@ -2818,19 +2818,36 @@ def create_table_record(table_name):
         traceback.print_exc()
         abort(500, f"Błąd podczas tworzenia rekordu: {str(e)}")
 
+@app.route('/api/admin/table/<table_name>/record/<record_id>', methods=['GET'])
+def get_table_record(table_name, record_id):
+    """Pobiera pojedynczy rekord z tabeli."""
+    require_admin()
+
+    allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
+    if table_name not in allowed_tables:
+        abort(404, "Tabela nie istnieje.")
+
+    table = DatabaseTable(table_name)
+    try:
+        record = table.get(record_id)
+        return jsonify(record)
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, f"Błąd podczas pobierania rekordu: {str(e)}")
+
 @app.route('/api/admin/table/<table_name>/record/<record_id>', methods=['PUT'])
 def update_table_record(table_name, record_id):
     """Aktualizuje rekord w tabeli."""
     require_admin()
-    
+
     allowed_tables = ['Klienci', 'Korepetytorzy', 'Rezerwacje', 'StaleRezerwacje']
     if table_name not in allowed_tables:
         abort(404, "Tabela nie istnieje.")
-    
+
     fields = request.json.get('fields', {})
     if not fields:
         abort(400, "Brak danych do aktualizacji.")
-    
+
     table = DatabaseTable(table_name)
     try:
         updated_record = table.update(record_id, fields)
