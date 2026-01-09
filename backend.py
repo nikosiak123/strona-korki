@@ -349,7 +349,7 @@ def check_unconfirmed_lessons():
     logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
     
     # Znajdź wszystkie niepotwierdzone lekcje testowe
-    unconfirmed_lessons = reservations_table.all(formula="AND({JestTestowa} = 1, {confirmed} = 0, NOT({Status} = 'Odwołana - brak potwierdzenia'))")
+    unconfirmed_lessons = reservations_table.all(formula="AND({JestTestowa} = 1, {confirmed} = 0, NOT({Status} = 'Odwołana - brak potwierdzenia'), NOT({Status} = 'Przeniesiona (zakończona)'), NOT({Status} = 'Anulowana (brak płatności)'))")
     
     for lesson in unconfirmed_lessons:
         fields = lesson.get('fields', {})
@@ -359,8 +359,8 @@ def check_unconfirmed_lessons():
             lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
             time_until_lesson = lesson_start - now
             
-            # Jeśli zostało mniej niż 6 godzin do lekcji i nie jest potwierdzona
-            if time_until_lesson <= timedelta(hours=6):
+            # Jeśli zostało mniej niż 6 godzin do lekcji i nie jest potwierdzona (tylko nadchodzące lekcje)
+            if timedelta(0) < time_until_lesson <= timedelta(hours=6):
                 logging.info(f"Odwołuję niepotwierdzoną lekcję testową: {fields.get('ManagementToken')}")
                 
                 # Odwołaj lekcję
