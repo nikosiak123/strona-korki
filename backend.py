@@ -934,7 +934,7 @@ def calculate_lesson_price(school_type, school_level=None, school_class=None):
     """
     if school_type == 'szkola_podstawowa':
         return 6500
-    if school_class and 'matura' in str(school_class).lower():
+    if school_class and ('4' in str(school_class).lower() or '5' in str(school_class).lower()):
         return 8000
     if school_level == 'rozszerzony':
         return 7500

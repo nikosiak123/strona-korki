@@ -31,13 +31,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const schoolType = schoolTypeSelect.value;
         const schoolLevel = schoolLevelSelect.value;
         // Na stronie testowej nie ma `schoolClassSelect`, więc sprawdzamy, czy istnieje
-        const schoolClass = schoolClassSelect ? schoolClassSelect.value : null; 
-        
+        const schoolClass = schoolClassSelect ? schoolClassSelect.value : null;
+
         let price = 0;
 
         if (schoolType === 'szkola_podstawowa') {
             price = 65;
-        } else if (schoolClass && schoolClass.toLowerCase().includes('matura')) {
+        } else if ((schoolType === 'liceum' && schoolClass === '4') || (schoolType === 'technikum' && schoolClass === '5')) {
             price = 80;
         } else if (schoolLevel === 'rozszerzony') {
             price = 75;

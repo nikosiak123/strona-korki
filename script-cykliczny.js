@@ -38,12 +38,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const schoolType = schoolTypeSelect.value;
         const schoolLevel = schoolLevelSelect.value;
         const schoolClass = schoolClassSelect.value;
-        
+
         let price = 0;
 
         if (schoolType === 'szkola_podstawowa') {
             price = 65;
-        } else if (schoolClass && schoolClass.toLowerCase().includes('matura')) {
+        } else if ((schoolType === 'liceum' && schoolClass === '4') || (schoolType === 'technikum' && schoolClass === '5')) {
             price = 80;
         } else if (schoolLevel === 'rozszerzony') {
             price = 75;
