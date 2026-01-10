@@ -1852,6 +1852,14 @@ def get_schedule():
                     logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak zdefiniowanych godzin")
                     continue
 
+                # Parse schedule_value if it's a JSON string (from database)
+                if isinstance(schedule_value, str):
+                    try:
+                        schedule_value = json.loads(schedule_value)
+                    except json.JSONDecodeError:
+                        logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON, traktuję jako pustą listę")
+                        schedule_value = []
+
                 logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {schedule_value}")
 
                 available_times = get_available_times_for_day(schedule_value, master_times)
