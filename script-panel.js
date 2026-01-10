@@ -82,11 +82,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Używamy listy skróconej do pobierania danych z formularza
         const scheduleData = {};
         daysOfWeekShort.forEach(dayShort => {
-            const start = document.querySelector(`input[name="${dayShort}_start"]`).value;
-            const end = document.querySelector(`input[name="${dayShort}_end"]`).value;
-            // Mapujemy na nazwę API (bez polskich znaków)
             const dayAPIName = daysOfWeekAPI[daysOfWeekShort.indexOf(dayShort)];
-            scheduleData[dayAPIName] = (start && end) ? `${start}-${end}` : "";
+            const selectedSlots = [];
+            const timeSlots = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50'];
+            timeSlots.forEach(slot => {
+                const checkbox = document.querySelector(`input[name="${dayShort}_${slot.replace(':', '')}"]`);
+                if (checkbox && checkbox.checked) {
+                    selectedSlots.push(slot);
+                }
+            });
+            scheduleData[dayAPIName] = selectedSlots; // Array of selected slots
         });
 
         try {
@@ -490,30 +495,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         scheduleFields.innerHTML = '';
-        const formatTime = (timeStr) => {
-            if (!timeStr) return '';
-            const parts = timeStr.split(':');
-            if (parts.length < 2) return '';
-            const hour = String(parts[0]).padStart(2, '0');
-            const minute = String(parts[1]).padStart(2, '0');
-            return `${hour}:${minute}`;
-        };
+
+        // Define the time slots
+        const timeSlots = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50'];
+
         daysOfWeekShort.forEach(dayShort => { // Iterujemy po skróconych nazwach
             const dayAPIName = daysOfWeekAPI[daysOfWeekShort.indexOf(dayShort)]; // Pobieramy nazwę API do pobrania danych
-            const timeRange = data[dayAPIName] || "";
-            const [startTime = '', endTime = ''] = timeRange.split('-');
+            const selectedSlots = data[dayAPIName] || []; // Now it's an array of selected slots
             const row = document.createElement('div');
             row.className = 'day-row';
-            
+
+            let checkboxesHtml = '';
+            timeSlots.forEach(slot => {
+                const isChecked = selectedSlots.includes(slot) ? 'checked' : '';
+                checkboxesHtml += `
+                    <label style="display: inline-block; margin-right: 10px;">
+                        <input type="checkbox" name="${dayShort}_${slot.replace(':', '')}" value="${slot}" ${isChecked}>
+                        ${slot}
+                    </label>
+                `;
+            });
+
             row.innerHTML = `
                 <div class="day-label">${dayShort}</div>
-                <div class="time-inputs">
-                    <input type="time" class="form-control" name="${dayShort}_start" value="${formatTime(startTime.trim())}">
-                    <span>-</span>
-                    <input type="time" class="form-control" name="${dayShort}_end" value="${formatTime(endTime.trim())}">
+                <div class="time-inputs" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                    ${checkboxesHtml}
                 </div>
             `;
-            
+
             scheduleFields.appendChild(row);
         });
     }

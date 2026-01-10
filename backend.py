@@ -791,6 +791,20 @@ def parse_time_range(time_range_str):
         return start_time, end_time
     except ValueError: return None, None
 
+def get_available_times_for_day(schedule_value, master_times):
+    """Get available times for a day from either range string or list of times."""
+    if isinstance(schedule_value, list):
+        # New format: list of selected time slots
+        return [t for t in schedule_value if t in master_times]
+    elif isinstance(schedule_value, str):
+        # Old format: range string
+        start_work_time, end_work_time = parse_time_range(schedule_value)
+        if not start_work_time or not end_work_time:
+            return []
+        return [t for t in master_times if start_work_time <= datetime.strptime(t, '%H:%M').time() < end_work_time]
+    else:
+        return []
+
 def normalize_tutor_field(raw_value):
     """
     Normalize a tutor field (Przedmioty or PoziomNauczania) that can be a list or string.
@@ -1541,15 +1555,31 @@ def get_tutor_schedule():
     tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
     fields = tutor_record.get('fields', {})
+
+    # Parse schedule fields as JSON if they are arrays
+    schedule = {}
+    for day in ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]:
+        value = fields.get(day, "")
+        if isinstance(value, str) and value:
+            try:
+                schedule[day] = json.loads(value)
+            except json.JSONDecodeError:
+                # If it's old format (range), convert to empty array
+                schedule[day] = []
+        elif isinstance(value, list):
+            schedule[day] = value
+        else:
+            schedule[day] = []
+
     return jsonify({
-        "Imię i Nazwisko": fields.get("ImieNazwisko"), 
-        "Poniedzialek": fields.get("Poniedzialek", ""),
-        "Wtorek": fields.get("Wtorek", ""),
-        "Sroda": fields.get("Sroda", ""), 
-        "Czwartek": fields.get("Czwartek", ""),
-        "Piatek": fields.get("Piatek", ""),
-        "Sobota": fields.get("Sobota", ""), 
-        "Niedziela": fields.get("Niedziela", ""),
+        "Imię i Nazwisko": fields.get("ImieNazwisko"),
+        "Poniedzialek": schedule.get("Poniedzialek", []),
+        "Wtorek": schedule.get("Wtorek", []),
+        "Sroda": schedule.get("Sroda", []),
+        "Czwartek": schedule.get("Czwartek", []),
+        "Piatek": schedule.get("Piatek", []),
+        "Sobota": schedule.get("Sobota", []),
+        "Niedziela": schedule.get("Niedziela", []),
         "Przedmioty": normalize_tutor_field(fields.get("Przedmioty", [])),
         "PoziomNauczania": normalize_tutor_field(fields.get("PoziomNauczania", [])),
         "Email": fields.get("Email", ""),
@@ -1582,7 +1612,7 @@ def update_tutor_schedule():
     if not tutor_id or not new_schedule: abort(400, "Brak wymaganych danych.")
     tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
-    fields_to_update = {day: time_range for day, time_range in new_schedule.items() if time_range is not None}
+    fields_to_update = {day: json.dumps(time_range) if isinstance(time_range, list) else time_range for day, time_range in new_schedule.items() if time_range is not None}
     tutors_table.update(tutor_record['id'], fields_to_update)
     return jsonify({"message": "Grafik został pomyślnie zaktualizowany."})
 
@@ -1801,6 +1831,7 @@ def get_schedule():
         
         master_start_time = dt_time(8, 0)
         master_end_time = dt_time(22, 0)
+        master_times = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50']
 
         available_slots = []
         logging.info(f"CALENDAR: Rozpoczynam generowanie wolnych slotów dla {len(filtered_tutors)} korepetytorów")
@@ -1815,51 +1846,35 @@ def get_schedule():
             for day_offset in range(7):
                 current_date = start_date + timedelta(days=day_offset)
                 day_name = WEEKDAY_MAP[current_date.weekday()]
-                time_range_str = fields.get(day_name)
-                
-                if not time_range_str: 
+                schedule_value = fields.get(day_name)
+
+                if not schedule_value:
                     logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak zdefiniowanych godzin")
                     continue
-                
-                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {time_range_str}")
-                
-                start_work_time, end_work_time = parse_time_range(time_range_str)
-                if not start_work_time or not end_work_time: 
-                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania zakresu '{time_range_str}'")
+
+                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {schedule_value}")
+
+                available_times = get_available_times_for_day(schedule_value, master_times)
+                if not available_times:
+                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: brak dostępnych godzin")
                     continue
-                
-                current_slot_datetime = datetime.combine(current_date, master_start_time)
-                end_datetime_limit = datetime.combine(current_date, master_end_time)
 
+                current_date_str = current_date.strftime('%Y-%m-%d')
                 slots_for_day = 0
-                while current_slot_datetime < end_datetime_limit:
-                    current_time_only = current_slot_datetime.time()
-                    
-                    if start_work_time <= current_time_only and \
-                       (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
-                        
-                        slot_time_str = current_slot_datetime.strftime('%H:%M')
-                        current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
-                        key = (tutor_name, current_date_str, slot_time_str)
+                for slot_time_str in available_times:
+                    key = (tutor_name, current_date_str, slot_time_str)
 
-                        if key not in booked_slots:
-                            available_slots.append({
-                                'tutor': tutor_name,
-                                'date': current_date_str,
-                                'time': slot_time_str,
-                                'status': 'available'
-                            })
-                            slots_for_day += 1
-                        else:
-                            logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
+                    if key not in booked_slots:
+                        available_slots.append({
+                            'tutor': tutor_name,
+                            'date': current_date_str,
+                            'time': slot_time_str,
+                            'status': 'available'
+                        })
+                        slots_for_day += 1
                     else:
-                        # Loguj powody odrzucenia przez zakres godzin pracy
-                        if not (start_work_time <= current_time_only):
-                            pass # Zbyt wcześnie
-                        elif not ((current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time)):
-                            logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - wykracza poza koniec pracy ({end_work_time})")
-                    
-                    current_slot_datetime += timedelta(minutes=70)
+                        logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
+
                 logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): wygenerowano {slots_for_day} wolnych slotów")
         
         logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
@@ -1884,34 +1899,23 @@ def get_schedule():
                 for day_offset in range(7):
                     current_date = start_date + timedelta(days=day_offset)
                     day_name = WEEKDAY_MAP[current_date.weekday()]
-                    time_range_str = fields.get(day_name)
-                    if not time_range_str: continue
-                    start_work_time, end_work_time = parse_time_range(time_range_str)
-                    if not start_work_time or not end_work_time: continue
-                    
-                    current_slot_datetime = datetime.combine(current_date, master_start_time)
-                    end_datetime_limit = datetime.combine(current_date, master_end_time)
-                    
-                    while current_slot_datetime < end_datetime_limit:
-                        current_time_only = current_slot_datetime.time()
+                    schedule_value = fields.get(day_name)
+                    if not schedule_value: continue
+                    available_times = get_available_times_for_day(schedule_value, master_times)
+                    if not available_times: continue
 
-                        if start_work_time <= current_time_only and \
-                           (current_slot_datetime + timedelta(minutes=60)) <= datetime.combine(current_date, end_work_time):
+                    current_date_str = current_date.strftime('%Y-%m-%d')
+                    for slot_time_str in available_times:
+                        key = (tutor_name, current_date_str, slot_time_str)
 
-                            slot_time_str = current_slot_datetime.strftime('%H:%M')
-                            current_date_str = current_slot_datetime.strftime('%Y-%m-%d')
-                            key = (tutor_name, current_date_str, slot_time_str)
-                            
-                            slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
-                            if key in booked_slots:
-                                slot_info.update(booked_slots[key])
-                                logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
-                            else:
-                                slot_info['status'] = 'available'
-                            
-                            final_schedule.append(slot_info)
+                        slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
+                        if key in booked_slots:
+                            slot_info.update(booked_slots[key])
+                            logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
+                        else:
+                            slot_info['status'] = 'available'
 
-                        current_slot_datetime += timedelta(minutes=70)
+                        final_schedule.append(slot_info)
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
             return jsonify(final_schedule)
         else:
