@@ -69,16 +69,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadingState.innerHTML = `<h2>Wystąpił błąd: ${error.message}</h2>`;
     }
 
-    scheduleForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    async function saveSchedule() {
         if (!tutorID) {
-            alert('Błąd: Brak identyfikatora korepetytora.');
+            console.error('Błąd: Brak identyfikatora korepetytora.');
             return;
         }
-        const saveButton = document.getElementById('saveScheduleBtn');
-        saveButton.textContent = 'Zapisywanie...';
-        saveButton.disabled = true;
-        
+
         // Używamy listy skróconej do pobierania danych z formularza
         const scheduleData = {};
         daysOfWeekShort.forEach(dayShort => {
@@ -100,15 +96,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({ tutorID: tutorID, schedule: scheduleData })
             });
             if (!response.ok) throw new Error("Nie udało się zapisać zmian.");
-            const result = await response.json();
-            alert(result.message);
+            console.log('Grafik zapisany pomyślnie.');
         } catch (error) {
-            alert(`Wystąpił błąd: ${error.message}`);
-        } finally {
-            saveButton.textContent = 'Zapisz stały grafik';
-            saveButton.disabled = false;
+            console.error(`Wystąpił błąd podczas zapisywania: ${error.message}`);
         }
-    });
+    }
 
     if(lessonDetailsModal) {
         modalCloseBtn.addEventListener('click', () => lessonDetailsModal.classList.remove('active'));
@@ -517,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.dataset.day = dayShort;
                 btn.dataset.selected = isSelected;
 
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const currentlySelected = btn.dataset.selected === 'true';
                     btn.dataset.selected = !currentlySelected;
                     if (btn.dataset.selected === 'true') {
@@ -525,6 +517,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         btn.className = 'time-slot-btn unavailable';
                     }
+                    // Automatycznie zapisz zmiany
+                    await saveSchedule();
                 });
 
                 inputsContainer.appendChild(btn);
