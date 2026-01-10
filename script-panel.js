@@ -84,11 +84,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         daysOfWeekShort.forEach(dayShort => {
             const dayAPIName = daysOfWeekAPI[daysOfWeekShort.indexOf(dayShort)];
             const selectedSlots = [];
-            const timeSlots = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50'];
-            timeSlots.forEach(slot => {
-                const checkbox = document.querySelector(`input[name="${dayShort}_${slot.replace(':', '')}"]`);
-                if (checkbox && checkbox.checked) {
-                    selectedSlots.push(slot);
+            const buttons = document.querySelectorAll(`.time-slot-btn[data-day="${dayShort}"]`);
+            buttons.forEach(btn => {
+                if (btn.dataset.selected === 'true') {
+                    selectedSlots.push(btn.dataset.slot);
                 }
             });
             scheduleData[dayAPIName] = selectedSlots; // Array of selected slots
@@ -505,24 +504,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = document.createElement('div');
             row.className = 'day-row';
 
-            let checkboxesHtml = '';
+            const inputsContainer = document.createElement('div');
+            inputsContainer.className = 'time-inputs';
+
             timeSlots.forEach(slot => {
-                const isChecked = selectedSlots.includes(slot) ? 'checked' : '';
-                checkboxesHtml += `
-                    <label style="display: inline-block; margin-right: 10px;">
-                        <input type="checkbox" name="${dayShort}_${slot.replace(':', '')}" value="${slot}" ${isChecked}>
-                        ${slot}
-                    </label>
-                `;
+                const isSelected = selectedSlots.includes(slot);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `time-slot-btn ${isSelected ? 'available' : 'unavailable'}`;
+                btn.textContent = slot;
+                btn.dataset.slot = slot;
+                btn.dataset.day = dayShort;
+                btn.dataset.selected = isSelected;
+
+                btn.addEventListener('click', () => {
+                    const currentlySelected = btn.dataset.selected === 'true';
+                    btn.dataset.selected = !currentlySelected;
+                    if (btn.dataset.selected === 'true') {
+                        btn.className = 'time-slot-btn available';
+                    } else {
+                        btn.className = 'time-slot-btn unavailable';
+                    }
+                });
+
+                inputsContainer.appendChild(btn);
             });
 
-            row.innerHTML = `
-                <div class="day-label">${dayShort}</div>
-                <div class="time-inputs" style="display: flex; flex-wrap: wrap; gap: 5px;">
-                    ${checkboxesHtml}
-                </div>
-            `;
-
+            row.innerHTML = `<div class="day-label">${dayShort}</div>`;
+            row.appendChild(inputsContainer);
             scheduleFields.appendChild(row);
         });
     }

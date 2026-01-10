@@ -14,7 +14,23 @@
         .day-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
         .day-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .day-label { font-weight: 700; font-size: 1.1rem; }
-        .time-inputs { display: flex; align-items: center; gap: 0.5rem; }
+        .time-inputs { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .time-slot-btn { 
+            padding: 8px 12px; 
+            border: none; 
+            border-radius: 8px; 
+            font-family: 'Nunito', sans-serif; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            min-width: 70px; 
+            text-align: center;
+        }
+        .time-slot-btn.available { background-color: #28a745; color: white; }
+        .time-slot-btn.available:hover { background-color: #218838; }
+        .time-slot-btn.unavailable { background-color: #dc3545; color: white; }
+        .time-slot-btn.unavailable:hover { background-color: #c82333; }
         .time-inputs input[type="time"] { 
             border: 1px solid var(--border-color); 
             border-radius: 8px; 
@@ -125,10 +141,12 @@
             
             <h3>Ustalanie cotygodniowego grafiku:</h3>
             <ul>
-                <li>Swój cotygodniowy grafik można ustalić zaznaczając checkboxy przy konkretnych blokach godzinowych dla poszczególnych dni</li>
+                <li>Swój cotygodniowy grafik można ustalić klikając na przyciski przy konkretnych blokach godzinowych dla poszczególnych dni</li>
                 <li>Dostępne bloki to: 8:00-9:00, 9:10-10:10, 10:20-11:20, 11:30-12:30, 12:40-13:40, 13:50-14:50, 15:00-16:00, 16:10-17:10, 17:20-18:20, 18:30-19:30, 19:40-20:40, 20:50-21:50</li>
-                <li><strong>Można zaznaczyć dowolne kombinacje bloków</strong>, także nieprzylegające do siebie (np. 8:00-9:00 i 17:20-18:20)</li>
-                <li>Zaznaczone bloki będą dostępne dla rezerwacji przez uczniów</li>
+                <li><strong>Zielone przyciski oznaczają dostępne godziny</strong>, czerwone - niedostępne</li>
+                <li>Kliknięcie na przycisk zmienia jego stan między dostępnym (zielony) a niedostępnym (czerwony)</li>
+                <li><strong>Można wybrać dowolne kombinacje bloków</strong>, także nieprzylegające do siebie (np. 8:00-9:00 i 17:20-18:20)</li>
+                <li>Zielone bloki będą dostępne dla rezerwacji przez uczniów</li>
             </ul>
             
             <h3>Limit godzin tygodniowo:</h3>
