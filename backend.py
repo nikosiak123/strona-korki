@@ -1558,7 +1558,7 @@ def get_tutor_schedule():
 
     # Parse schedule fields as JSON if they are arrays
     schedule = {}
-    for day in ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]:
+    for day in ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]:
         value = fields.get(day, "")
         if isinstance(value, str) and value:
             try:
@@ -1573,11 +1573,11 @@ def get_tutor_schedule():
 
     return jsonify({
         "Imię i Nazwisko": fields.get("ImieNazwisko"),
-        "Poniedzialek": schedule.get("Poniedzialek", []),
+        "Poniedziałek": schedule.get("Poniedziałek", []),
         "Wtorek": schedule.get("Wtorek", []),
-        "Sroda": schedule.get("Sroda", []),
+        "Środa": schedule.get("Środa", []),
         "Czwartek": schedule.get("Czwartek", []),
-        "Piatek": schedule.get("Piatek", []),
+        "Piątek": schedule.get("Piątek", []),
         "Sobota": schedule.get("Sobota", []),
         "Niedziela": schedule.get("Niedziela", []),
         "Przedmioty": normalize_tutor_field(fields.get("Przedmioty", [])),

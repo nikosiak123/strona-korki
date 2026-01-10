@@ -9,7 +9,7 @@ const availableLevels = [
 const API_BASE_URL = ''; // Względny adres, przez Nginx proxy
 
 const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
-const daysOfWeekAPI = ["Poniedzialek", "Wtorek", "Sroda", "Czwartek", "Piatek", "Sobota", "Niedziela"]; // Nazwy używane przez API (bez polskich znaków)
+const daysOfWeekAPI = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Nazwy używane przez API
 const daysOfWeekShort = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]; // Lista skrótów do iteracji
 const monthNames = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
 const dayNamesFull = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
