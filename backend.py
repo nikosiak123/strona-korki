@@ -1941,6 +1941,35 @@ def get_schedule():
                     if not available_times: continue
 
                     current_date_str = current_date.strftime('%Y-%m-%d')
+
+                    # Try to get schedule_value with backward compatibility
+                    possible_names = [day_name]
+                    if day_name == "Poniedziałek":
+                        possible_names.append("Poniedzialek")
+                    elif day_name == "Środa":
+                        possible_names.append("Sroda")
+                    elif day_name == "Piątek":
+                        possible_names.append("Piatek")
+
+                    schedule_value = None
+                    for name in possible_names:
+                        schedule_value = fields.get(name)
+                        if schedule_value:
+                            break
+
+                    if not schedule_value: continue
+
+                    # Parse schedule_value if it's a JSON string
+                    if isinstance(schedule_value, str):
+                        try:
+                            schedule_value = json.loads(schedule_value)
+                        except json.JSONDecodeError:
+                            schedule_value = []
+
+                    available_times = get_available_times_for_day(schedule_value, master_times)
+                    if not available_times: continue
+
+                    slots_for_day = 0
                     for slot_time_str in available_times:
                         key = (tutor_name, current_date_str, slot_time_str)
 
@@ -1950,6 +1979,7 @@ def get_schedule():
                             logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
                         else:
                             slot_info['status'] = 'available'
+                            slots_for_day += 1
 
                         final_schedule.append(slot_info)
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
