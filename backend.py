@@ -1557,19 +1557,34 @@ def get_tutor_schedule():
     fields = tutor_record.get('fields', {})
 
     # Parse schedule fields as JSON if they are arrays
+    # Map old day names to new ones for backward compatibility
+    day_mapping = {
+        "Poniedziałek": ["Poniedziałek", "Poniedzialek"],
+        "Wtorek": ["Wtorek", "Wtorek"],
+        "Środa": ["Środa", "Sroda"],
+        "Czwartek": ["Czwartek", "Czwartek"],
+        "Piątek": ["Piątek", "Piatek"],
+        "Sobota": ["Sobota", "Sobota"],
+        "Niedziela": ["Niedziela", "Niedziela"]
+    }
+
     schedule = {}
-    for day in ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]:
-        value = fields.get(day, "")
+    for new_day, possible_names in day_mapping.items():
+        value = None
+        for name in possible_names:
+            value = fields.get(name, "")
+            if value:
+                break
         if isinstance(value, str) and value:
             try:
-                schedule[day] = json.loads(value)
+                schedule[new_day] = json.loads(value)
             except json.JSONDecodeError:
                 # If it's old format (range), convert to empty array
-                schedule[day] = []
+                schedule[new_day] = []
         elif isinstance(value, list):
-            schedule[day] = value
+            schedule[new_day] = value
         else:
-            schedule[day] = []
+            schedule[new_day] = []
 
     return jsonify({
         "Imię i Nazwisko": fields.get("ImieNazwisko"),
@@ -1846,7 +1861,20 @@ def get_schedule():
             for day_offset in range(7):
                 current_date = start_date + timedelta(days=day_offset)
                 day_name = WEEKDAY_MAP[current_date.weekday()]
-                schedule_value = fields.get(day_name)
+                # Try to get schedule_value with backward compatibility for old day names
+                possible_names = [day_name]  # Polish name
+                if day_name == "Poniedziałek":
+                    possible_names.append("Poniedzialek")
+                elif day_name == "Środa":
+                    possible_names.append("Sroda")
+                elif day_name == "Piątek":
+                    possible_names.append("Piatek")
+
+                schedule_value = None
+                for name in possible_names:
+                    schedule_value = fields.get(name)
+                    if schedule_value:
+                        break
 
                 if not schedule_value:
                     logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak zdefiniowanych godzin")
