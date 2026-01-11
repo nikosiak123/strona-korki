@@ -1549,8 +1549,16 @@ def get_tutor_schedule():
             try:
                 schedule[new_day] = json.loads(value)
             except json.JSONDecodeError:
-                # If it's old format (range), convert to empty array
-                schedule[new_day] = []
+                # Try ast.literal_eval for Python list format
+                import ast
+                try:
+                    parsed = ast.literal_eval(value)
+                    if isinstance(parsed, list):
+                        schedule[new_day] = parsed
+                    else:
+                        schedule[new_day] = []
+                except (ValueError, SyntaxError):
+                    schedule[new_day] = []
         elif isinstance(value, list):
             schedule[new_day] = value
         else:
@@ -1855,8 +1863,19 @@ def get_schedule():
                     try:
                         schedule_value = json.loads(schedule_value)
                     except json.JSONDecodeError:
-                        logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON, traktuję jako pustą listę")
-                        schedule_value = []
+                        logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON, próbuję ast.literal_eval")
+                        import ast
+                        try:
+                            parsed = ast.literal_eval(schedule_value)
+                            if isinstance(parsed, list):
+                                schedule_value = parsed
+                                logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano ast: {parsed}")
+                            else:
+                                schedule_value = []
+                                logging.warning(f"CALENDAR: {tutor_name} - {day_name}: ast nie zwrócił listy")
+                        except (ValueError, SyntaxError) as e:
+                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania ast {e}, traktuję jako pustą listę")
+                            schedule_value = []
 
                 logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {schedule_value}")
 
@@ -1940,8 +1959,19 @@ def get_schedule():
                             logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano JSON: {parsed}")
                             schedule_value = parsed
                         except json.JSONDecodeError as e:
-                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON {e}, traktuję jako pustą listę")
-                            schedule_value = []
+                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON {e}, próbuję ast.literal_eval")
+                            import ast
+                            try:
+                                parsed = ast.literal_eval(schedule_value)
+                                if isinstance(parsed, list):
+                                    schedule_value = parsed
+                                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano ast: {parsed}")
+                                else:
+                                    schedule_value = []
+                                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: ast nie zwrócił listy")
+                            except (ValueError, SyntaxError) as e:
+                                logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania ast {e}, traktuję jako pustą listę")
+                                schedule_value = []
 
                     logging.info(f"CALENDAR: {tutor_name} - {day_name}: final schedule_value = {schedule_value}")
 
