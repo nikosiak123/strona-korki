@@ -1512,13 +1512,7 @@ def add_adhoc_slot():
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
 
-        # ### DODANO: Sprawdzanie, czy termin jest w przeszłości ###
-        try:
-            slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-            if slot_datetime < datetime.now():
-                return jsonify({"message": "Nie można dodawać terminów w przeszłości."}), 403
-        except ValueError:
-            return jsonify({"message": "Nieprawidłowy format daty lub godziny."}), 400
+
 
         new_available_slot = {
             "Klient": "DOSTEPNY",  # Placeholder dla slotu bez klienta
@@ -1673,13 +1667,7 @@ def block_single_slot():
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
 
-        # ### DODANO: Sprawdzanie, czy termin jest w przeszłości ###
-        try:
-            slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-            if slot_datetime <= datetime.now():
-                return jsonify({"message": "Nie można blokować terminów w przeszłości lub bieżących."}), 403
-        except ValueError:
-            return jsonify({"message": "Nieprawidłowy format daty lub godziny."}), 400
+
 
         # ### NOWA, ULEPSZONA LOGIKA ###
         # Sprawdzamy, czy istnieje JAKAKOLWIEK rezerwacja na ten termin (zwykła lub blokada)
@@ -1687,10 +1675,6 @@ def block_single_slot():
         existing_reservation = reservations_table.first(formula=formula)
 
         if existing_reservation:
-            # ### DODANO: Sprawdzanie, czy lekcja się już zakończyła ###
-            if is_lesson_ended(existing_reservation):
-                return jsonify({"message": "Nie można edytować terminów lekcji, które już się zakończyły."}), 403
-
             # Jeśli coś istnieje - usuwamy to (odblokowujemy lub odwołujemy lekcję)
             # W przyszłości można dodać walidację, czy to nie jest lekcja z uczniem
             reservations_table.delete(existing_reservation['id'])
