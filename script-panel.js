@@ -434,10 +434,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ tutorID, tutorName, date, time })
             });
-            if (!res.ok) throw new Error("Błąd serwera");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Błąd serwera");
+            }
             await renderWeeklyCalendar(currentWeekStart);
         } catch (error) {
-            alert("Nie udało się zaktualizować terminu.");
+            alert(error.message);
             await renderWeeklyCalendar(currentWeekStart);
         }
     }
@@ -449,7 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const block = event.target;
         block.textContent = '...';
-        
+
         if (!confirm(`Czy na pewno chcesz dodać jednorazowy, dostępny termin w dniu ${date} o godzinie ${time}?`)) {
             renderWeeklyCalendar(currentWeekStart);
             return;
@@ -461,10 +464,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ tutorID, tutorName, date, time })
             });
-            if (!res.ok) throw new Error("Błąd serwera");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Błąd serwera");
+            }
             await renderWeeklyCalendar(currentWeekStart);
         } catch (error) {
-            alert("Nie udało się dodać nowego terminu.");
+            alert(error.message);
             await renderWeeklyCalendar(currentWeekStart);
         }
     }
