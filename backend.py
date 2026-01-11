@@ -1981,6 +1981,7 @@ def get_schedule():
                         logging.info(f"CALENDAR: {tutor_name} - {day_name}: brak available_times, pomijam")
                         continue
 
+                    current_date_str = current_date.strftime('%Y-%m-%d')
                     slots_for_day = 0
                     for slot_time_str in available_times:
                         key = (tutor_name, current_date_str, slot_time_str)
@@ -1996,6 +1997,20 @@ def get_schedule():
                         final_schedule.append(slot_info)
                         logging.info(f"CALENDAR: Dodano slot {slot_time_str} do final_schedule, status: {slot_info.get('status', 'unknown')}")
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
+            logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
+            adhoc_slots_count = 0
+            for record in reservations:
+                fields = record.get('fields', {})
+                if fields.get('Status') == 'Dostępny':
+                    # Check if this ad-hoc slot belongs to the filtered tutor, if filtering is active
+                    if tutor_name_filter and fields.get('Korepetytor') != tutor_name_filter:
+                        continue
+                    final_schedule.append({
+                        "tutor": fields.get('Korepetytor'), "date": fields.get('Data'),
+                        "time": fields.get('Godzina'), "status": "available"
+                    })
+                    adhoc_slots_count += 1
+            logging.info(f"CALENDAR: Dodano {adhoc_slots_count} slotów ad-hoc")
             return jsonify(final_schedule)
         else:
             logging.info(f"CALENDAR: Zwracam {len(available_slots)} wolnych slotów (bez filtra tutorName)")
