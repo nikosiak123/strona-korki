@@ -1468,7 +1468,7 @@ def tutor_reschedule():
         if record_to_reschedule:
             # ### DODANO: Sprawdzanie, czy lekcja się już zakończyła ###
             if is_lesson_ended(record_to_reschedule):
-                abort(403, "Nie można edytować terminów lekcji, które już się zakończyły.")
+                return jsonify({"message": "Nie można edytować terminów lekcji, które już się zakończyły."}), 403
 
             fields = record_to_reschedule.get('fields', {})
             psid = fields.get('Klient')
@@ -1516,9 +1516,9 @@ def add_adhoc_slot():
         try:
             slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
             if slot_datetime < datetime.now():
-                abort(403, "Nie można dodawać terminów w przeszłości.")
+                return jsonify({"message": "Nie można dodawać terminów w przeszłości."}), 403
         except ValueError:
-            abort(400, "Nieprawidłowy format daty lub godziny.")
+            return jsonify({"message": "Nieprawidłowy format daty lub godziny."}), 400
 
         new_available_slot = {
             "Klient": "DOSTEPNY",  # Placeholder dla slotu bez klienta
@@ -1677,9 +1677,9 @@ def block_single_slot():
         try:
             slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
             if slot_datetime <= datetime.now():
-                abort(403, "Nie można blokować terminów w przeszłości lub bieżących.")
+                return jsonify({"message": "Nie można blokować terminów w przeszłości lub bieżących."}), 403
         except ValueError:
-            abort(400, "Nieprawidłowy format daty lub godziny.")
+            return jsonify({"message": "Nieprawidłowy format daty lub godziny."}), 400
 
         # ### NOWA, ULEPSZONA LOGIKA ###
         # Sprawdzamy, czy istnieje JAKAKOLWIEK rezerwacja na ten termin (zwykła lub blokada)
@@ -1689,7 +1689,7 @@ def block_single_slot():
         if existing_reservation:
             # ### DODANO: Sprawdzanie, czy lekcja się już zakończyła ###
             if is_lesson_ended(existing_reservation):
-                abort(403, "Nie można edytować terminów lekcji, które już się zakończyły.")
+                return jsonify({"message": "Nie można edytować terminów lekcji, które już się zakończyły."}), 403
 
             # Jeśli coś istnieje - usuwamy to (odblokowujemy lub odwołujemy lekcję)
             # W przyszłości można dodać walidację, czy to nie jest lekcja z uczniem
