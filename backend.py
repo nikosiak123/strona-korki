@@ -1917,6 +1917,7 @@ def get_schedule():
         if tutor_name_filter:
             final_schedule = []
             logging.info(f"CALENDAR: Formowanie finalnego grafiku dla filtra tutorName: {tutor_name_filter}")
+            final_schedule = [slot for slot in available_slots if slot.get('tutor') == tutor_name_filter]
             for template in filtered_tutors:
                 fields = template.get('fields', {})
                 tutor_name = fields.get('ImieNazwisko')
