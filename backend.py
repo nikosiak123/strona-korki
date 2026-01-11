@@ -782,6 +782,8 @@ def check_and_cancel_unpaid_lessons():
         logging.error(f"!!! BŁĄD w zadaniu anulowania lekcji: {e}", exc_info=True)
 
 
+
+
 def parse_time_range(time_range_str):
     try:
         if not time_range_str or '-' not in time_range_str: return None, None
@@ -1429,35 +1431,9 @@ def get_tutor_lessons():
 @app.route('/api/get-master-schedule')
 def get_master_schedule():
     try:
-        all_tutors_templates = tutors_table.all()
-        master_time_slots = set()
-
-        for template in all_tutors_templates:
-            fields = template.get('fields', {})
-            for day_column in WEEKDAY_MAP.values():
-                time_range_str = fields.get(day_column)
-                if not time_range_str:
-                    continue
-
-                start_time, end_time = parse_time_range(time_range_str)
-                if not start_time or not end_time:
-                    continue
-                
-                # Używamy fikcyjnej daty, bo interesują nas tylko godziny
-                dummy_date = datetime.now().date()
-                current_slot_datetime = datetime.combine(dummy_date, start_time)
-                end_datetime = datetime.combine(dummy_date, end_time)
-
-                while current_slot_datetime < end_datetime:
-                    if (current_slot_datetime + timedelta(minutes=60)) > end_datetime:
-                        break
-                    
-                    master_time_slots.add(current_slot_datetime.strftime('%H:%M'))
-                    current_slot_datetime += timedelta(minutes=70)
-        
-        # Sortuj godziny i zwróć jako listę
-        sorted_slots = sorted(list(master_time_slots))
-        return jsonify(sorted_slots)
+        # Fixed master time slots for the new block-based system
+        master_time_slots = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50']
+        return jsonify(master_time_slots)
         
     except Exception as e:
         traceback.print_exc()
