@@ -240,7 +240,7 @@ logging.basicConfig(level=logging.DEBUG,
 # Obniżenie poziomu logowania dla innych, bardziej "hałaśliwych" bibliotek,
 # aby skupić się na zapytaniach HTTP i logach Flask.
 logging.getLogger('werkzeug').setLevel(logging.INFO)
-logging.getLogger('apscheduler').setLevel(logging.INFO)
+logging.getLogger('apscheduler').setLevel(logging.WARNING)
 logging.getLogger('tzlocal').setLevel(logging.INFO)
 
 # KLUCZOWE LINIE: Włącz logowanie na poziomie DEBUG dla urllib3 i requests
@@ -1957,17 +1957,29 @@ def get_schedule():
                         if schedule_value:
                             break
 
-                    if not schedule_value: continue
+                    logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): schedule_value = {schedule_value}, type = {type(schedule_value)}")
+
+                    if not schedule_value:
+                        logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak schedule_value, pomijam")
+                        continue
 
                     # Parse schedule_value if it's a JSON string
                     if isinstance(schedule_value, str):
                         try:
-                            schedule_value = json.loads(schedule_value)
-                        except json.JSONDecodeError:
+                            parsed = json.loads(schedule_value)
+                            logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano JSON: {parsed}")
+                            schedule_value = parsed
+                        except json.JSONDecodeError as e:
+                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON {e}, traktuję jako pustą listę")
                             schedule_value = []
 
+                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: final schedule_value = {schedule_value}")
+
                     available_times = get_available_times_for_day(schedule_value, master_times)
-                    if not available_times: continue
+                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: available_times = {available_times}")
+                    if not available_times:
+                        logging.info(f"CALENDAR: {tutor_name} - {day_name}: brak available_times, pomijam")
+                        continue
 
                     slots_for_day = 0
                     for slot_time_str in available_times:
@@ -1982,6 +1994,7 @@ def get_schedule():
                             slots_for_day += 1
 
                         final_schedule.append(slot_info)
+                        logging.info(f"CALENDAR: Dodano slot {slot_time_str} do final_schedule, status: {slot_info.get('status', 'unknown')}")
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
             return jsonify(final_schedule)
         else:
