@@ -792,16 +792,10 @@ def parse_time_range(time_range_str):
     except ValueError: return None, None
 
 def get_available_times_for_day(schedule_value, master_times):
-    """Get available times for a day from either range string or list of times."""
+    """Get available times for a day from list of times."""
     if isinstance(schedule_value, list):
-        # New format: list of selected time slots
+        # Format: list of selected time slots
         return [t for t in schedule_value if t in master_times]
-    elif isinstance(schedule_value, str):
-        # Old format: range string
-        start_work_time, end_work_time = parse_time_range(schedule_value)
-        if not start_work_time or not end_work_time:
-            return []
-        return [t for t in master_times if start_work_time <= datetime.strptime(t, '%H:%M').time() < end_work_time]
     else:
         return []
 
