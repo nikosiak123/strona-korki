@@ -974,29 +974,46 @@ def is_cancellation_allowed(record):
     fields = record.get('fields', {})
     lesson_date_str = fields.get('Data')
     lesson_time_str = fields.get('Godzina')
-    
+
     # Pobieramy status lekcji testowej. Domyślnie False, jeśli pole nie istnieje.
-    is_test_lesson = fields.get('JestTestowa', False) 
-    
+    is_test_lesson = fields.get('JestTestowa', False)
+
     if not lesson_date_str or not lesson_time_str:
         return False
-        
+
     try:
-        # Pamiętaj, że datetime.now() domyślnie jest naiwne (bez strefy czasowej), 
+        # Pamiętaj, że datetime.now() domyślnie jest naiwne (bez strefy czasowej),
         # ale ponieważ Airtable Data/Godzina również jest naiwne, porównanie powinno działać.
         lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
     except ValueError:
         # Błąd formatu daty/czasu w rekordzie
         return False
-        
+
     time_remaining = lesson_datetime - datetime.now()
-    
+
     # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 6 godzin przed rozpoczęciem.
     if is_test_lesson:
         return time_remaining > timedelta(hours=6)
-    
+
     # Warunek dla wszystkich innych lekcji: Obowiązuje standardowe 12 godzin.
     return time_remaining > timedelta(hours=12)
+
+def is_lesson_ended(record):
+    """Sprawdza, czy lekcja już się zakończyła."""
+    fields = record.get('fields', {})
+    lesson_date_str = fields.get('Data')
+    lesson_time_str = fields.get('Godzina')
+
+    if not lesson_date_str or not lesson_time_str:
+        return False
+
+    try:
+        lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+        # Lekcja kończy się 1 godzinę po rozpoczęciu
+        lesson_end = lesson_datetime + timedelta(hours=1)
+        return lesson_end < datetime.now()
+    except ValueError:
+        return False
 
 def send_email_via_brevo(to_email, subject, html_content):
     """Wysyła email przez Brevo API."""
@@ -1449,11 +1466,15 @@ def tutor_reschedule():
         record_to_reschedule = reservations_table.first(formula=formula)
 
         if record_to_reschedule:
+            # ### DODANO: Sprawdzanie, czy lekcja się już zakończyła ###
+            if is_lesson_ended(record_to_reschedule):
+                abort(403, "Nie można edytować terminów lekcji, które już się zakończyły.")
+
             fields = record_to_reschedule.get('fields', {})
             psid = fields.get('Klient')
-            
+
             reservations_table.update(record_to_reschedule['id'], {"Status": "Przeniesiona"})
-            
+
             # --- DODANO POWIADOMIENIE ---
             if MESSENGER_PAGE_TOKEN and psid:
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
@@ -1463,7 +1484,7 @@ def tutor_reschedule():
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
             # --- KONIEC DODAWANIA ---
-            
+
             return jsonify({"message": "Status lekcji został zmieniony na 'Przeniesiona'. Uczeń został poinformowany."})
         else:
             # Tutaj obsługujemy stały termin - jest trudniej znaleźć klienta, na razie pomijamy powiadomienie.
@@ -1490,7 +1511,15 @@ def add_adhoc_slot():
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
-        
+
+        # ### DODANO: Sprawdzanie, czy termin jest w przeszłości ###
+        try:
+            slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+            if slot_datetime < datetime.now():
+                abort(403, "Nie można dodawać terminów w przeszłości.")
+        except ValueError:
+            abort(400, "Nieprawidłowy format daty lub godziny.")
+
         new_available_slot = {
             "Klient": "DOSTEPNY",  # Placeholder dla slotu bez klienta
             "Korepetytor": tutor_name,
@@ -1500,7 +1529,7 @@ def add_adhoc_slot():
             "Status": "Dostępny" # Ta opcja musi istnieć w Airtable
         }
         reservations_table.create(new_available_slot)
-        
+
         print(f"DODANO JEDNORAZOWY TERMIN: {date} {time} dla {tutor_name}")
         # ### POPRAWKA - DODANO BRAKUJĄCY RETURN ###
         return jsonify({"message": "Dodano nowy, jednorazowy dostępny termin."})
@@ -1643,13 +1672,25 @@ def block_single_slot():
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
-        
+
+        # ### DODANO: Sprawdzanie, czy termin jest w przeszłości ###
+        try:
+            slot_datetime = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+            if slot_datetime <= datetime.now():
+                abort(403, "Nie można blokować terminów w przeszłości lub bieżących.")
+        except ValueError:
+            abort(400, "Nieprawidłowy format daty lub godziny.")
+
         # ### NOWA, ULEPSZONA LOGIKA ###
         # Sprawdzamy, czy istnieje JAKAKOLWIEK rezerwacja na ten termin (zwykła lub blokada)
         formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
         existing_reservation = reservations_table.first(formula=formula)
 
         if existing_reservation:
+            # ### DODANO: Sprawdzanie, czy lekcja się już zakończyła ###
+            if is_lesson_ended(existing_reservation):
+                abort(403, "Nie można edytować terminów lekcji, które już się zakończyły.")
+
             # Jeśli coś istnieje - usuwamy to (odblokowujemy lub odwołujemy lekcję)
             # W przyszłości można dodać walidację, czy to nie jest lekcja z uczniem
             reservations_table.delete(existing_reservation['id'])
