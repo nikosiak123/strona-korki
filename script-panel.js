@@ -306,11 +306,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     if (slotData) {
                         switch(slotData.status) {
-                            case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
+                            case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot, slotData.status)); break;
                             case 'booked_lesson': case 'cyclic_reserved': block.classList.add('booked-lesson'); block.textContent = slotData.studentName; block.addEventListener('click', () => showActionModal(slotData)); break;
                             case 'completed': block.classList.add('completed'); block.textContent = slotData.studentName; block.style.cursor = 'not-allowed'; break;
                             case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
-                            case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot)); break;
+                            case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot, slotData.status)); break;
                             default: block.classList.add('unavailable'); block.textContent = "Przeniesione"; block.style.cursor = 'not-allowed';
                         }
                     } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 case 'available':
                                     block.classList.add('available');
                                     block.textContent = `${timeSlot} - Dostępny`;
-                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
+                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot, slotData.status));
                                     break;
                                 case 'booked_lesson':
                                 case 'cyclic_reserved':
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 case 'blocked_by_tutor':
                                     block.classList.add('unavailable');
                                     block.textContent = `${timeSlot} - BLOKADA`;
-                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot));
+                                    block.addEventListener('click', () => handleBlockClick(formattedDate, timeSlot, slotData.status));
                                     break;
                                 default:
                                      block.classList.add('unavailable');
@@ -400,8 +400,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const date = formattedDate;
                         const slotData = scheduleMap[date] ? scheduleMap[date][time] : null;
     
-                        if (blockEl.classList.contains('available') || blockEl.classList.contains('unavailable')) {
-                             blockEl.addEventListener('click', () => handleBlockClick(date, time));
+                        if (slotData && (slotData.status === 'available' || slotData.status === 'blocked_by_tutor')) {
+                             blockEl.addEventListener('click', () => handleBlockClick(date, time, slotData.status));
                         } else if (blockEl.classList.contains('booked-lesson')) {
                              blockEl.addEventListener('click', () => showActionModal(slotData));
                         } else if (blockEl.classList.contains('disabled')) {
@@ -421,9 +421,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     
-    async function handleBlockClick(date, time) {
+    async function handleBlockClick(date, time, status) {
         if (!tutorID) {
             alert('Błąd: Brak identyfikatora korepetytora.');
+            return;
+        }
+        let message = '';
+        if (status === 'available') {
+            message = `Czy na pewno chcesz zablokować termin w dniu ${date} o godzinie ${time}?`;
+        } else if (status === 'blocked_by_tutor') {
+            message = `Czy na pewno chcesz odblokować termin w dniu ${date} o godzinie ${time}?`;
+        }
+        if (!confirm(message)) {
+            await renderWeeklyCalendar(currentWeekStart);
             return;
         }
         const block = event.target;
