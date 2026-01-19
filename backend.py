@@ -3454,6 +3454,7 @@ def stats():
         return f"Błąd: {e}"
 
 if __name__ == '__main__':
+    global scheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=30)  # Sprawdzaj co 30 minut
