@@ -3340,7 +3340,6 @@ def reset_test_user():
         client_id = '9159589357480361'  # Hardcoded test user ID
 
         # Remove all confirmation reminders for the client
-        global scheduler
         if scheduler:
             # Get all reservations for the client
             client_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
