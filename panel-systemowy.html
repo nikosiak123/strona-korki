@@ -547,6 +547,10 @@
                     </div>
                 </div>
 
+                <div class="admin-actions" style="margin-bottom: 2rem; text-align: center;">
+                    <button id="resetTestUserBtn" class="add-record-btn">Reset użytkownika testowego</button>
+                </div>
+
                 <!-- Panel bazy danych -->
                 <div id="databasePanel">
                     <div class="table-selector">
@@ -1296,6 +1300,25 @@
                 endManualMode(currentUserPSID);
             } else {
                 alert('Najpierw wybierz użytkownika.');
+            }
+        });
+
+        // Reset test user button
+        document.getElementById('resetTestUserBtn').addEventListener('click', async () => {
+            if (confirm('Czy na pewno chcesz zresetować użytkownika testowego? To usunie wszystkie przypomnienia i plik konwersacji.')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/reset-test-user`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Błąd: ' + (data.error || 'Nieznany błąd'));
+                    }
+                } catch (error) {
+                    alert('Błąd połączenia: ' + error.message);
+                }
             }
         });
     </script>

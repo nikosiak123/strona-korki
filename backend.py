@@ -63,6 +63,8 @@ import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import atexit
+
+scheduler = None
 import logging 
 import pickle
 from io import BytesIO
@@ -3331,6 +3333,40 @@ def get_user_details(psid):
         logging.error(f"Błąd w get_user_details: {e}", exc_info=True)
         return jsonify({'error': 'Błąd serwera'}), 500
 
+@app.route('/api/admin/reset-test-user', methods=['POST'])
+def reset_test_user():
+    require_admin()
+    try:
+        client_id = '9159589357480361'  # Hardcoded test user ID
+
+        # Remove all confirmation reminders for the client
+        global scheduler
+        if scheduler:
+            # Get all reservations for the client
+            client_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
+            tokens = [res['fields'].get('ManagementToken') for res in client_reservations if res['fields'].get('ManagementToken')]
+            
+            jobs = scheduler.get_jobs()
+            for job in jobs:
+                if 'confirmation_reminder' in job.id:
+                    token = job.id.replace('confirmation_reminder_', '')
+                    if token in tokens:
+                        scheduler.remove_job(job.id)
+                        logging.info(f"Usunięto zadanie przypomnienia: {job.id}")
+
+        # Delete the conversation file
+        conversation_file = os.path.join(os.path.dirname(__file__), "../strona/conversation_store", f"{client_id}.json")
+        if os.path.exists(conversation_file):
+            os.remove(conversation_file)
+            logging.info(f"Usunięto plik konwersacji: {conversation_file}")
+        else:
+            logging.info(f"Plik konwersacji nie istnieje: {conversation_file}")
+
+        return jsonify({"message": "Użytkownik testowy został zresetowany."})
+    except Exception as e:
+        logging.error(f"Błąd w reset_test_user: {e}", exc_info=True)
+        return jsonify({'error': 'Błąd serwera'}), 500
+
 @app.route('/api/update-tutor-weekly-limit', methods=['POST'])
 def update_tutor_weekly_limit():
     """Aktualizuje limit godzin tygodniowo dla korepetytora."""
@@ -3418,6 +3454,7 @@ def stats():
         return f"Błąd: {e}"
 
 if __name__ == '__main__':
+    global scheduler
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=30)  # Sprawdzaj co 30 minut
