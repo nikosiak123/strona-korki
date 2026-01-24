@@ -2121,11 +2121,47 @@ def create_reservation():
                 teaches_this_subject = subject_for_search in tutor_subjects
                 if teaches_this_level and teaches_this_subject:
                     day_of_week_name = WEEKDAY_MAP[start_date_for_search.weekday()]
-                    time_range_str = fields.get(day_of_week_name)
-                    if time_range_str:
-                        start_work, end_work = parse_time_range(time_range_str)
-                        selected_time_obj = datetime.strptime(data['selectedTime'], '%H:%M').time()
-                        if start_work and end_work and start_work <= selected_time_obj < end_work:
+                    schedule_value = fields.get(day_of_week_name)
+                    
+                    is_slot_available = False
+                    selected_time = data['selectedTime']
+
+                    if schedule_value:
+                        # 1. Sprawdź czy to format listy (nowy system blokowy)
+                        # Może być listą pythonową lub stringiem z JSONem
+                        schedule_list = []
+                        if isinstance(schedule_value, list):
+                            schedule_list = schedule_value
+                        elif isinstance(schedule_value, str):
+                            try:
+                                # Próba parsowania JSON
+                                schedule_list = json.loads(schedule_value)
+                            except json.JSONDecodeError:
+                                # Jeśli nie JSON, to może być stary format zakresu
+                                pass
+                        
+                        # Jeśli udało się uzyskać listę, sprawdzamy czy godzina w niej jest
+                        if isinstance(schedule_list, list) and schedule_list:
+                            if selected_time in schedule_list:
+                                is_slot_available = True
+                        
+                        # 2. Jeśli nie udało się dopasować listy, sprawdź stary format zakresu (np. "14:00-20:00")
+                        if not is_slot_available and isinstance(schedule_value, str) and '-' in schedule_value:
+                            start_work, end_work = parse_time_range(schedule_value)
+                            try:
+                                selected_time_obj = datetime.strptime(selected_time, '%H:%M').time()
+                                if start_work and end_work and start_work <= selected_time_obj < end_work:
+                                    is_slot_available = True
+                            except ValueError:
+                                pass
+
+                    if is_slot_available:
+                        # Dodatkowe sprawdzenie: czy ten konkretny slot nie jest już zajęty u tego korepetytora
+                        # (System wcześniej sprawdzał tylko ogólny grafik pracy, a nie konkretne zajętości w Rezerwacjach)
+                        busy_check_formula = f"AND({{Korepetytor}} = '{tutor_name}', {{Data}} = '{data['selectedDate']}', {{Godzina}} = '{selected_time}', NOT({{Status}} = 'Anulowana (brak płatności)'), NOT({{Status}} = 'Przeniesiona (zakończona)'))"
+                        is_busy = reservations_table.first(formula=busy_check_formula)
+                        
+                        if not is_busy:
                             available_tutors_for_slot.append(tutor_name)
             if not available_tutors_for_slot:
                 abort(500, "Brak dostępnych korepetytorów.")
