@@ -470,8 +470,22 @@
                         <td>${record.id}</td>
                         ${fields.map(f => {
                             let value = record.fields[f];
+                            
+                            // 1. Obsługa tablic
                             if (Array.isArray(value)) value = value.join(', ');
-                            if (typeof value === 'boolean') value = value ? 'Tak' : 'Nie';
+                            
+                            // 2. Obsługa Pól Logicznych (Boolean oraz 0/1) dla konkretnych kolumn
+                            const boolFields = ['confirmed', 'Oplacona', 'JestTestowa', 'Aktywna'];
+                            if (boolFields.includes(f)) {
+                                // Traktuj 1, 'true', true jako TAK. Wszystko inne (0, null, false) jako NIE.
+                                const isTrue = (value === 1 || value === true || value === 'true');
+                                value = isTrue ? 'Tak' : 'Nie';
+                            }
+                            // 3. Fallback dla standardowych booleanów (jeśli inne pola)
+                            else if (typeof value === 'boolean') {
+                                value = value ? 'Tak' : 'Nie';
+                            }
+                            
                             if (value === null || value === undefined) value = '';
                             return `<td>${String(value).substring(0, 50)}</td>`;
                         }).join('')}
@@ -524,32 +538,52 @@
             let formHTML = '';
             for (const key of sortedKeys) {
                 let value = fields[key];
-                // Poprawne wyświetlanie wartości - escape HTML i zamień tablice na JSON
                 let inputValue = '';
-                
+
+                // Logika przygotowania wartości
                 if (Array.isArray(value)) {
                     inputValue = JSON.stringify(value);
                 } 
-                // --- POPRAWKA: Obsługa 0 i 1 dla pól typu select (np. confirmed, Oplacona) ---
+                // Specjalna obsługa 0 i 1 dla pól zdefiniowanych w fieldOptions
                 else if (fieldOptions[key] && (value === 0 || value === 1)) {
                     inputValue = (value === 1) ? 'true' : 'false';
                 }
-                // --------------------------------------------------------------------------
                 else if (typeof value === 'boolean') {
                     inputValue = value ? 'true' : 'false';
-                } else if (value !== null && value !== undefined) {
+                } 
+                else if (value !== null && value !== undefined) {
                     inputValue = String(value);
                 }
                 
-                // Escape cudzysłowów w wartości
                 const escapedValue = inputValue.replace(/"/g, '"');
-                
-                formHTML += `
-                    <div class="form-group">
-                        <label>${key}</label>
-                        <input type="text" name="${key}" value="${escapedValue}" />
-                    </div>
-                `;
+
+                // GENEROWANIE HTML
+                if (fieldOptions[key]) {
+                    // To jest SELECT
+                    let selectHTML = `<select name="${key}" class="form-control">`;
+                    fieldOptions[key].forEach(option => {
+                        // Sprawdzamy czy ta opcja powinna być zaznaczona
+                        // Porównujemy jako stringi, żeby uniknąć problemów typów
+                        let selected = (String(inputValue) === String(option)) ? ' selected' : '';
+                        selectHTML += `<option value="${option}"${selected}>${option}</option>`;
+                    });
+                    selectHTML += '</select>';
+
+                    formHTML += `
+                        <div class="form-group">
+                            <label>${key}</label>
+                            ${selectHTML}
+                        </div>
+                    `;
+                } else {
+                    // To jest zwykły INPUT
+                    formHTML += `
+                        <div class="form-group">
+                            <label>${key}</label>
+                            <input type="text" name="${key}" value="${escapedValue}" />
+                        </div>
+                    `;
+                }
             }
             
             formContainer.innerHTML = formHTML;
@@ -567,8 +601,10 @@
 
         document.getElementById('saveRecordBtn').addEventListener('click', async () => {
             const formData = {};
-            document.querySelectorAll('#modalForm input').forEach(input => {
-                let value = input.value;
+            // Poprawiono selektor, aby łapał także select
+            document.querySelectorAll('#modalForm input, #modalForm select').forEach(element => {
+                const name = element.name;
+                let value = element.value;
                 
                 // Próba parsowania JSON dla tablic
                 if (value.startsWith('[') || value.startsWith('{')) {
@@ -581,7 +617,7 @@
                 if (value === 'true') value = true;
                 if (value === 'false') value = false;
                 
-                formData[input.name] = value;
+                formData[name] = value;
             });
 
             try {
