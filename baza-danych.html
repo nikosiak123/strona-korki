@@ -352,6 +352,21 @@
         let currentRecord = null;
         let currentMode = 'edit'; // 'edit' lub 'add'
 
+        // Opcje dla pól z wyborem zamiast ręcznego wpisywania
+        const fieldOptions = {
+            'Status': ['Oczekuje na płatność', 'Opłacona', 'Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Przeniesiona', 'Przeniesiona (zakończona)', 'Dostępny', 'Niedostępny'],
+            'TypSzkoly': ['szkola_podstawowa', 'liceum', 'technikum'],
+            'Poziom': ['podstawowy', 'rozszerzony'],
+            'Klasa': ['1', '2', '3', '4', '5', '6', '7', '8'],
+            // --- ZMIANA: false jako pierwsze ---
+            'JestTestowa': ['false', 'true'],
+            'Oplacona': ['false', 'true'],
+            'confirmed': ['false', 'true'],
+            'Aktywna': ['true', 'false'], // Tu true może zostać pierwsze, bo to rezerwacja stała
+            // ----------------------------------
+            'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+        };
+
         // Sprawdź autoryzację przy załadowaniu strony
         document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
@@ -511,16 +526,23 @@
                 let value = fields[key];
                 // Poprawne wyświetlanie wartości - escape HTML i zamień tablice na JSON
                 let inputValue = '';
+                
                 if (Array.isArray(value)) {
                     inputValue = JSON.stringify(value);
-                } else if (typeof value === 'boolean') {
+                } 
+                // --- POPRAWKA: Obsługa 0 i 1 dla pól typu select (np. confirmed, Oplacona) ---
+                else if (fieldOptions[key] && (value === 0 || value === 1)) {
+                    inputValue = (value === 1) ? 'true' : 'false';
+                }
+                // --------------------------------------------------------------------------
+                else if (typeof value === 'boolean') {
                     inputValue = value ? 'true' : 'false';
                 } else if (value !== null && value !== undefined) {
                     inputValue = String(value);
                 }
                 
                 // Escape cudzysłowów w wartości
-                const escapedValue = inputValue.replace(/"/g, '&quot;');
+                const escapedValue = inputValue.replace(/"/g, '"');
                 
                 formHTML += `
                     <div class="form-group">
