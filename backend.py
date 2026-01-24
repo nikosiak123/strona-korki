@@ -1913,10 +1913,28 @@ def get_schedule():
 
                 current_date_str = current_date.strftime('%Y-%m-%d')
                 slots_for_day = 0
+                
+                # === ŻELAZNA ZASADA 12 GODZIN ===
+                now = datetime.now()
+                min_booking_time = now + timedelta(hours=12)
+                
                 for slot_time_str in available_times:
+                    # Sprawdzenie czasu
+                    try:
+                        slot_time_obj = datetime.strptime(slot_time_str, "%H:%M").time()
+                        slot_datetime = datetime.combine(current_date, slot_time_obj)
+                        
+                        # Jeśli termin jest wcześniej niż za 12h od teraz -> UKRYJ GO
+                        if slot_datetime < min_booking_time:
+                            continue
+                    except ValueError:
+                        continue
+
                     key = (tutor_name, current_date_str, slot_time_str)
 
+                    # Jeśli slot nie jest zajęty, dodaj go do listy dostępnych
                     if key not in booked_slots:
+                        # ... reszta kodu dodawania slotu ...
                         available_slots.append({
                             'tutor': tutor_name,
                             'date': current_date_str,
@@ -2385,6 +2403,14 @@ def confirm_next_lesson():
             days_ahead += 7
         next_lesson_date = today + timedelta(days=days_ahead)
         next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
+
+        next_lesson_datetime_str = f"{next_lesson_date_str} {lesson_time}"
+        next_lesson_dt = datetime.strptime(next_lesson_datetime_str, '%Y-%m-%d %H:%M')
+        
+        # === BLOKADA POTWIERDZANIA < 12H ===
+        if next_lesson_dt < datetime.now() + timedelta(hours=12):
+             abort(400, "Zbyt późno na potwierdzenie. Lekcję należy potwierdzić minimum 12 godzin przed jej rozpoczęciem.")
+        # ===================================
 
         # Sprawdź, czy termin nie jest już zajęty
         formula_check = f"AND({{Korepetytor}} = '{tutor}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{next_lesson_date_str}', {{Godzina}} = '{lesson_time}')"
