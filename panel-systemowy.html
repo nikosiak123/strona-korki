@@ -96,7 +96,7 @@
             gap: 2rem;
             margin-bottom: 2rem;
         }
-
+        
         .dashboard-card {
             background-color: var(--container-bg-color);
             border: 2px solid var(--border-color);
@@ -107,24 +107,24 @@
             transition: all 0.2s;
             box-shadow: 0 4px 12px var(--shadow-color);
         }
-
+        
         .dashboard-card:hover {
             background-color: var(--primary-color);
             color: var(--text-dark);
             transform: translateY(-4px);
             box-shadow: 0 8px 16px var(--shadow-color);
         }
-
+        
         .dashboard-card.active {
             background-color: var(--primary-color);
             color: var(--text-dark);
         }
-
+        
         .dashboard-card i {
             font-size: 3rem;
             margin-bottom: 1rem;
         }
-
+        
         .dashboard-card h4 {
             margin: 0;
             font-size: 1.2rem;
@@ -480,18 +480,18 @@
         .client-link:hover {
             text-decoration: underline;
         }
-
+        
         .manual-user-balance, .manual-user-names, .manual-user-reservations {
             margin-top: 0.5rem;
             color: var(--text-medium);
             font-size: 0.9rem;
         }
-
+        
         .manual-user-reservations {
             max-height: 150px;
             overflow-y: auto;
         }
-
+        
         .unread-checkmark {
             background-color: #4CAF50;
             color: white;
@@ -504,7 +504,7 @@
             margin-right: 8px;
             vertical-align: middle;
         }
-
+        
         .unread-checkmark:hover {
             background-color: #45a049;
         }
@@ -618,24 +618,27 @@
         let currentMode = 'edit'; // 'edit' lub 'add'
         let currentPanel = 'database';
 
+        // Lista pól, które mogą przyjmować wiele wartości (multiple select)
+        const multipleFields = ['Przedmioty', 'PoziomNauczania'];
+
         // Opcje dla pól z wyborem zamiast ręcznego wpisywania
         const fieldOptions = {
             'Status': ['Oczekuje na płatność', 'Opłacona', 'Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Przeniesiona', 'Przeniesiona (zakończona)', 'Dostępny', 'Niedostępny'],
             'TypSzkoly': ['szkola_podstawowa', 'liceum', 'technikum'],
             'Poziom': ['podstawowy', 'rozszerzony'],
             'Klasa': ['1', '2', '3', '4', '5', '6', '7', '8'],
-            'JestTestowa': ['true', 'false'],
-            'Oplacona': ['true', 'false'],
-            'confirmed': ['true', 'false'],
+            // --- DODAJ/POPRAW TO: ---
+            'JestTestowa': ['false', 'true'],
+            'Oplacona': ['false', 'true'],
+            'confirmed': ['false', 'true'],
             'Aktywna': ['true', 'false'],
+            // ------------------------
             'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
             'Przedmiot': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
             'Przedmioty': ['polski', 'matematyka', 'angielski'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa', 'liceum_rozszerzenie']
         };
 
-        // Pola wielowartościowe (multiple select)
-        const multipleFields = ['PoziomNauczania'];
         let currentUserPSID = null;
 
         // Ignoruj błędy JS, aby nie wyświetlały się na stronie
@@ -798,8 +801,20 @@
                         <td>${record.id}</td>
                         ${fields.map(f => {
                             let value = record.fields[f];
+                            // 1. Tablice
                             if (Array.isArray(value)) value = value.join(', ');
-                            if (typeof value === 'boolean') value = value ? 'Tak' : 'Nie';
+                            
+                            // 2. Pola logiczne (0/1/true/false)
+                            const boolFields = ['confirmed', 'Oplacona', 'JestTestowa', 'Aktywna'];
+                            if (boolFields.includes(f)) {
+                                const isTrue = (value === 1 || value === true || value === 'true');
+                                value = isTrue ? 'Tak' : 'Nie';
+                            }
+                            // 3. Zwykłe booleany
+                            else if (typeof value === 'boolean') {
+                                value = value ? 'Tak' : 'Nie';
+                            }
+                            
                             if (value === null || value === undefined) value = '';
                             return `<td>${String(value).substring(0, 50)}</td>`;
                         }).join('')}
@@ -865,54 +880,59 @@
             let sortedKeys = Object.keys(fields);
             if (currentTable === 'Korepetytorzy') {
                 const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
-                sortedKeys = correctOrder;
+                sortedKeys = correctOrder.filter(f => sortedKeys.includes(f));
+                // Dodaj pozostałe pola, których nie ma w correctOrder
+                sortedKeys.push(...Object.keys(fields).filter(f => !correctOrder.includes(f)));
             }
             
             let formHTML = '';
             for (const key of sortedKeys) {
                 let value = fields[key];
-                // Poprawne wyświetlanie wartości - escape HTML i zamień tablice na JSON
                 let inputValue = '';
+
+                // --- NOWA LOGIKA ---
                 if (Array.isArray(value)) {
                     inputValue = JSON.stringify(value);
-                } else if (typeof value === 'boolean') {
+                } 
+                // Obsługa 0 i 1 dla pól zdefiniowanych w fieldOptions
+                else if (fieldOptions[key] && (value === 0 || value === 1)) {
+                    inputValue = (value === 1) ? 'true' : 'false';
+                }
+                else if (typeof value === 'boolean') {
                     inputValue = value ? 'true' : 'false';
-                } else if (value !== null && value !== undefined) {
+                } 
+                else if (value !== null && value !== undefined) {
                     inputValue = String(value);
                 }
+                // -------------------
                 
-                // Escape cudzysłowów w wartości
-                const escapedValue = inputValue.replace(/"/g, '&quot;');
+                const escapedValue = inputValue.replace(/"/g, '"');
+                let placeholder = '';
+                if (key === 'Data') placeholder = 'np. 2026-01-08';
+                else if (key === 'Godzina') placeholder = 'np. 14:00';
+                else if (key === 'Przedmioty') placeholder = 'np. ["matematyka", "fizyka"]';
+                else if (key === 'PoziomNauczania') placeholder = 'np. ["podstawowka", "liceum_podstawa"]';
 
-                // Sprawdź czy pole ma opcje wyboru
+                // GENEROWANIE HTML
                 if (fieldOptions[key]) {
-                    // Użyj select dla pól z opcjami
-                    const isMultiple = multipleFields.includes(key);
-                    let selectHTML = `<select name="${key}"${isMultiple ? ' multiple' : ''}>`;
+                    let selectHTML = `<select name="${key}"${multipleFields.includes(key) ? ' multiple' : ''}>`;
                     fieldOptions[key].forEach(option => {
+                        // Porównanie jako stringi
                         let selected = '';
-                        if (isMultiple) {
-                            // Dla multiple, sprawdź czy wartość zawiera opcję (zakładając JSON array)
-                            try {
+                        // Logika dla multiple select (tablice)
+                        if (multipleFields.includes(key)) {
+                             try {
                                 const selectedArray = JSON.parse(inputValue || '[]');
                                 selected = selectedArray.includes(option) ? ' selected' : '';
-                            } catch {
-                                selected = '';
-                            }
+                            } catch { selected = ''; }
                         } else {
-                            // Dla single, sprawdź czy wartość to opcja lub czy jest w tablicy (dla kompatybilności)
-                            if (Array.isArray(inputValue)) {
-                                selected = inputValue.includes(option) ? ' selected' : '';
-                            } else {
-                                selected = (inputValue === option) ? ' selected' : '';
-                            }
+                            // Logika dla zwykłego select
+                            selected = (String(inputValue) === String(option)) ? ' selected' : '';
                         }
                         selectHTML += `<option value="${option}"${selected}>${option}</option>`;
                     });
                     selectHTML += '</select>';
-                    if (isMultiple) {
-                        selectHTML += '<small style="color: #666;">Przytrzymaj Ctrl (lub Cmd na Mac) aby wybrać wiele opcji</small>';
-                    }
+                    if (multipleFields.includes(key)) selectHTML += '<small style="color: #666;">Ctrl+Click dla wielu</small>';
 
                     formHTML += `
                         <div class="form-group">
@@ -921,13 +941,7 @@
                         </div>
                     `;
                 } else {
-                    // Zwykły input text dla innych pól
-                    let placeholder = '';
-                    if (key === 'Data') placeholder = 'np. 2026-01-08';
-                    else if (key === 'Godzina') placeholder = 'np. 14:00';
-                    else if (key === 'Przedmioty') placeholder = 'np. ["matematyka", "fizyka"]';
-                    else if (key === 'PoziomNauczania') placeholder = 'np. ["podstawowka", "liceum_podstawa"]';
-
+                    // To jest zwykły INPUT
                     formHTML += `
                         <div class="form-group">
                             <label>${key}</label>
@@ -936,7 +950,6 @@
                     `;
                 }
             }
-            
             formContainer.innerHTML = formHTML;
         }
 
@@ -1121,8 +1134,8 @@
                 data.users.forEach(user => {
                     const unreadClass = user.unreadCount > 0 ? 'unread' : '';
                     const escapedPsid = user.psid.replace(/'/g, "\\'");
-                    const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '<').replace(/>/g, '>');
+                    const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '<').replace(/>/g, '>');
                     const unreadText = user.unreadCount > 0 ? ` (${user.unreadCount} nieodczytanych)` : '';
                     html += `
                         <div class="manual-user-item ${unreadClass}" onclick="window.location.href = '/panel-user-detail.html?psid=${user.psid}'">

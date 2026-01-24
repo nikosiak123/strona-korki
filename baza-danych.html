@@ -300,7 +300,7 @@
 </head>
 <body>
     <header>
-        <h1 style="color: red;">Panel TESTOWY V2</h1>
+        <h1>Panel Administracyjny - Baza Danych</h1>
     </header>
 
     <main>
@@ -352,19 +352,23 @@
         let currentRecord = null;
         let currentMode = 'edit'; // 'edit' lub 'add'
 
+        // Lista pól, które mogą przyjmować wiele wartości (multiple select)
+        const multipleFields = ['Przedmioty', 'PoziomNauczania'];
+
         // Opcje dla pól z wyborem zamiast ręcznego wpisywania
         const fieldOptions = {
             'Status': ['Oczekuje na płatność', 'Opłacona', 'Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Przeniesiona', 'Przeniesiona (zakończona)', 'Dostępny', 'Niedostępny'],
             'TypSzkoly': ['szkola_podstawowa', 'liceum', 'technikum'],
             'Poziom': ['podstawowy', 'rozszerzony'],
             'Klasa': ['1', '2', '3', '4', '5', '6', '7', '8'],
-            // --- ZMIANA: false jako pierwsze ---
+            // --- DODAJ/POPRAW TO: ---
             'JestTestowa': ['false', 'true'],
             'Oplacona': ['false', 'true'],
             'confirmed': ['false', 'true'],
-            'Aktywna': ['true', 'false'], // Tu true może zostać pierwsze, bo to rezerwacja stała
-            // ----------------------------------
-            'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+            'Aktywna': ['true', 'false'],
+            // ------------------------
+            'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
+            'Przedmiot': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka']
         };
 
         // Sprawdź autoryzację przy załadowaniu strony
@@ -470,18 +474,16 @@
                         <td>${record.id}</td>
                         ${fields.map(f => {
                             let value = record.fields[f];
-                            
-                            // 1. Obsługa tablic
+                            // 1. Tablice
                             if (Array.isArray(value)) value = value.join(', ');
                             
-                            // 2. Obsługa Pól Logicznych (Boolean oraz 0/1) dla konkretnych kolumn
+                            // 2. Pola logiczne (0/1/true/false)
                             const boolFields = ['confirmed', 'Oplacona', 'JestTestowa', 'Aktywna'];
                             if (boolFields.includes(f)) {
-                                // Traktuj 1, 'true', true jako TAK. Wszystko inne (0, null, false) jako NIE.
                                 const isTrue = (value === 1 || value === true || value === 'true');
                                 value = isTrue ? 'Tak' : 'Nie';
                             }
-                            // 3. Fallback dla standardowych booleanów (jeśli inne pola)
+                            // 3. Zwykłe booleany
                             else if (typeof value === 'boolean') {
                                 value = value ? 'Tak' : 'Nie';
                             }
@@ -544,7 +546,7 @@
                 if (Array.isArray(value)) {
                     inputValue = JSON.stringify(value);
                 } 
-                // Specjalna obsługa 0 i 1 dla pól zdefiniowanych w fieldOptions
+                // Obsługa 0 i 1 dla pól zdefiniowanych w fieldOptions
                 else if (fieldOptions[key] && (value === 0 || value === 1)) {
                     inputValue = (value === 1) ? 'true' : 'false';
                 }
@@ -556,18 +558,30 @@
                 }
                 
                 const escapedValue = inputValue.replace(/"/g, '"');
+                let placeholder = '';
 
                 // GENEROWANIE HTML
                 if (fieldOptions[key]) {
                     // To jest SELECT
-                    let selectHTML = `<select name="${key}" class="form-control">`;
+                    let selectHTML = `<select name="${key}"${multipleFields.includes(key) ? ' multiple' : ''}>`;
                     fieldOptions[key].forEach(option => {
                         // Sprawdzamy czy ta opcja powinna być zaznaczona
-                        // Porównujemy jako stringi, żeby uniknąć problemów typów
-                        let selected = (String(inputValue) === String(option)) ? ' selected' : '';
+                        // Porównanie jako stringi
+                        let selected = '';
+                        // Logika dla multiple select (tablice)
+                        if (multipleFields.includes(key)) {
+                             try {
+                                const selectedArray = JSON.parse(inputValue || '[]');
+                                selected = selectedArray.includes(option) ? ' selected' : '';
+                            } catch { selected = ''; }
+                        } else {
+                            // Logika dla zwykłego select
+                            selected = (String(inputValue) === String(option)) ? ' selected' : '';
+                        }
                         selectHTML += `<option value="${option}"${selected}>${option}</option>`;
                     });
                     selectHTML += '</select>';
+                    if (multipleFields.includes(key)) selectHTML += '<small style="color: #666;">Ctrl+Click dla wielu</small>';
 
                     formHTML += `
                         <div class="form-group">
@@ -580,12 +594,11 @@
                     formHTML += `
                         <div class="form-group">
                             <label>${key}</label>
-                            <input type="text" name="${key}" value="${escapedValue}" />
+                            <input type="text" name="${key}" value="${escapedValue}" placeholder="${placeholder}" />
                         </div>
                     `;
                 }
             }
-            
             formContainer.innerHTML = formHTML;
         }
 
