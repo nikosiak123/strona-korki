@@ -719,8 +719,9 @@
                     : '';
 
                 card.innerHTML = `
-                    <div style="width: 100%; position: relative;"> 
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="width: 100%; position: relative;">
+                        <!-- ZMIANA: Używamy klasy .lesson-header zamiast stylu inline -->
+                        <div class="lesson-header">
                             <div class="lesson-info">
                                 <div><strong>Termin:</strong> ${lesson.date} o ${lesson.time}</div>
                                 <div><strong>Korepetytor:</strong> ${lesson.tutor}${contactLinkHtml}</div>

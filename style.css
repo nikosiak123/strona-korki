@@ -1011,3 +1011,49 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
     border-radius: 8px;
     display: none;
 }
+
+/* --- Nowa klasa do nagłówka lekcji (zastąpi styl inline) --- */
+.lesson-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* --- Ulepszona responsywność dla telefonów --- */
+@media (max-width: 768px) {
+    /* Zmieniamy układ nagłówka na pionowy */
+    .lesson-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* Informacje o lekcji na pełną szerokość */
+    .lesson-info {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    /* Kontener przycisków na pełną szerokość */
+    .lesson-actions {
+        width: 100%;
+        display: flex;
+        flex-direction: column; /* Przyciski jeden pod drugim - najbezpieczniejsza opcja */
+        gap: 0.8rem;
+        justify-content: flex-start;
+        margin-top: 0.5rem;
+    }
+
+    /* Stylizacja samych przycisków i spanów na telefonie */
+    .lesson-actions a, 
+    .lesson-actions button, 
+    .lesson-actions span {
+        width: 100%;           /* Przycisk zajmuje całą szerokość */
+        text-align: center;    /* Tekst wyśrodkowany */
+        box-sizing: border-box; /* Padding nie powiększa elementu poza 100% */
+        white-space: normal;   /* Pozwól na zawijanie długiego tekstu */
+        display: block;        /* Upewnij się, że zachowuje się jak blok */
+        height: auto;          /* Wysokość dopasowana do treści */
+        padding: 12px;         /* Wygodniejsze do klikania palcem */
+    }
+}
