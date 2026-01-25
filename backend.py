@@ -118,7 +118,7 @@ P24_SANDBOX = False
 P24_API_URL = "https://secure.przelewy24.pl"
 
 # Konfiguracja Brevo (Sendinblue)
-BREVO_API_KEY = "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"
+BREVO_API_KEY = "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"
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 FROM_EMAIL = "edu.najechalski@gmail.com"
 
