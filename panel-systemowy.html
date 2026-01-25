@@ -343,7 +343,7 @@
         .messages-panel {
             display: none;
         }
-
+        
         /* Panel statystyk */
         .stats-panel {
             display: none;
@@ -611,6 +611,27 @@
         </div>
     </main>
 
+    <!-- Modal do uproszczonego dodawania korepetytora -->
+    <div id="simpleTutorModal" class="modal">
+        <div class="modal-content">
+            <h3 id="simpleModalTitle">Dodaj Korepetytora (uproszczony)</h3>
+            <div id="simpleModalForm">
+                <div class="form-group">
+                    <label for="tutorNameInput">Imię i Nazwisko</label>
+                    <input type="text" id="tutorNameInput" name="ImieNazwisko" placeholder="np. Jan Kowalski" />
+                </div>
+                <div class="form-group">
+                    <label for="tutorSubjectSelect">Przedmiot</label>
+                    <select id="tutorSubjectSelect" name="Przedmioty"></select>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="saveSimpleTutorBtn" class="save-btn">Zapisz</button>
+                <button id="cancelSimpleModalBtn" class="cancel-btn">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE_URL = '';
         let currentTable = null;
@@ -765,6 +786,7 @@
                     content.innerHTML = `
                         <div class="action-buttons">
                             <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
+                            ${tableName === 'Korepetytorzy' ? '<button class="add-record-btn" onclick="openSimpleTutorAddModal()" style="margin-left: 10px;">+ Dodaj Korepetytora (uproszczony)</button>' : ''}
                         </div>
                         <p class="no-records">Brak rekordów w tej tabeli</p>
                     `;
@@ -773,6 +795,8 @@
 
                 // Sortuj kolumny w odpowiedniej kolejności
                 let fields = Object.keys(data.records[0].fields);
+                const tutorAddButton = tableName === 'Korepetytorzy' ? '<button class="add-record-btn" onclick="openSimpleTutorAddModal()" style="margin-left: 10px;">+ Dodaj Korepetytora (uproszczony)</button>' : '';
+                
                 if (tableName === 'Korepetytorzy') {
                     const dayOrder = ['Czwartek', 'Poniedziałek', 'Wtorek', 'Środa', 'Piątek', 'Sobota', 'Niedziela'];
                     const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
@@ -783,6 +807,7 @@
                 let tableHTML = `
                     <div class="action-buttons">
                         <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
+                        ${tutorAddButton}
                     </div>
                     <div class="records-table">
                         <table>
@@ -1049,6 +1074,79 @@
                 alert(`Błąd: ${error.message}`);
             }
         }
+
+        // Funkcje dla uproszczonego dodawania korepetytora
+        function openSimpleTutorAddModal() {
+            if (currentTable !== 'Korepetytorzy') return;
+
+            document.getElementById('simpleModalTitle').textContent = 'Dodaj Korepetytora (uproszczony)';
+
+            // Wypełnij select przedmiotów
+            const subjectSelect = document.getElementById('tutorSubjectSelect');
+            subjectSelect.innerHTML = '';
+            // Używamy fieldOptions.Przedmiot (pojedynczy) dla opcji do wyboru
+            const subjects = fieldOptions['Przedmiot'] || [];
+            
+            // Dodaj opcję domyślną
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Wybierz przedmiot';
+            subjectSelect.appendChild(defaultOption);
+
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject.charAt(0).toUpperCase() + subject.slice(1);
+                subjectSelect.appendChild(option);
+            });
+            
+            // Wyczyść pole nazwy
+            document.getElementById('tutorNameInput').value = '';
+
+            document.getElementById('simpleTutorModal').classList.add('active');
+        }
+
+        document.getElementById('saveSimpleTutorBtn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('tutorNameInput').value.trim();
+            const subjectSelect = document.getElementById('tutorSubjectSelect');
+            const subject = subjectSelect.value;
+
+            if (!nameInput || !subject) {
+                alert('Proszę wypełnić wszystkie pola: Imię i Nazwisko oraz Przedmiot.');
+                return;
+            }
+
+            try {
+                // Nowy endpoint i wysyłamy Przedmioty jako tablicę [subject]
+                const response = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy/simple-record`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        ImieNazwisko: nameInput,
+                        Przedmioty: [subject]
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('simpleTutorModal').classList.remove('active');
+                    alert('Korepetytor został pomyślnie dodany.');
+                    await loadTableData(currentTable); // Odśwież tabelę
+                } else {
+                    let errorMsg = 'Błąd podczas dodawania korepetytora';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.error || errorMsg;
+                    } catch {}
+                    alert(errorMsg);
+                }
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            }
+        });
+
+        document.getElementById('cancelSimpleModalBtn').addEventListener('click', () => {
+            document.getElementById('simpleTutorModal').classList.remove('active');
+        });
 
         // Funkcje panelu statystyk
         async function loadStats() {
