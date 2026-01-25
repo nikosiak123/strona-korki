@@ -361,9 +361,9 @@ def check_unconfirmed_lessons():
             lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
             time_until_lesson = lesson_start - now
             
-            # Jeśli zostało mniej niż 6 godzin do lekcji i nie jest potwierdzona (tylko nadchodzące lekcje)
-            if timedelta(0) < time_until_lesson <= timedelta(hours=6):
-                logging.info(f"Odwołuję niepotwierdzoną lekcję testową: {fields.get('ManagementToken')}")
+            # Jeśli zostało mniej niż 6 godzin LUB lekcja już minęła
+            if time_until_lesson <= timedelta(hours=6):
+                logging.info(f"Odwołuję niepotwierdzoną lekcję testową (wygasła): {fields.get('ManagementToken')}")
                 
                 # Odwołaj lekcję
                 reservations_table.update(lesson['id'], {"Status": "Odwołana - brak potwierdzenia"})
