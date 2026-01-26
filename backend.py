@@ -68,23 +68,9 @@ scheduler = None
 import logging 
 import pickle
 from io import BytesIO
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from PIL import Image
-import imagehash
 
 # --- Konfiguracja ---
-PATH_DO_GOOGLE_CHROME = "/usr/bin/google-chrome"
-PATH_DO_RECZNEGO_CHROMEDRIVER = "/usr/local/bin/chromedriver"
-COOKIES_FILE = "zakrecone_cookies.json"
-HASH_DIFFERENCE_THRESHOLD = 10
-
-
+ 
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
 
@@ -390,132 +376,6 @@ Jeśli nadal jesteś zainteresowany korepetycjami, możesz zarezerwować nową l
         except ValueError as e:
             logging.error(f"Błąd parsowania daty dla lekcji {fields.get('ManagementToken')}: {e}")
 
-def calculate_image_hash(image_source):
-    try:
-        image = Image.open(BytesIO(image_source))
-        return imagehash.phash(image)
-    except Exception as e:
-        print(f"BŁĄD: Nie można przetworzyć obrazu: {e}")
-        return None
-
-def load_cookies(driver, file_path):
-    if not os.path.exists(file_path): return False
-    try:
-        with open(file_path, 'r') as file: cookies = json.load(file)
-        if not cookies: return False
-        driver.get("https://www.facebook.com"); time.sleep(1)
-        for cookie in cookies:
-            if 'expiry' in cookie: cookie['expiry'] = int(cookie['expiry'])
-            driver.add_cookie(cookie)
-        driver.refresh(); time.sleep(2)
-        return True
-    except: return False
-
-def initialize_driver_and_login():
-    print("\n" + "="*50)
-    print("--- ROZPOCZYNAM TEST LOGOWANIA (z backend.py) ---")
-    print("="*50)
-    
-    driver = None
-    try:
-        # --- Krok 1: Weryfikacja plików z dodatkowymi logami ---
-        print("\n[Krok 1/5] Weryfikacja plików i uprawnień...")
-        
-        # Sprawdzamy, gdzie skrypt jest aktualnie uruchomiony
-        current_working_dir = os.getcwd()
-        print(f"      -> Bieżący katalog roboczy (CWD): {current_working_dir}")
-
-        # Sprawdzamy ścieżkę do pliku cookies
-        print(f"      -> Oczekiwana ścieżka do ciasteczek: {COOKIES_FILE}")
-
-        if not os.path.exists(COOKIES_FILE):
-            print(f"!!! KRYTYCZNY BŁĄD: Plik {COOKIES_FILE} NIE ISTNIEJE z perspektywy skryptu.")
-            # Sprawdźmy, czy plik istnieje, ale może mamy problem z uprawnieniami do katalogu nadrzędnego
-            parent_dir = os.path.dirname(COOKIES_FILE)
-            print(f"      -> Sprawdzam zawartość katalogu nadrzędnego: {parent_dir}")
-            try:
-                dir_contents = os.listdir(parent_dir)
-                print(f"      -> Zawartość katalogu: {dir_contents}")
-                if "cookies.pkl" in dir_contents:
-                    print("      -> UWAGA: Plik 'cookies.pkl' jest w katalogu, ale os.path.exists() go nie widzi. To może być problem z uprawnieniami.")
-            except Exception as e:
-                print(f"      -> BŁĄD: Nie można odczytać zawartości katalogu {parent_dir}: {e}")
-            return None # Zakończ, jeśli pliku nie ma
-        
-        print(f"      -> OK: Plik {COOKIES_FILE} istnieje.")
-
-        # Sprawdzamy, czy mamy uprawnienia do odczytu pliku
-        if not os.access(COOKIES_FILE, os.R_OK):
-            print(f"!!! KRYTYCZNY BŁĄD: Brak uprawnień do ODCZYTU pliku {COOKIES_FILE}.")
-            # Spróbujmy wyświetlić uprawnienia
-            try:
-                stat_info = os.stat(COOKIES_FILE)
-                print(f"      -> Uprawnienia pliku: {oct(stat_info.st_mode)}")
-                print(f"      -> Właściciel (UID): {stat_info.st_uid}, Grupa (GID): {stat_info.st_gid}")
-            except Exception as e:
-                print(f"      -> Nie można odczytać statystyk pliku: {e}")
-            return None # Zakończ, jeśli nie ma uprawnień
-
-        print(f"      -> OK: Skrypt ma uprawnienia do odczytu pliku {COOKIES_FILE}.")
-
-        # --- Krok 2: Inicjalizacja przeglądarki (bez zmian) ---
-        print("\n[Krok 2/5] Uruchamianie przeglądarki...")
-        service = ChromeService(executable_path=PATH_DO_RECZNEGO_CHROMEDRIVER)
-        options = webdriver.ChromeOptions()
-        options.binary_location = PATH_DO_GOOGLE_CHROME
-        options.add_argument("--headless")
-        options.add_argument("--disable-notifications")
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        driver = webdriver.Chrome(service=service, options=options)
-        print("      -> Sukces. Przeglądarka uruchomiona.")
-        
-        # --- Krok 3: Ładowanie ciasteczek (z dodatkową obsługą błędów) ---
-        print(f"\n[Krok 3/5] Próba załadowania ciasteczek z pliku {COOKIES_FILE}...")
-        driver.get("https://www.facebook.com"); time.sleep(1)
-
-        try:
-            with open(COOKIES_FILE, 'rb') as file:
-                cookies = pickle.load(file)
-            
-            if not cookies:
-                print("!!! BŁĄD: Plik z ciasteczkami jest pusty.")
-                driver.quit()
-                return None
-
-            for cookie in cookies:
-                if 'expiry' in cookie:
-                    cookie['expiry'] = int(cookie['expiry'])
-                driver.add_cookie(cookie)
-            
-            print("      -> Sukces. Ciasteczka dodane do przeglądarki.")
-        
-        except (pickle.UnpicklingError, EOFError) as e:
-            print(f"!!! KRYTYCZNY BŁĄD: Plik {COOKIES_FILE} jest uszkodzony lub w nieprawidłowym formacie: {e}")
-            driver.quit()
-            return None
-        
-        # --- Krok 4: Odświeżenie i weryfikacja ---
-        print("\n[Krok 4/5] Odświeżanie strony i weryfikacja logowania...")
-        driver.refresh()
-        time.sleep(5)
-        
-        wait = WebDriverWait(driver, 15)
-        search_input_xpath = "//input[@aria-label='Szukaj na Facebooku']"
-        
-        print("      -> Oczekuję na pojawienie się pola 'Szukaj na Facebooku'...")
-        wait.until(EC.presence_of_element_located((By.XPATH, search_input_xpath)))
-        
-        print("\nSUKCES: Sesja przeglądarki jest aktywna i jesteś zalogowany!")
-        return driver
-
-    except Exception as e:
-        print("\n!!! WYSTĄPIŁ NIESPODZIEWANY BŁĄD w initialize_driver_and_login !!!")
-        traceback.print_exc()
-        return None
-    finally:
-        print("--- Zakończono proces inicjalizacji przeglądarki (w ramach bloku finally). ---")
-
 @app.route('/api/cancel-cyclic-reservation', methods=['POST'])
 def cancel_cyclic_reservation():
     try:
@@ -544,142 +404,6 @@ def cancel_cyclic_reservation():
         abort(500, "Wystąpił błąd serwera podczas anulowania stałego terminu.")
 
 
-def find_profile_and_update_airtable(record_id, first_name, last_name, profile_pic_url):
-    """Główna funkcja, która wykonuje cały proces wyszukiwania dla jednego klienta, robiąc zrzuty ekranu."""
-    driver = None
-    # Zdefiniuj ścieżkę do zapisywania screenshotów
-    SCREENSHOTS_DIR = os.path.join(os.getcwd(), "screenshots")
-    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-    
-    print("\n" + "="*60)
-    print(f"--- WYSZUKIWARKA: Start dla klienta '{first_name} {last_name}' (ID rekordu: {record_id}) ---")
-    print(f"      -> Zrzuty ekranu będą zapisywane w: {SCREENSHOTS_DIR}")
-    print("="*60)
-
-    try:
-        # ... (Krok 1: Pobieranie i przetwarzanie zdjęcia - bez zmian) ...
-        print("[1/6] Pobieranie docelowego zdjęcia profilowego...")
-        response = requests.get(profile_pic_url)
-        if response.status_code != 200:
-            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można pobrać zdjęcia'})
-            return
-        target_image_hash = calculate_image_hash(response.content)
-        if not target_image_hash:
-            clients_table.update(record_id, {'LINK': 'BŁĄD - Nie można przetworzyć zdjęcia'})
-            return
-        print(f"      -> Sukces. Hash docelowy: {target_image_hash}")
-
-        # --- Krok 2: Uruchomienie przeglądarki ---
-        print("[2/6] Inicjalizacja przeglądarki...")
-        driver = initialize_driver_and_login()
-        if not driver:
-            clients_table.update(record_id, {'LINK': 'BŁĄD - Inicjalizacja przeglądarki nieudana'})
-            return
-        print("      -> Sukces. Przeglądarka gotowa.")
-        
-        # --- Zrzut ekranu #1: Po zalogowaniu ---
-        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "1_po_zalogowaniu.png"))
-        print("      -> ZROBIONO ZRZUT EKRANU: 1_po_zalogowaniu.png")
-
-        # --- Krok 3: Wyszukanie frazy na Facebooku ---
-        search_name = f"{first_name} {last_name}"
-        print(f"[3/6] Wyszukiwanie frazy: '{search_name}'...")
-        wait = WebDriverWait(driver, 20)
-        driver.get("https://www.facebook.com")
-        time.sleep(3)
-        
-        search_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@aria-label='Szukaj na Facebooku']")))
-        search_input.click(); search_input.clear(); time.sleep(0.5)
-        search_input.send_keys(search_name)
-        time.sleep(1)
-        search_input.send_keys(Keys.RETURN)
-        print("      -> Sukces. Wysłano zapytanie.")
-        time.sleep(3) # Dajmy chwilę na załadowanie wyników
-
-        # --- Zrzut ekranu #2: Po wyszukaniu frazy ---
-        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "2_po_wyszukaniu.png"))
-        print("      -> ZROBIONO ZRZUT EKRANU: 2_po_wyszukaniu.png")
-        
-        # --- Krok 4: Przejście do filtra "Osoby" ---
-        print("[4/6] Przechodzenie do filtra 'Osoby'...")
-        people_filter_xpath = "//a[contains(@href, '/search/people/')]"
-        people_filter_button = wait.until(EC.element_to_be_clickable((By.XPATH, people_filter_xpath)))
-        people_filter_button.click()
-        print("      -> Sukces. Przechodzę na stronę wyników dla osób.")
-        time.sleep(5)
-
-        # --- Zrzut ekranu #3: Po przejściu do filtra "Osoby" ---
-        driver.save_screenshot(os.path.join(SCREENSHOTS_DIR, "3_po_filtrowaniu_osob.png"))
-        print("      -> ZROBIONO ZRZUT EKRANU: 3_po_filtrowaniu_osob.png")
-        
-        # --- Krok 5: Pobranie wszystkich wyników i ich analiza ---
-        print("[5/6] Analiza wyników wyszukiwania...")
-        css_selector = 'a[role="link"] image'
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
-        all_image_elements = driver.find_elements(By.CSS_SELECTOR, css_selector)
-        print(f"      -> Znaleziono {len(all_image_elements)} potencjalnych profili.")
-
-        
-        if not all_image_elements:
-            print("!!! OSTRZEŻENIE: Brak wyników na stronie.")
-            clients_table.update(record_id, {'LINK': f'BŁĄD - BRAK WYNIKÓW DLA {search_name}'})
-            return
-
-        found_match = False
-        for i, image_element in enumerate(all_image_elements):
-            print(f"      -> Przetwarzam profil {i+1}/{len(all_image_elements)}...")
-            try:
-                profile_link_element = image_element.find_element(By.XPATH, "./ancestor::a[1]")
-                profile_link = profile_link_element.get_attribute('href')
-                image_url = image_element.get_attribute('xlink:href')
-                if not profile_link or not image_url:
-                    print(f"         - Pominięto: Brak linku lub URL zdjęcia.")
-                    continue
-                
-                response = requests.get(image_url)
-                if response.status_code != 200:
-                    print(f"         - Pominięto: Nie udało się pobrać zdjęcia z URL.")
-                    continue
-                
-                scanned_image_hash = calculate_image_hash(response.content)
-                if not scanned_image_hash:
-                    print(f"         - Pominięto: Nie udało się przetworzyć zdjęcia z wyniku.")
-                    continue
-                    
-                hash_diff = target_image_hash - scanned_image_hash
-                print(f"         - Hash zdjęcia z wyniku: {scanned_image_hash} (Różnica: {hash_diff})")
-                
-                if hash_diff <= HASH_DIFFERENCE_THRESHOLD:
-                    print("\n!!! ZNALEZIONO PASUJĄCY PROFIL !!!")
-                    print(f"      -> Link: {profile_link}")
-                    clients_table.update(record_id, {'LINK': profile_link})
-                    print("--- WYSZUKIWARKA: Pomyślnie zaktualizowano LINK w Airtable. ---")
-                    found_match = True
-                    break # Zakończ pętlę po znalezieniu
-            except Exception as e:
-                print(f"         - Wystąpił błąd podczas analizy tego profilu: {e}")
-                continue
-        
-        if not found_match:
-            print("!!! OSTRZEŻENIE: Przejrzano wszystkie wyniki, nie znaleziono pasującego zdjęcia.")
-            clients_table.update(record_id, {'LINK': f'BŁĄD - ZDJĘCIE NIE PASUJE DLA {search_name}'})
-
-    except TimeoutException:
-        print("!!! BŁĄD KRYTYCZNY: TimeoutException. Strona ładowała się zbyt długo lub nie znaleziono elementu.")
-        clients_table.update(record_id, {'LINK': 'BŁĄD - TIMEOUT WYSZUKIWANIA'})
-    except Exception as e:
-        print("!!! BŁĄD KRYTYCZNY: Niespodziewany błąd w głównej logice wyszukiwarki.")
-        traceback.print_exc()
-        clients_table.update(record_id, {'LINK': 'BŁĄD - KRYTYCZNY WYJĄTEK WYSZUKIWANIA'})
-    finally:
-        # --- Krok 6: Zamykanie przeglądarki ---
-        if driver:
-            print("[6/6] Zamykanie przeglądarki...")
-            driver.quit()
-            print("      -> Sukces. Przeglądarka została zamknięta.")
-        print("="*60)
-        print(f"--- WYSZUKIWARKA: Zakończono zadanie dla klienta '{first_name} {last_name}' ---")
-        print("="*60 + "\n")
 
 def send_messenger_confirmation(psid, message_text, page_access_token):
     """Wysyła wiadomość potwierdzającą na Messengerze."""
@@ -1408,7 +1132,7 @@ def get_tutor_lessons():
         clients_map = {
             rec['fields'].get('ClientID'): {
                 'name': rec['fields'].get('Imię', 'Uczeń'),
-                'link': rec['fields'].get('LINK') # <-- Pobieramy link
+                'link': None
             }
             for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
         }
@@ -1430,7 +1154,7 @@ def get_tutor_lessons():
                 'date': fields.get('Data'),
                 'time': fields.get('Godzina'),
                 'studentName': client_info.get('name', 'Brak danych'),
-                'studentContactLink': client_info.get('link'), # <-- Dodajemy link do danych
+                'studentContactLink': None,
                 'subject': fields.get('Przedmiot'),
                 'schoolType': fields.get('TypSzkoly'),
                 'schoolLevel': fields.get('Poziom'),
@@ -1619,7 +1343,7 @@ def get_tutor_by_name():
     
     return jsonify({
         "name": tutor_record['fields'].get('ImieNazwisko'),
-        "contactLink": tutor_record['fields'].get('LINK')
+        "contactLink": None
     })
 
 @app.route('/api/update-tutor-schedule', methods=['POST'])
@@ -1820,7 +1544,7 @@ def get_schedule():
                 booked_slots[key] = {
                     "status": slot_status,
                     "studentName": student_name if slot_status != "completed" else f"{student_name} (Zakończona)",
-                    "studentContactLink": client_info.get('LINK') if slot_status != "completed" else None,
+                    "studentContactLink": None,
                     "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
                     "isPaid": fields.get('Oplacona', False),
@@ -2288,23 +2012,6 @@ def create_reservation():
                 )
                 logging.info(f"SCHEDULER: Zaplanowano przypomnienie o potwierdzeniu dla {client_uuid} na {confirmation_reminder_time}.")
                 
-                # Uruchomienie wyszukiwarki profilu Facebook (w tle)
-                client_fields = client_record.get('fields', {})
-                first_name_client = client_fields.get('ImieKlienta')
-                last_name_client = client_fields.get('NazwiskoKlienta')
-                profile_pic_client = client_fields.get('Zdjecie')
-    
-                if all([first_name_client, last_name_client, profile_pic_client]):
-                    search_thread = threading.Thread(
-                        target=find_profile_and_update_airtable,
-                        args=(client_record['id'], first_name_client, last_name_client, profile_pic_client)
-                    )
-                    search_thread.start()
-                    print(f"--- INFO: Uruchomiono w tle wyszukiwarkę profilu dla {first_name_client} {last_name_client} ---")
-                else:
-                    print("--- OSTRZEŻENIE: Brak pełnych danych klienta (Imię/Nazwisko/Zdjęcie) do uruchomienia wyszukiwarki.")
-
-
 # --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
             if is_test_lesson: wiadomosc = "Lekcje można opłacić do 5 minut po rozpoczęciu zajęć. W przypadku zrezygnowania z zajeć, bardzo prosimy o odwołanie ich w panelu klienta."
 
@@ -2314,12 +2021,7 @@ def create_reservation():
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
 
-                # Pobierz link do korepetytora
-                tutor_contact_link = None
-                if is_test_lesson:
-                    tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_for_reservation}'")
-                    tutor_contact_link = tutor_record['fields'].get('LINK') if tutor_record else None
-
+                
                 message_to_send = (
                     f"Dziękujemy za rezerwację!\n\n"
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
@@ -2349,10 +2051,7 @@ def create_reservation():
                             f"Możesz też potwierdzić lekcję w panelu klienta.\n\n"
                         )
 
-                # Dodaj informację o kontakcie z korepetytorem dla lekcji testowej
-                if tutor_contact_link:
-                    message_to_send += f"⚠️ PAMIĘTAJ aby skontaktować się z korepetytorem przed lekcją:\n{tutor_contact_link}\n\n"
-
+                
                 message_to_send += (
                     f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n\n"
                     f"{wiadomosc}"
@@ -2505,11 +2204,6 @@ def get_client_dashboard():
         client_name = client_record['fields'].get('Imie', 'Uczniu')
 
         all_tutors_records = tutors_table.all()
-        tutor_links_map = {
-            tutor['fields'].get('ImieNazwisko'): tutor['fields'].get('LINK')
-            for tutor in all_tutors_records if 'ImieNazwisko' in tutor.get('fields', {})
-        }
-
         all_reservations = reservations_table.all(formula=f"{{Klient}} = '{client_id}'")
         logging.debug(f"Dashboard: Znaleziono {len(all_reservations)} rezerwacji dla klienta.")
         
@@ -2544,7 +2238,7 @@ def get_client_dashboard():
                 "managementToken": fields.get('ManagementToken'),
                 "status": status,
                 "teamsLink": fields.get('TeamsLink'),
-                "tutorContactLink": tutor_links_map.get(fields.get('Korepetytor')),
+                "tutorContactLink": None,
                 "isPaid": fields.get('Oplacona', False),
                 "Typ": fields.get('Typ'),
                 "isTest": fields.get('JestTestowa', False),
@@ -2637,7 +2331,7 @@ def get_client_dashboard():
                 "tutor": tutor_name,
                 "subject": fields.get('Przedmiot'),
                 "isNextLessonConfirmed": is_next_lesson_confirmed,
-                "tutorContactLink": tutor_links_map.get(tutor_name)
+                "tutorContactLink": None
             })
 
         logging.info(f"Dashboard: Pomyślnie wygenerowano dane dla panelu klienta {client_id}.")
@@ -2674,21 +2368,16 @@ def get_reservation_details():
                 student_name = client_record.get('fields', {}).get('Imie', 'N/A')
 
         tutor_name = fields.get('Korepetytor')
-        tutor_contact_link = None
-        if tutor_name:
-            tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
-            if tutor_record:
-                tutor_contact_link = tutor_record.get('fields', {}).get('LINK')
 
         return jsonify({
-            "date": fields.get('Data'), 
-            "time": fields.get('Godzina'), 
+            "date": fields.get('Data'),
+            "time": fields.get('Godzina'),
             "tutor": tutor_name,
-            "student": student_name, 
+            "student": student_name,
             "isCancellationAllowed": is_cancellation_allowed(record),
             "isTestLesson": fields.get('JestTestowa', False),
             "clientID": client_uuid,
-            "tutorContactLink": tutor_contact_link # Dodajemy link do odpowiedzi
+            "tutorContactLink": None
         })
     except Exception as e:
         traceback.print_exc()
