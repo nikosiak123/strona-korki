@@ -3278,10 +3278,10 @@ def send_reminder_message():
         profile_link = f"https://zakręcone-korepetycje.pl/index.html?tutor={tutor_name_encoded}"
         
         message = (
-            f"Hej! 👋 To przypomnienie dotyczące Twojej nadchodzącej lekcji.\\n\\n"
-            f"Prosimy o skontaktowanie się z Twoim korepetytorem, {tutor_name}, w celu omówienia szczegółów zajęć.\\n\\n"
-            f"Możesz odwiedzić profil korepetytora tutaj: {profile_link}\\n\\n"
-            f"Dziękujemy!"
+            f"Wiadomość od Twojego korepetytora, {tutor_name}:\n\n"
+            f"Hej! 👋 Proszę, skontaktuj się ze mną. Chcę omówić szczegóły naszych zajęć, żeby jak najlepiej je przygotować.\n\n"
+            f"Kliknij w link do mojego profilu, aby rozpocząć rozmowę: {profile_link}\n\n"
+            f"Do usłyszenia!"
         )
 
         send_messenger_confirmation(client_psid, message, MESSENGER_PAGE_TOKEN)
