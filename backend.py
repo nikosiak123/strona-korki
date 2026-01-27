@@ -1151,8 +1151,8 @@ def get_tutor_lessons():
             rec['fields'].get('ClientID'): {
                 'studentFirstName': rec['fields'].get('Imie', 'Uczeń'),
                 'studentLastName': rec['fields'].get('Nazwisko', ''),
-                'clientFirstName': rec['fields'].get('Imie', 'Klient'),
-                'clientLastName': rec['fields'].get('Nazwisko', ''),
+                'clientFirstName': rec['fields'].get('ImieKlienta', 'Klient'),
+                'clientLastName': rec['fields'].get('NazwiskoKlienta', ''),
                 'link': None
             }
             for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
@@ -1571,6 +1571,10 @@ def get_schedule():
                 booked_slots[key] = {
                     "status": slot_status,
                     "studentName": student_name if slot_status != "completed" else f"{student_name} (Zakończona)",
+                    "studentFirstName": client_info.get('Imie', 'Uczeń'),
+                    "studentLastName": client_info.get('Nazwisko', ''),
+                    "clientFirstName": client_info.get('ImieKlienta', 'Klient'),
+                    "clientLastName": client_info.get('NazwiskoKlienta', ''),
                     "studentContactLink": None,
                     "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                     "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa'), "teamsLink": fields.get('TeamsLink'),
@@ -1592,9 +1596,14 @@ def get_schedule():
                     if current_date.weekday() == day_num:
                         key = (fields.get('Korepetytor'), current_date.strftime('%Y-%m-%d'), fields.get('Godzina'))
                         if key not in booked_slots:
-                            student_name = all_clients.get(client_uuid, {}).get('Imie', 'Uczeń')
+                            client_info = all_clients.get(client_uuid, {})
+                            student_name = client_info.get('Imie', 'Uczeń')
                             booked_slots[key] = {
                                 "status": "cyclic_reserved", "studentName": f"{student_name} (Cykliczne)",
+                                "studentFirstName": client_info.get('Imie', 'Uczeń'),
+                                "studentLastName": client_info.get('Nazwisko', ''),
+                                "clientFirstName": client_info.get('ImieKlienta', 'Klient'),
+                                "clientLastName": client_info.get('NazwiskoKlienta', ''),
                                 "subject": fields.get('Przedmiot'), "schoolType": fields.get('TypSzkoly'),
                                 "schoolLevel": fields.get('Poziom'), "schoolClass": fields.get('Klasa')
                             }
