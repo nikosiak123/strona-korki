@@ -179,7 +179,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         modalDetailsContent.innerHTML = `
-            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${lesson.studentName || 'Brak danych'}</span></div>
+            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${lesson.studentFirstName || 'Brak danych'} ${lesson.studentLastName || ''}</span></div>
+            <div class="modal-details-item"><strong>Klient:</strong> <span>${lesson.clientFirstName || 'Brak danych'} ${lesson.clientLastName || ''}</span></div>
             <div class="modal-details-item"><strong>Termin:</strong> <span>${lesson.date} o ${lesson.time}</span></div>
             ${lessonTypeHtml}
             ${paymentStatusHtml} 
@@ -217,7 +218,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     
         let detailsHtml = `
-            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${slot.studentName || 'Brak danych'}${contactLinkHtml}</span></div>
+            <div class="modal-details-item"><strong>Uczeń:</strong> <span>${slot.studentFirstName || 'Brak danych'} ${slot.studentLastName || ''}${contactLinkHtml}</span></div>
+            <div class="modal-details-item"><strong>Klient:</strong> <span>${slot.clientFirstName || 'Brak danych'} ${slot.clientLastName || ''}</span></div>
             ${paymentStatusHtml}
             <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
             <div class="modal-details-item"><strong>Przedmiot:</strong> <span>${slot.subject || 'Brak danych'}</span></div>

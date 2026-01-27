@@ -1149,7 +1149,10 @@ def get_tutor_lessons():
         all_clients_records = clients_table.all()
         clients_map = {
             rec['fields'].get('ClientID'): {
-                'name': rec['fields'].get('Imię', 'Uczeń'),
+                'studentFirstName': rec['fields'].get('Imie', 'Uczeń'),
+                'studentLastName': rec['fields'].get('Nazwisko', ''),
+                'clientFirstName': rec['fields'].get('Imie', 'Klient'),
+                'clientLastName': rec['fields'].get('Nazwisko', ''),
                 'link': None
             }
             for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
@@ -1171,13 +1174,19 @@ def get_tutor_lessons():
             lesson_data = {
                 'date': fields.get('Data'),
                 'time': fields.get('Godzina'),
-                'studentName': client_info.get('name', 'Brak danych'),
+                'studentName': f"{client_info.get('studentFirstName', 'Brak danych')} {client_info.get('studentLastName', '')}",
+                'studentFirstName': client_info.get('studentFirstName', 'Brak danych'),
+                'studentLastName': client_info.get('studentLastName', ''),
+                'clientFirstName': client_info.get('clientFirstName', 'Brak danych'),
+                'clientLastName': client_info.get('clientLastName', ''),
                 'studentContactLink': None,
                 'subject': fields.get('Przedmiot'),
                 'schoolType': fields.get('TypSzkoly'),
                 'schoolLevel': fields.get('Poziom'),
                 'schoolClass': fields.get('Klasa'),
-                'teamsLink': fields.get('TeamsLink')
+                'teamsLink': fields.get('TeamsLink'),
+                'isPaid': fields.get('Oplacona', False),
+                'isTest': fields.get('JestTestowa', False)
             }
             upcoming_lessons.append(lesson_data)
         
