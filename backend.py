@@ -659,6 +659,24 @@ def check_if_client_has_any_lessons_with_tutor(client_id, tutor_name):
     lessons = reservations_table.all(formula=formula)
     return len(lessons) > 0
 
+def check_if_client_has_booked_test_lesson(client_id):
+    """Sprawdza, czy klient ma aktywną lub wykorzystaną lekcję testową.
+    Anulowane lekcje testowe (przez klienta, system lub brak płatności/potwierdzenia) nie blokują ponownej rezerwacji.
+    """
+    # Statusy, które NIE powinny blokować ponownej rezerwacji (traktowane jako niewykorzystane)
+    # Zgodnie z życzeniem klienta: Odwołana przez klienta umożliwia ponowną rezerwację.
+    formula = f"""AND(
+        {{Klient}} = '{client_id}',
+        {{JestTestowa}} = 1,
+        NOT(OR(
+            {{Status}} = 'Odwołana przez klienta',
+            {{Status}} = 'Anulowana (brak płatności)',
+            {{Status}} = 'Odwołana - brak potwierdzenia'
+        ))
+    )"""
+    lesson = reservations_table.first(formula=formula)
+    return lesson is not None
+
 # === Koniec funkcji pomocniczych ===
 
 # === Funkcje płatności Przelewy24 ===
@@ -1843,6 +1861,10 @@ def create_reservation():
         if not client_uuid: abort(400, "Brak ClientID.")
         
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_uuid.strip()}'")
+
+        if is_test_lesson and check_if_client_has_booked_test_lesson(client_uuid):
+            abort(409, "Klient ma już zarezerwowaną lub miał już lekcję testową. Można zarezerwować tylko jedną lekcję testową.")
+        
         if not client_record: abort(404, "Klient nie istnieje.")
         
         first_name_from_form = data.get('firstName')
@@ -2430,7 +2452,13 @@ def cancel_reservation():
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
         # --- KONIEC DODAWANIA ---
         
-        reservations_table.delete(record['id'])
+        fields = record.get('fields', {})
+        if fields.get('JestTestowa', False):
+            # Dla lekcji testowych zmieniamy tylko status, aby zablokować możliwość ponownej rezerwacji
+            reservations_table.update(record['id'], {"Status": "Odwołana przez klienta"})
+            logging.info(f"Lekcja testowa {record['id']} została oznaczona jako Odwołana przez klienta zamiast usunięcia.")
+        else:
+            reservations_table.delete(record['id'])
         
         # Powiadomienie korepetytora o anulowanej lekcji
         fields = record.get('fields', {})
