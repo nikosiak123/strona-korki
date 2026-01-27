@@ -1766,6 +1766,28 @@ def get_schedule():
 
                         final_schedule.append(slot_info)
                         logging.info(f"CALENDAR: Dodano slot {slot_time_str} do final_schedule, status: {slot_info.get('status', 'unknown')}")
+            
+            # --- DODANA LOGIKA: Dodanie zarezerwowanych slotów spoza grafiku stałego (włączając lekcje z przeszłości) ---
+            covered_slots = set()
+            for slot in final_schedule:
+                covered_slots.add((slot['tutor'], slot['date'], slot['time']))
+                
+            booked_slots_not_in_schedule = []
+            for key, slot_data in booked_slots.items():
+                tname, tdate, ttime = key
+                # Sprawdzamy, czy slot jest dla bieżącego korepetytora i nie został już dodany (np. był poza grafikiem stałym)
+                if tname == tutor_name_filter and key not in covered_slots:
+                    # Sprawdzamy czy czas jest w master_times, aby poprawnie wyświetlić w gridzie kalendarza
+                    if ttime in master_times:
+                        slot_data['tutor'] = tname
+                        slot_data['date'] = tdate
+                        slot_data['time'] = ttime
+                        booked_slots_not_in_schedule.append(slot_data)
+            
+            final_schedule.extend(booked_slots_not_in_schedule)
+            logging.info(f"CALENDAR: Dodano {len(booked_slots_not_in_schedule)} zarezerwowanych slotów spoza stałego grafiku (np. przeszłe lekcje).")
+            # --- KONIEC DODANEJ LOGIKI ---
+            
             logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
             logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
             adhoc_slots_count = 0
