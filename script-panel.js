@@ -190,6 +190,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="modal-details-item"><strong>Poziom:</strong> <span>${lesson.schoolLevel || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Klasa:</strong> <span>${lesson.schoolClass || 'N/A'}</span></div>
             <div class="modal-details-item"><strong>Link Teams:</strong> <a href="${lesson.teamsLink || '#'}" target="_blank">Dołącz</a></div>
+            <div style="margin-top: 2rem;">
+                <button onclick="sendReminder('${lesson.record_id}')" class="modal-btn primary">Wyślij wiadomość przypominającą</button>
+            </div>
         `;
         lessonDetailsModal.classList.add('active');
     }
@@ -232,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         actionModalText.innerHTML = detailsHtml;
     
         actionModalButtons.innerHTML = `
+            <button onclick="sendReminder('${slot.record_id}')" class="modal-btn primary">Wyślij wiadomość przypominającą</button>
             <button class="modal-btn primary" id="rescheduleBtn">Przełóż zajęcia</button>
             <button class="modal-btn secondary" id="closeActionModalBtn">Anuluj</button>
         `;
@@ -708,6 +712,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveButton.disabled = false;
         }
     }
+
+async function sendReminder(recordId) {
+    if (!recordId) {
+        alert('Błąd: Brak ID lekcji.');
+        return;
+    }
+    const button = event.target;
+    button.textContent = 'Wysyłanie...';
+    button.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/send-reminder-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ record_id: recordId })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Nie udało się wysłać wiadomości.');
+        }
+        alert('Wiadomość przypominająca została wysłana.');
+    } catch (error) {
+        alert(`Wystąpił błąd: ${error.message}`);
+    } finally {
+        button.textContent = 'Wyślij wiadomość przypominającą';
+        button.disabled = false;
+    }
+}
 
 // Funkcje pomocy
 function openHelpModal() {

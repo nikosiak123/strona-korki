@@ -50,6 +50,7 @@ import os
 import json
 import uuid
 import traceback
+import urllib.parse
 import threading
 import hashlib
 import sys
@@ -1172,6 +1173,7 @@ def get_tutor_lessons():
             client_info = clients_map.get(client_id, {})
             
             lesson_data = {
+                'record_id': record['id'],
                 'date': fields.get('Data'),
                 'time': fields.get('Godzina'),
                 'studentName': f"{client_info.get('studentFirstName', 'Brak danych')} {client_info.get('studentLastName', '')}",
@@ -1569,6 +1571,7 @@ def get_schedule():
                     slot_status = "booked_lesson"
                 
                 booked_slots[key] = {
+                    "record_id": record['id'],
                     "status": slot_status,
                     "studentName": student_name if slot_status != "completed" else f"{student_name} (Zakończona)",
                     "studentFirstName": client_info.get('Imie', 'Uczeń'),
@@ -3245,6 +3248,49 @@ def get_tutor_weekly_hours():
     except Exception as e:
         traceback.print_exc()
         abort(500, "Błąd podczas pobierania danych o godzinach.")
+
+@app.route('/api/send-reminder-message', methods=['POST'])
+def send_reminder_message():
+    try:
+        data = request.json
+        record_id = data.get('record_id')
+
+        if not record_id:
+            abort(400, "Brak record_id.")
+
+        lesson_record = reservations_table.get(record_id)
+        if not lesson_record:
+            abort(404, "Nie znaleziono lekcji.")
+
+        fields = lesson_record.get('fields', {})
+        client_psid = fields.get('Klient')
+        tutor_name = fields.get('Korepetytor')
+        
+        if not client_psid or not tutor_name:
+            abort(400, "Brak danych klienta lub korepetytora w rekordzie lekcji.")
+
+        if not MESSENGER_PAGE_TOKEN:
+            logging.error("MESSENGER: Nie można wysłać przypomnienia - brak tokena strony.")
+            abort(500, "Błąd serwera: brak konfiguracji do wysyłania wiadomości.")
+            
+        tutor_name_encoded = urllib.parse.quote(tutor_name)
+        # Assuming the profile link can be constructed this way.
+        profile_link = f"https://zakręcone-korepetycje.pl/index.html?tutor={tutor_name_encoded}"
+        
+        message = (
+            f"Hej! 👋 To przypomnienie dotyczące Twojej nadchodzącej lekcji.\\n\\n"
+            f"Prosimy o skontaktowanie się z Twoim korepetytorem, {tutor_name}, w celu omówienia szczegółów zajęć.\\n\\n"
+            f"Możesz odwiedzić profil korepetytora tutaj: {profile_link}\\n\\n"
+            f"Dziękujemy!"
+        )
+
+        send_messenger_confirmation(client_psid, message, MESSENGER_PAGE_TOKEN)
+        
+        return jsonify({"message": "Wiadomość przypominająca została wysłana."})
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500, f"Wystąpił błąd serwera: {str(e)}")
 
 @app.route('/<path:path>')
 def catch_all(path):
