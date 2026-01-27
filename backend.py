@@ -1137,7 +1137,7 @@ def get_tutor_lessons():
             for rec in all_clients_records if 'ClientID' in rec.get('fields', {})
         }
 
-        formula = f"AND({{Korepetytor}} = '{tutor_name}', IS_AFTER({{Data}}, DATEADD(TODAY(), -1, 'days')))"
+        formula = f"{{Korepetytor}} = '{tutor_name}'"
         lessons_records = reservations_table.all(formula=formula)
 
         upcoming_lessons = []
