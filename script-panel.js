@@ -315,10 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
                     
-                    // Dodaj klasę 'past' jeśli termin był w przeszłości
-                    if (isPast) {
-                        block.classList.add('past');
-                    }
                     
                     cell.appendChild(block);
                 });
@@ -382,11 +378,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             block.classList.add('disabled');
                             block.textContent = `${timeSlot} - Niedostępny (poza grafikiem)`;
                             block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
-                        }
-                        
-                        // Dodaj klasę 'past' jeśli termin był w przeszłości
-                        if (isPast) {
-                            block.classList.add('past');
                         }
                         
                         dayHtmlContent += block.outerHTML;
