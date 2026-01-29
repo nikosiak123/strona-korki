@@ -1682,23 +1682,24 @@ def get_schedule():
                 current_date_str = current_date.strftime('%Y-%m-%d')
                 slots_for_day = 0
                 
-                # === ŻELAZNA ZASADA 12 GODZIN ===
+                # === ŻELAZNA ZASADA 12 GODZIN (tylko dla widoku klienta) ===
+                is_tutor_panel = bool(tutor_name_filter)
                 now = datetime.now()
                 min_booking_time = now + timedelta(hours=12)
-                
-                for slot_time_str in available_times:
-                    # Sprawdzenie czasu
-                    try:
-                        slot_time_obj = datetime.strptime(slot_time_str, "%H:%M").time()
-                        slot_datetime = datetime.combine(current_date, slot_time_obj)
-                        
-                        # Jeśli termin jest wcześniej niż za 12h od teraz -> UKRYJ GO
-                        if slot_datetime < min_booking_time:
-                            continue
-                    except ValueError:
-                        continue
 
+                for slot_time_str in available_times:
                     key = (tutor_name, current_date_str, slot_time_str)
+                    
+                    # Stosuj zasadę 12h tylko w panelu klienta
+                    if not is_tutor_panel:
+                        try:
+                            slot_time_obj = datetime.strptime(slot_time_str, "%H:%M").time()
+                            slot_datetime = datetime.combine(current_date, slot_time_obj)
+                            
+                            if slot_datetime < min_booking_time:
+                                continue
+                        except ValueError:
+                            continue
 
                     # Jeśli slot nie jest zajęty, dodaj go do listy dostępnych
                     if key not in booked_slots:

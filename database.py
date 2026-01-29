@@ -262,9 +262,8 @@ class DatabaseTable:
         and_pattern = re.findall(r"AND\(([^)]+)\)", formula)
         if and_pattern:
             conditions, params = [], []
-            # Use regex to find all conditions to avoid splitting inside DATETIME_FORMAT
-            part_pattern = re.compile(r"(\{[\w\s]+\}\s*=\s*'[^']+'|DATETIME_FORMAT\([^)]+\)\s*=\s*'[^']+')")
-            parts = part_pattern.findall(and_pattern[0])
+            # Split by comma, but ignore commas inside parentheses (for DATETIME_FORMAT)
+            parts = re.split(r",\s*(?![^()]*\))", and_pattern[0])
             for part in parts:
                 eq = re.search(r"\{(\w+)\}\s*=\s*'([^']*)'", part)
                 if eq:
