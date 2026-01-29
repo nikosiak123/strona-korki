@@ -82,6 +82,18 @@ from config import (
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
+import database # Import modułu, aby sprawdzić jego ścieżkę
+
+# --- Logowanie ścieżek ---
+logging.info("--- PATH DEBUGGING ---")
+logging.info(f"Current Working Directory: {os.getcwd()}")
+logging.info(f"Sys Path: {sys.path}")
+try:
+    logging.info(f"Loaded 'database' module from: {database.__file__}")
+except AttributeError:
+    logging.error("'database' module has no __file__ attribute.")
+logging.info("--- END PATH DEBUGGING ---")
+# --- Koniec logowania ---
 
 print("--- Uruchamianie backend.py ---")
 
