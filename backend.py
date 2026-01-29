@@ -1163,8 +1163,21 @@ def get_tutor_lessons():
         lessons_records = reservations_table.all(formula=formula)
 
         upcoming_lessons = []
+        today = datetime.now().date()
         for record in lessons_records:
             fields = record.get('fields', {})
+            
+            lesson_date_str = fields.get('Data')
+            if not lesson_date_str:
+                continue
+            
+            try:
+                lesson_date = datetime.strptime(lesson_date_str, "%Y-%m-%d").date()
+                if lesson_date < today:
+                    continue
+            except ValueError:
+                continue
+                
             status = fields.get('Status')
             if status in ['Niedostępny', 'Dostępny']:
                 continue
@@ -1397,8 +1410,6 @@ def update_tutor_profile():
     tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
     if not tutor_record: abort(404, "Nie znaleziono korepetytora.")
     fields_to_update = {}
-    if poziom_nauczania is not None:
-        fields_to_update['PoziomNauczania'] = json.dumps(poziom_nauczania) if isinstance(poziom_nauczania, list) else poziom_nauczania
     if email is not None:
         fields_to_update['Email'] = email
     if fields_to_update:

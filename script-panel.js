@@ -1,11 +1,3 @@
-const availableLevels = [
-    { label: "Szkoła podstawowa", value: "podstawowka" },
-    { label: "Liceum - poziom podstawowy", value: "liceum_podstawa" },
-    { label: "Liceum - poziom rozszerzony", value: "liceum_rozszerzenie" },
-    { label: "Technikum - poziom podstawowy", value: "liceum_podstawa" }, // Uwaga: technikum używa tych samych tagów
-    { label: "Technikum - poziom rozszerzony", value: "liceum_rozszerzenie" }
-];
-
 const API_BASE_URL = ''; // Względny adres, przez Nginx proxy
 
 const daysOfWeek = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]; // Zmieniona lista na pełne nazwy
@@ -144,9 +136,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span class="time">${lesson.date} o ${lesson.time}</span>
                             <span class="student">${lesson.studentName}</span>
                         </div>
+                        <div class="lesson-details-summary" style="font-size: 0.9rem; color: var(--text-medium); margin-top: 0.5rem;">
+                            <span>${lesson.schoolType || ''} - Klasa: ${lesson.schoolClass || 'N/A'}</span>
+                        </div>
                     `;
                     upcomingLessonsContainer.appendChild(lessonElement);
-                    lessonElement.addEventListener('click', () => showLessonDetailsModal(index));
+                    lessonElement.addEventListener('click', () => showActionModal(upcomingLessons[index]));
                 });
             } else {
                 upcomingLessonsContainer.innerHTML = '<p>Brak nadchodzących lekcji.</p>';
@@ -633,41 +628,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderProfileForm(data) {
         const emailInput = document.getElementById('emailInput');
-        const levelsContainer = document.getElementById('levelsContainer');
         
-        if (!emailInput || !levelsContainer) {
-            console.error('emailInput or levelsContainer not found');
+        if (!emailInput) {
+            console.error('emailInput not found');
             return;
         }
         
         // Wypełnij email
         emailInput.value = data.Email || '';
-        
-        // Wyczyść kontener poziomów
-        levelsContainer.innerHTML = '';
-        
-        // Dodaj checkboxy dla poziomów
-        availableLevels.forEach(level => {
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.style.display = 'flex';
-            checkboxDiv.style.alignItems = 'center';
-            checkboxDiv.style.gap = '0.5rem';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `level_${level.value}`;
-            checkbox.value = level.value;
-            checkbox.checked = (data.PoziomNauczania || []).includes(level.value);
-            
-            const label = document.createElement('label');
-            label.htmlFor = `level_${level.value}`;
-            label.textContent = level.label;
-            label.style.fontWeight = '500';
-            
-            checkboxDiv.appendChild(checkbox);
-            checkboxDiv.appendChild(label);
-            levelsContainer.appendChild(checkboxDiv);
-        });
         
         // Dodaj event listener dla zapisywania profilu
         const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -680,13 +648,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         const emailInput = document.getElementById('emailInput');
-        const selectedLevels = [];
-        availableLevels.forEach(level => {
-            const checkbox = document.getElementById(`level_${level.value}`);
-            if (checkbox.checked) {
-                selectedLevels.push(level.value);
-            }
-        });
         
         const saveButton = document.getElementById('saveProfileBtn');
         saveButton.textContent = 'Zapisywanie...';
@@ -698,7 +659,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tutorID: tutorID,
-                    PoziomNauczania: selectedLevels,
                     Email: emailInput.value.trim()
                 })
             });
