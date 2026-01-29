@@ -1466,9 +1466,6 @@ def get_schedule():
     try:
         start_date_str = request.args.get('startDate')
         if not start_date_str: abort(400, "Brak parametru startDate")
-        
-        logging.info(f"CALENDAR: Pobieranie grafiku od {start_date_str}")
-        
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = start_date + timedelta(days=7)
         
@@ -1479,9 +1476,6 @@ def get_schedule():
         subject = request.args.get('subject', '').lower()
         tutor_name_filter = request.args.get('tutorName')
         client_id = request.args.get('clientID')
-
-        logging.info(f"CALENDAR: Parametry filtracji: tutor={tutor_name_filter}, subject={subject}, schoolType={school_type}, level={school_level}, clientID={client_id}")
-
         all_tutors_templates = tutors_table.all()
         filtered_tutors = []
 
@@ -1492,16 +1486,12 @@ def get_schedule():
                 fields = found_tutor.get('fields', {})
                 tutor_name = fields.get('ImieNazwisko')
                 tutor_limit = fields.get('LimitGodzinTygodniowo')
-                
-                logging.info(f"CALENDAR: Filtrowanie dla konkretnego korepetytora: {tutor_name}")
-
                 if tutor_limit is not None:
                     week_start = get_week_start(start_date)
                     current_hours = get_tutor_hours_for_week(tutor_name, week_start)
                     
                     if current_hours >= tutor_limit:
                         # Korepetytor przekroczył limit - pomijamy go w grafiku
-                        logging.warning(f"CALENDAR: Korepetytor {tutor_name} przekroczył limit godzin ({current_hours}/{tutor_limit})")
                         pass
                     else:
                         filtered_tutors.append(found_tutor)
@@ -1622,15 +1612,10 @@ def get_schedule():
         master_times = ['08:00', '09:10', '10:20', '11:30', '12:40', '13:50', '15:00', '16:10', '17:20', '18:30', '19:40', '20:50']
 
         available_slots = []
-        logging.info(f"CALENDAR: Rozpoczynam generowanie wolnych slotów dla {len(filtered_tutors)} korepetytorów")
-        
         for template in filtered_tutors:
             fields = template.get('fields', {})
             tutor_name = fields.get('ImieNazwisko')
             if not tutor_name: continue
-            
-            logging.info(f"CALENDAR: Sprawdzam template dla {tutor_name}")
-
             for day_offset in range(7):
                 current_date = start_date + timedelta(days=day_offset)
                 day_name = WEEKDAY_MAP[current_date.weekday()]
@@ -1650,35 +1635,24 @@ def get_schedule():
                         break
 
                 if not schedule_value:
-                    logging.debug(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak zdefiniowanych godzin")
                     continue
-
                 # Parse schedule_value if it's a JSON string (from database)
                 if isinstance(schedule_value, str):
                     try:
                         schedule_value = json.loads(schedule_value)
                     except json.JSONDecodeError:
-                        logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON, próbuję ast.literal_eval")
                         import ast
                         try:
                             parsed = ast.literal_eval(schedule_value)
                             if isinstance(parsed, list):
                                 schedule_value = parsed
-                                logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano ast: {parsed}")
                             else:
                                 schedule_value = []
-                                logging.warning(f"CALENDAR: {tutor_name} - {day_name}: ast nie zwrócił listy")
                         except (ValueError, SyntaxError) as e:
-                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania ast {e}, traktuję jako pustą listę")
                             schedule_value = []
-
-                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): zdefiniowany zakres {schedule_value}")
-
                 available_times = get_available_times_for_day(schedule_value, master_times)
                 if not available_times:
-                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: brak dostępnych godzin")
                     continue
-
                 current_date_str = current_date.strftime('%Y-%m-%d')
                 slots_for_day = 0
                 
@@ -1700,7 +1674,6 @@ def get_schedule():
                                 continue
                         except ValueError:
                             continue
-
                     # Jeśli slot nie jest zajęty, dodaj go do listy dostępnych
                     if key not in booked_slots:
                         # ... reszta kodu dodawania slotu ...
@@ -1711,12 +1684,7 @@ def get_schedule():
                             'status': 'available'
                         })
                         slots_for_day += 1
-                    else:
-                        logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): slot {slot_time_str} ODRZUCONY - znajduje się w booked_slots (status: {booked_slots[key].get('status')})")
-
-                logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): wygenerowano {slots_for_day} wolnych slotów")
-        
-        logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
+                
         adhoc_slots_count = 0
         for record in reservations:
             fields = record.get('fields', {})
@@ -1726,11 +1694,8 @@ def get_schedule():
                     "time": fields.get('Godzina'), "status": "available"
                 })
                 adhoc_slots_count += 1
-        logging.info(f"CALENDAR: Dodano {adhoc_slots_count} slotów ad-hoc")
-            
         if tutor_name_filter:
             final_schedule = []
-            logging.info(f"CALENDAR: Formowanie finalnego grafiku dla filtra tutorName: {tutor_name_filter}")
             final_schedule = [slot for slot in available_slots if slot.get('tutor') == tutor_name_filter]
             for template in filtered_tutors:
                 fields = template.get('fields', {})
@@ -1760,42 +1725,26 @@ def get_schedule():
                         schedule_value = fields.get(name)
                         if schedule_value:
                             break
-
-                    logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): schedule_value = {schedule_value}, type = {type(schedule_value)}")
-
                     if not schedule_value:
-                        logging.info(f"CALENDAR: {tutor_name} - {day_name} ({current_date}): brak schedule_value, pomijam")
                         continue
-
                     # Parse schedule_value if it's a JSON string
                     if isinstance(schedule_value, str):
                         try:
                             parsed = json.loads(schedule_value)
-                            logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano JSON: {parsed}")
                             schedule_value = parsed
                         except json.JSONDecodeError as e:
-                            logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania JSON {e}, próbuję ast.literal_eval")
                             import ast
                             try:
                                 parsed = ast.literal_eval(schedule_value)
                                 if isinstance(parsed, list):
                                     schedule_value = parsed
-                                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: sparsowano ast: {parsed}")
                                 else:
                                     schedule_value = []
-                                    logging.warning(f"CALENDAR: {tutor_name} - {day_name}: ast nie zwrócił listy")
                             except (ValueError, SyntaxError) as e:
-                                logging.warning(f"CALENDAR: {tutor_name} - {day_name}: błąd parsowania ast {e}, traktuję jako pustą listę")
                                 schedule_value = []
-
-                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: final schedule_value = {schedule_value}")
-
                     available_times = get_available_times_for_day(schedule_value, master_times)
-                    logging.info(f"CALENDAR: {tutor_name} - {day_name}: available_times = {available_times}")
                     if not available_times:
-                        logging.info(f"CALENDAR: {tutor_name} - {day_name}: brak available_times, pomijam")
                         continue
-
                     current_date_str = current_date.strftime('%Y-%m-%d')
                     slots_for_day = 0
                     for slot_time_str in available_times:
@@ -1804,14 +1753,11 @@ def get_schedule():
                         slot_info = {'tutor': tutor_name, 'date': current_date_str, 'time': slot_time_str}
                         if key in booked_slots:
                             slot_info.update(booked_slots[key])
-                            logging.debug(f"CALENDAR: Slot {current_date_str} {slot_time_str} jest zajęty: {booked_slots[key]['status']}")
                         else:
                             slot_info['status'] = 'available'
                             slots_for_day += 1
 
                         final_schedule.append(slot_info)
-                        logging.info(f"CALENDAR: Dodano slot {slot_time_str} do final_schedule, status: {slot_info.get('status', 'unknown')}")
-            
             # --- DODANA LOGIKA: Dodanie zarezerwowanych slotów spoza grafiku stałego (włączając lekcje z przeszłości) ---
             covered_slots = set()
             for slot in final_schedule:
@@ -1830,11 +1776,7 @@ def get_schedule():
                         booked_slots_not_in_schedule.append(slot_data)
             
             final_schedule.extend(booked_slots_not_in_schedule)
-            logging.info(f"CALENDAR: Dodano {len(booked_slots_not_in_schedule)} zarezerwowanych slotów spoza stałego grafiku (np. przeszłe lekcje).")
             # --- KONIEC DODANEJ LOGIKI ---
-            
-            logging.info(f"CALENDAR: Finalna liczba slotów w grafiku: {len(final_schedule)}")
-            logging.info(f"CALENDAR: Sprawdzam rezerwacje ad-hoc o statusie 'Dostępny'")
             adhoc_slots_count = 0
             for record in reservations:
                 fields = record.get('fields', {})
@@ -1847,10 +1789,8 @@ def get_schedule():
                         "time": fields.get('Godzina'), "status": "available"
                     })
                     adhoc_slots_count += 1
-            logging.info(f"CALENDAR: Dodano {adhoc_slots_count} slotów ad-hoc")
             return jsonify(final_schedule)
         else:
-            logging.info(f"CALENDAR: Zwracam {len(available_slots)} wolnych slotów (bez filtra tutorName)")
             last_fetched_schedule = available_slots
             return jsonify(available_slots)
 
