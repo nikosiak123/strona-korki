@@ -25,3 +25,6 @@ screenshots/
 
 # Test files
 test-checkbox.html
+
+# Configuration file
+config.py

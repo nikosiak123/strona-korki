@@ -3,9 +3,7 @@ import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 import os
-
-# Wspólna baza danych dla bota i backendu
-DB_PATH = os.environ.get('KORKI_DB_PATH', '/home/korepetotor2/korki.db')
+from config import DB_PATH
 
 def get_connection():
     """Zwraca połączenie z bazą danych."""

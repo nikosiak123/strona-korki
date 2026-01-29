@@ -71,6 +71,14 @@ import pickle
 from io import BytesIO
 
 # --- Konfiguracja ---
+from config import (
+    MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MEETING_ORGANIZER_USER_ID,
+    ADMIN_PASSWORD,
+    P24_MERCHANT_ID, P24_POS_ID, P24_CRC_KEY, P24_API_KEY, P24_SANDBOX, P24_API_URL,
+    BREVO_API_KEY, BREVO_API_URL, FROM_EMAIL,
+    EXTERNAL_STATS_URL,
+    MESSENGER_PAGE_ID
+)
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
@@ -88,33 +96,7 @@ reservations_table = DatabaseTable('Rezerwacje')
 clients_table = DatabaseTable('Klienci')
 cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 
-MS_TENANT_ID = "58928953-69aa-49da-b96c-100396a3caeb"
-MS_CLIENT_ID = "8bf9be92-1805-456a-9162-ffc7cda3b794"
-MS_CLIENT_SECRET = "MQ~8Q~VD9sI3aB19_Drwqndp4j5V_WAjmwK3yaQD"
-MEETING_ORGANIZER_USER_ID = "8cf07b71-d305-4450-9b70-64cb5be6ecef"
-
-# Hasło do panelu administratora
-ADMIN_PASSWORD = 'szlafrok'
-
-# Konfiguracja Przelewy24 (PRODUKCJA)
-P24_MERCHANT_ID = 361049
-P24_POS_ID = 361049
-P24_CRC_KEY = "3d8d413164a23d5f" # Klucz z Twojego screena
-P24_API_KEY = "c1efdce3669a2a15b40d4630c3032b01" # Klucz z Twojego screena
-P24_SANDBOX = False
-P24_API_URL = "https://secure.przelewy24.pl"
-
-# Konfiguracja Brevo (Sendinblue)
-BREVO_API_KEY = "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"
-BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
-FROM_EMAIL = "edu.najechalski@gmail.com"
-
-# Konfiguracja zewnętrznego serwera dla statystyk Facebook
-EXTERNAL_STATS_URL = "http://34.116.200.90:5000/api/facebook-stats"
-
 MESSENGER_PAGE_TOKEN = None
-MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
-MESSENGER_PAGE_ID = "638454406015018" # ID strony, z której wysyłamy
 
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
