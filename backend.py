@@ -1423,10 +1423,15 @@ def block_single_slot():
         existing_reservation = reservations_table.first(formula=formula)
 
         if existing_reservation:
-            # Jeśli coś istnieje - usuwamy to (odblokowujemy lub odwołujemy lekcję)
-            # W przyszłości można dodać walidację, czy to nie jest lekcja z uczniem
-            reservations_table.delete(existing_reservation['id'])
-            return jsonify({"message": "Termin został zwolniony."})
+            # Jeśli coś istnieje - sprawdzamy, czy to jest blokada
+            fields = existing_reservation.get('fields', {})
+            # Sprawdzamy, czy to jest blokada założona przez korepetytora
+            if fields.get('Status') == 'Niedostępny' or fields.get('Klient') == 'BLOKADA':
+                reservations_table.delete(existing_reservation['id'])
+                return jsonify({"message": "Termin został odblokowany."})
+            else:
+                # To jest lekcja z uczniem - nie można jej usunąć w ten sposób
+                return jsonify({"message": "Nie można odblokować terminu, który jest zarezerwowany na lekcję. Użyj opcji 'Przełóż zajęcia'."}), 409
         else:
             # Jeśli nic nie istnieje - tworzymy blokadę (robimy sobie wolne)
             new_block = {
