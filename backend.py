@@ -1410,32 +1410,39 @@ def block_single_slot():
         if not all([tutor_id, tutor_name, date, time]):
             abort(400, "Brak wymaganych danych.")
 
-        # Weryfikacja korepetytora (bez zmian)
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
             abort(403, "Brak uprawnień.")
 
-
-
-        # ### NOWA, ULEPSZONA LOGIKA ###
-        # Sprawdzamy, czy istnieje JAKAKOLWIEK rezerwacja na ten termin (zwykła lub blokada)
         formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
         existing_reservation = reservations_table.first(formula=formula)
 
         if existing_reservation:
-            # Jeśli coś istnieje - sprawdzamy, czy to jest blokada
             fields = existing_reservation.get('fields', {})
-            # Sprawdzamy, czy to jest blokada założona przez korepetytora
-            if fields.get('Status') == 'Niedostępny' or fields.get('Klient') == 'BLOKADA':
+            status = fields.get('Status')
+            klient = fields.get('Klient')
+
+            # Case 1: Unblocking a blocked slot
+            if status == 'Niedostępny' or klient == 'BLOKADA':
                 reservations_table.delete(existing_reservation['id'])
                 return jsonify({"message": "Termin został odblokowany."})
+            
+            # Case 2: Blocking an ad-hoc available slot
+            elif status == 'Dostępny' or klient == 'DOSTEPNY':
+                update_data = {
+                    "Status": "Niedostępny",
+                    "Klient": "BLOKADA"
+                }
+                reservations_table.update(existing_reservation['id'], update_data)
+                return jsonify({"message": "Termin został zablokowany."})
+
+            # Case 3: It's a student's lesson
             else:
-                # To jest lekcja z uczniem - nie można jej usunąć w ten sposób
-                return jsonify({"message": "Nie można odblokować terminu, który jest zarezerwowany na lekcję. Użyj opcji 'Przełóż zajęcia'."}), 409
+                return jsonify({"message": "Nie można zarządzać terminem, który jest zarezerwowany na lekcję. Użyj opcji 'Przełóż zajęcia'."}), 409
         else:
-            # Jeśli nic nie istnieje - tworzymy blokadę (robimy sobie wolne)
+            # Case 4: No reservation exists, create a new block
             new_block = {
-                "Klient": "BLOKADA",  # Placeholder dla blokady bez klienta
+                "Klient": "BLOKADA",
                 "Korepetytor": tutor_name,
                 "Data": date,
                 "Godzina": time,
