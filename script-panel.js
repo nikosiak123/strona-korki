@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event)); break;
                             default: block.classList.add('unavailable'); block.textContent = "Przeniesione"; block.style.cursor = 'not-allowed';
                         }
-                    } else { block.classList.add('disabled'); block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot)); }
+                    } else { block.classList.add('disabled'); block.addEventListener('click', (event) => handleAddHocSlot(formattedDate, timeSlot, event)); }
                     
                     
                     cell.appendChild(block);
