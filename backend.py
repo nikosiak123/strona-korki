@@ -1402,57 +1402,61 @@ def update_tutor_profile():
 def block_single_slot():
     try:
         data = request.json
+        logging.info(f"BLOCK_SLOT: Received request data: {data}")
+
         tutor_id = data.get('tutorID')
         tutor_name = data.get('tutorName')
         date = data.get('date')
         time = data.get('time')
 
         if not all([tutor_id, tutor_name, date, time]):
+            logging.error("BLOCK_SLOT: Missing required data.")
             abort(400, "Brak wymaganych danych.")
 
         tutor_record = tutors_table.first(formula=f"{{TutorID}} = '{tutor_id.strip()}'")
         if not tutor_record or tutor_record['fields'].get('ImieNazwisko') != tutor_name:
+            logging.error(f"BLOCK_SLOT: Authorization failed for tutorID {tutor_id}.")
             abort(403, "Brak uprawnień.")
 
         formula = f"AND({{Korepetytor}} = '{tutor_name}', DATETIME_FORMAT({{Data}}, 'YYYY-MM-DD') = '{date}', {{Godzina}} = '{time}')"
         existing_reservation = reservations_table.first(formula=formula)
+        logging.info(f"BLOCK_SLOT: Found existing reservation: {existing_reservation}")
 
         if existing_reservation:
             fields = existing_reservation.get('fields', {})
             status = fields.get('Status')
             klient = fields.get('Klient')
+            logging.info(f"BLOCK_SLOT: Existing reservation has Status: {status}, Klient: {klient}")
 
             # Case 1: Unblocking a blocked slot
             if status == 'Niedostępny' or klient == 'BLOKADA':
+                logging.info(f"BLOCK_SLOT: Case 1 - Unblocking. Deleting record id {existing_reservation['id']}")
                 reservations_table.delete(existing_reservation['id'])
                 return jsonify({"message": "Termin został odblokowany."})
             
             # Case 2: Blocking an ad-hoc available slot
             elif status == 'Dostępny' or klient == 'DOSTEPNY':
-                update_data = {
-                    "Status": "Niedostępny",
-                    "Klient": "BLOKADA"
-                }
+                update_data = { "Status": "Niedostępny", "Klient": "BLOKADA" }
+                logging.info(f"BLOCK_SLOT: Case 2 - Blocking ad-hoc. Updating record id {existing_reservation['id']} with {update_data}")
                 reservations_table.update(existing_reservation['id'], update_data)
                 return jsonify({"message": "Termin został zablokowany."})
 
             # Case 3: It's a student's lesson
             else:
+                logging.warning(f"BLOCK_SLOT: Case 3 - Attempted to modify a student's lesson. Record: {existing_reservation}")
                 return jsonify({"message": "Nie można zarządzać terminem, który jest zarezerwowany na lekcję. Użyj opcji 'Przełóż zajęcia'."}), 409
         else:
             # Case 4: No reservation exists, create a new block
             new_block = {
-                "Klient": "BLOKADA",
-                "Korepetytor": tutor_name,
-                "Data": date,
-                "Godzina": time,
-                "Typ": "Jednorazowa",
-                "Status": "Niedostępny"
+                "Klient": "BLOKADA", "Korepetytor": tutor_name, "Data": date,
+                "Godzina": time, "Typ": "Jednorazowa", "Status": "Niedostępny"
             }
+            logging.info(f"BLOCK_SLOT: Case 4 - No reservation exists. Creating new block: {new_block}")
             reservations_table.create(new_block)
             return jsonify({"message": "Termin został zablokowany."})
 
     except Exception as e:
+        logging.error(f"BLOCK_SLOT: Exception occurred: {e}", exc_info=True)
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany statusu terminu.")
         

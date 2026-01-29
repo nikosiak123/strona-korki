@@ -352,13 +352,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 case 'available':
                                     block.classList.add('available');
                                     block.textContent = `${timeSlot} - Dostępny`;
-                                    block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event));
                                     break;
                                 case 'booked_lesson':
                                 case 'cyclic_reserved':
                                     block.classList.add('booked-lesson');
                                     block.textContent = `${timeSlot} - ${slotData.studentName}`;
-                                    block.addEventListener('click', () => showActionModal(slotData));
                                     break;
                                 case 'rescheduled_by_tutor':
                                     block.classList.add('rescheduled');
@@ -368,7 +366,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 case 'blocked_by_tutor':
                                     block.classList.add('unavailable');
                                     block.textContent = `${timeSlot} - BLOKADA`;
-                                    block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event));
                                     break;
                                 default:
                                      block.classList.add('unavailable');
@@ -378,7 +375,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         } else {
                             block.classList.add('disabled');
                             block.textContent = `${timeSlot} - Niedostępny (poza grafikiem)`;
-                            block.addEventListener('click', () => handleAddHocSlot(formattedDate, timeSlot));
                         }
                         
                         dayHtmlContent += block.outerHTML;
@@ -397,7 +393,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         } else if (blockEl.classList.contains('booked-lesson')) {
                              blockEl.addEventListener('click', () => showActionModal(slotData));
                         } else if (blockEl.classList.contains('disabled')) {
-                             blockEl.addEventListener('click', () => handleAddHocSlot(date, time));
+                             blockEl.addEventListener('click', (event) => handleAddHocSlot(date, time, event));
                         }
                     });
                 });
@@ -447,7 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    async function handleAddHocSlot(date, time) {
+    async function handleAddHocSlot(date, time, event) {
         if (!tutorID) {
             alert('Błąd: Brak identyfikatora korepetytora.');
             return;
