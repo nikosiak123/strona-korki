@@ -1118,12 +1118,16 @@
 
             try {
                 // Nowy endpoint i wysyłamy Przedmioty jako tablicę [subject]
-                const response = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy/simple-record`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy/record`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        ImieNazwisko: nameInput,
-                        Przedmioty: [subject]
+                        "fields": {
+                            "ImieNazwisko": nameInput,
+                            "Przedmioty": JSON.stringify([subject]),
+                            "PoziomNauczania": JSON.stringify(["podstawowka", "liceum_podstawa"]),
+                            "TutorID": "temp-" + Date.now()
+                        }
                     })
                 });
 
