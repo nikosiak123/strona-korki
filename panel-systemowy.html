@@ -1124,8 +1124,8 @@
                     body: JSON.stringify({
                         "fields": {
                             "ImieNazwisko": nameInput,
-                            "Przedmioty": JSON.stringify([subject]),
-                            "PoziomNauczania": JSON.stringify(["podstawowka", "liceum_podstawa"]),
+                            "Przedmioty": [subject],
+                            "PoziomNauczania": ["podstawowka", "liceum_podstawa"],
                             "TutorID": "temp-" + Date.now()
                         }
                     })
