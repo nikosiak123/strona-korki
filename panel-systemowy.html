@@ -887,6 +887,7 @@
         }
 
         function editRecord(record) {
+            console.log("Dane rekordu przekazane do edycji:", record);
             currentMode = 'edit';
             currentRecord = record;
             document.getElementById('modalTitle').textContent = 'Edytuj rekord';
