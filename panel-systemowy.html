@@ -841,7 +841,16 @@
                             }
                             
                             if (value === null || value === undefined) value = '';
-                            return `<td>${String(value).substring(0, 50)}</td>`;
+                            
+                            let cellContent = String(value).substring(0, 50);
+
+                            if (tableName === 'Korepetytorzy' && f === 'ImieNazwisko' && record.fields.TutorID) {
+                                cellContent = `<a href="moje-lekcje.html?tutorID=${record.fields.TutorID}" target="_blank">${cellContent}</a>`;
+                            } else if (tableName === 'Klienci' && f === 'Imie' && record.fields.ClientID) {
+                                cellContent = `<a href="moje-lekcje.html?clientID=${record.fields.ClientID}" target="_blank">${cellContent}</a>`;
+                            }
+
+                            return `<td>${cellContent}</td>`;
                         }).join('')}
                         <td class="record-actions">
                             <button class="edit-btn" data-action="edit" data-record-id="${record.id}">Edytuj</button>
