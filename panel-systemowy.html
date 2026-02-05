@@ -845,7 +845,7 @@
                             let cellContent = String(value).substring(0, 50);
 
                             if (tableName === 'Korepetytorzy' && f === 'ImieNazwisko' && record.fields.TutorID) {
-                                cellContent = `<a href="moje-lekcje.html?tutorID=${record.fields.TutorID}" target="_blank">${cellContent}</a>`;
+                                cellContent = `<a href="panel-korepetytora.html?tutorID=${record.fields.TutorID}" target="_blank">${cellContent}</a>`;
                             } else if (tableName === 'Klienci' && f === 'Imie' && record.fields.ClientID) {
                                 cellContent = `<a href="moje-lekcje.html?clientID=${record.fields.ClientID}" target="_blank">${cellContent}</a>`;
                             }
