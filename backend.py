@@ -745,29 +745,36 @@ def is_lesson_ended(record):
         return False
 
 def send_email_via_brevo(to_email, subject, html_content):
-    """Wysyła email przez Brevo API."""
+    """Wysyła email przez Brevo API z rozszerzonym logowaniem i unikalnym tematem."""
     headers = {
         "accept": "application/json",
         "api-key": BREVO_API_KEY,
         "content-type": "application/json"
     }
+    
+    # Dodajemy timestamp do tematu (zapobiega grupowaniu w Gmailu)
+    from datetime import datetime
+    unique_subject = f"{subject} [{datetime.now().strftime('%H:%M:%S')}]"
+
     payload = {
         "sender": {
             "name": "Zakręcone Korepetycje",
             "email": FROM_EMAIL
         },
         "to": [{"email": to_email}],
-        "subject": subject,
+        "subject": unique_subject,
         "htmlContent": html_content
     }
     try:
-        response = requests.post(BREVO_API_URL, json=payload, headers=headers)
+        logging.info(f"EMAIL_DEBUG: Próba wysyłki do korepetytora {to_email}...")
+        response = requests.post(BREVO_API_URL, json=payload, headers=headers, timeout=15)
+        
         if response.status_code == 201:
-            logging.info(f"Email wysłany pomyślnie do {to_email}: {subject}")
+            logging.info(f"✅ Email do korepetytora zaakceptowany. ID: {response.json().get('messageId')}")
         else:
-            logging.error(f"Błąd wysyłania emaila do {to_email}: {response.status_code} - {response.text}")
+            logging.error(f"❌ Brevo odrzuciło maila do korepetytora: {response.status_code} - {response.text}")
     except Exception as e:
-        logging.error(f"Wyjątek podczas wysyłania emaila: {e}")
+        logging.error(f"❌ Wyjątek krytyczny w send_email_via_brevo (backend): {e}")
 
 def notify_tutor_about_lesson_change(tutor_name, change_type, lesson_details):
     """Wysyła powiadomienie do korepetytora o zmianie w lekcji."""
