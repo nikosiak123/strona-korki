@@ -696,9 +696,14 @@
                         } else if (lesson.managementToken && !lesson.isPaid) {
                             payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
                             if (lesson.status === 'Oczekuje na płatność') {
+                                // Różny tekst dla lekcji testowej i zwykłej
+                                const warningText = lesson.isTest
+                                    ? "(lekcja testowa nie zostanie odwołana automatycznie, możesz zapłacić po zajęciach)"
+                                    : ", inaczej lekcja zostanie odwołana.";
+
                                 paymentInfoHtml = `
                                     <div class="lesson-payment-info">
-                                        Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span>, inaczej lekcja zostanie odwołana.
+                                        Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span> ${warningText}
                                     </div>
                                 `;
                             }
