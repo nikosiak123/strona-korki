@@ -859,11 +859,16 @@
                     }
 
                     if (now > deadline) {
-                        element.parentElement.innerHTML = "Termin płatności minął";
-                        element.parentElement.style.display = 'block';
-                        clearInterval(timer);
-                        return;
-                    }
+                                            // Sprawdzamy czy to lekcja testowa, żeby nie pokazywać błędu o terminie
+                                            if (isTestLesson) {
+                                                element.parentElement.innerHTML = "Możesz opłacić tę lekcję testową w dowolnym momencie (nawet po zajęciach).";
+                                            } else {
+                                                element.parentElement.innerHTML = "Termin płatności minął";
+                                            }
+                                            element.parentElement.style.display = 'block';
+                                            clearInterval(timer);
+                                            return;
+                                        }
 
                     element.parentElement.style.display = 'block';
                     const timeLeft = deadline - now;
