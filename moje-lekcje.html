@@ -696,14 +696,19 @@
                         } else if (lesson.managementToken && !lesson.isPaid) {
                             payButtonHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button>`;
                             if (lesson.status === 'Oczekuje na płatność') {
-                                // Różny tekst dla lekcji testowej i zwykłej
-                                const warningText = lesson.isTest
-                                    ? "(lekcja testowa nie zostanie odwołana automatycznie, możesz zapłacić po zajęciach)"
-                                    : ", inaczej lekcja zostanie odwołana.";
+                                let paymentMessage;
+
+                                if (lesson.isTest) {
+                                    // Tekst specjalny dla lekcji testowej
+                                    paymentMessage = `Lekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem na platformie Teams, ale przed rozpoczęciem zajęć. Pozostało: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="true"></span>`;
+                                } else {
+                                    // Standardowy tekst dla zwykłych lekcji
+                                    paymentMessage = `Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="false"></span>, inaczej lekcja zostanie odwołana.`;
+                                }
 
                                 paymentInfoHtml = `
                                     <div class="lesson-payment-info">
-                                        Opłać w ciągu: <span class="countdown-timer" data-datetime="${lesson.date}T${lesson.time}" data-is-test="${lesson.isTest ? 'true' : 'false'}"></span> ${warningText}
+                                        ${paymentMessage}
                                     </div>
                                 `;
                             }
@@ -859,16 +864,17 @@
                     }
 
                     if (now > deadline) {
-                                            // Sprawdzamy czy to lekcja testowa, żeby nie pokazywać błędu o terminie
-                                            if (isTestLesson) {
-                                                element.parentElement.innerHTML = "Możesz opłacić tę lekcję testową w dowolnym momencie (nawet po zajęciach).";
-                                            } else {
-                                                element.parentElement.innerHTML = "Termin płatności minął";
-                                            }
-                                            element.parentElement.style.display = 'block';
-                                            clearInterval(timer);
-                                            return;
-                                        }
+                        if (isTestLesson) {
+                            // Po upływie czasu przy lekcji testowej pokazujemy tylko instrukcję płatności
+                            element.parentElement.innerHTML = "Lekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem na platformie Teams, ale przed rozpoczęciem zajęć.";
+                        } else {
+                            // Przy zwykłej lekcji pokazujemy twardy komunikat o końcu terminu
+                            element.parentElement.innerHTML = "Termin płatności minął";
+                        }
+                        element.parentElement.style.display = 'block';
+                        clearInterval(timer);
+                        return;
+                    }
 
                     element.parentElement.style.display = 'block';
                     const timeLeft = deadline - now;
