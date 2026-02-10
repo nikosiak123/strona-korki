@@ -2964,6 +2964,23 @@ def get_facebook_stats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/admin/facebook-hourly-stats', methods=['GET'])
+def get_facebook_hourly_stats():
+    """Pobiera statystyki godzinowe z zewnętrznego serwera statystyk."""
+    require_admin()
+    try:
+        # Tworzymy URL do serwera statystyk, podmieniając końcówkę
+        external_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/facebook-hourly-stats')
+        
+        # Pobieramy dane
+        response = requests.get(external_url, timeout=5)
+        response.raise_for_status()
+        
+        return jsonify(response.json())
+    except Exception as e:
+        logging.error(f"Błąd pobierania statystyk godzinowych: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/admin/facebook-errors', methods=['GET'])
 def get_facebook_errors():
     require_admin()
