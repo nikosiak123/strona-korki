@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         .admin-container {
@@ -1167,58 +1168,140 @@
             const panel = document.getElementById('statsPanel');
             panel.innerHTML = '<p class="loading">Ładowanie statystyk...</p>';
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
-                const data = await response.json();
+            let finalHtml = '<h3>Statystyki Facebook</h3>';
 
-                if (data.error) {
-                    panel.innerHTML = `<p class="error-message">${data.error}</p>`;
-                    return;
+            try {
+                // 1. Pobierz statystyki dzienne (istniejąca logika)
+                const dailyResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
+                const dailyData = await dailyResponse.json();
+
+                if (dailyData.error) {
+                    finalHtml += `<p class="error-message">${dailyData.error}</p>`;
+                } else {
+                    const statusText = dailyData.isRunning ? 'Tak' : 'Nie';
+                    const statusColor = dailyData.isRunning ? '#4CAF50' : '#F44336';
+                    finalHtml += `<p><strong>Skrypt analizy działa:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span> (ostatni komentarz: ${dailyData.lastCommentTime})</p>`;
+                    finalHtml += '<h4>Podsumowanie dzienne</h4><div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
+                    dailyData.stats.forEach(stat => {
+                        finalHtml += `<tr><td>${stat.Data}</td><td>${stat.Przeslane || 0}</td><td>${stat.Odrzucone || 0}</td><td>${stat.Oczekuje || 0}</td><td>${stat.LastCommentTime || 'Brak'}</td></tr>`;
+                    });
+                    finalHtml += '</tbody></table></div>';
                 }
 
-                // Wyświetl status działania skryptu
-                const statusText = data.isRunning ? 'Tak' : 'Nie';
-                const statusColor = data.isRunning ? '#4CAF50' : '#F44336';
-                let html = '<h3>Statystyki komentarzy Facebook</h3>';
-                html += `<p><strong>Skrypt analizy działa:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span> (ostatni komentarz: ${data.lastCommentTime})</p>`;
+                // 2. Pobierz i wyrenderuj statystyki godzinowe (NOWA LOGIKA)
+                finalHtml += '<h4 style="margin-top: 2rem;">Aktywność w ostatnich 48 godzinach</h4>';
+                try {
+                    const hourlyResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
+                    const hourlyData = await hourlyResponse.json();
 
-                // Wyświetl tabelę statystyk
-                html += '<div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
+                    if (hourlyData.stats && hourlyData.stats.length > 0) {
+                        // Dodaj płótno dla wykresu
+                        finalHtml += '<canvas id="hourlyStatsChart" style="margin-top: 1rem;"></canvas>';
+                        
+                        // Dodaj tabelę ze szczegółowymi danymi
+                        finalHtml += '<h4 style="margin-top: 2rem;">Szczegółowe dane godzinowe</h4><div class="records-table"><table><thead><tr><th>Godzina</th><th>Skomentowane posty</th><th>Przeskanowane posty</th></tr></thead><tbody>';
+                        hourlyData.stats.forEach(stat => {
+                            const date = new Date(stat.timestamp);
+                            const formattedDate = date.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                            finalHtml += `<tr><td>${formattedDate}</td><td>${stat.commented_posts || 0}</td><td>${stat.loaded_posts_total || 0}</td></tr>`;
+                        });
+                        finalHtml += '</tbody></table></div>';
 
-                data.stats.forEach(stat => {
-                    html += `<tr><td>${stat.Data}</td><td>${stat.Przeslane || 0}</td><td>${stat.Odrzucone || 0}</td><td>${stat.Oczekuje || 0}</td><td>${stat.LastCommentTime || 'Brak'}</td></tr>`;
-                });
+                        // Opóźnione renderowanie wykresu
+                        setTimeout(() => renderHourlyChart(hourlyData.stats), 100);
 
-                html += '</tbody></table></div>';
+                    } else {
+                        finalHtml += '<p class="no-records">Brak statystyk godzinowych.</p>';
+                    }
+                } catch (hourlyError) {
+                    finalHtml += `<p class="error-message">Błąd ładowania statystyk godzinowych: ${hourlyError.message}</p>`;
+                }
 
-                // Pobierz błędy Facebook
+                // 3. Pobierz błędy (istniejąca logika)
                 try {
                     const errorsResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
                     const errorsData = await errorsResponse.json();
-                    html += '<h3>Błędy skryptu Facebook</h3>';
+                    finalHtml += '<h3>Błędy skryptu Facebook</h3>';
                     if (errorsData.errors && errorsData.errors.length > 0) {
-                        html += '<div class="records-table"><table><thead><tr><th>Data</th><th>Lokalizacja błędu</th><th>Zrzut ekranu</th><th>Kod HTML</th></tr></thead><tbody>';
+                        finalHtml += '<div class="records-table"><table><thead><tr><th>Data</th><th>Lokalizacja błędu</th><th>Zrzut ekranu</th><th>Kod HTML</th></tr></thead><tbody>';
 
                         errorsData.errors.forEach(error => {
                             const dateStr = new Date(error.timestamp).toLocaleString('pl-PL');
                             const pngLink = error.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.png}" target="_blank">Pobierz PNG</a>` : 'Brak';
                             const htmlLink = error.html ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.html}" target="_blank">Pobierz HTML</a>` : 'Brak';
-                            html += `<tr><td>${dateStr}</td><td>${error.location}</td><td>${pngLink}</td><td>${htmlLink}</td></tr>`;
+                            finalHtml += `<tr><td>${dateStr}</td><td>${error.location}</td><td>${pngLink}</td><td>${htmlLink}</td></tr>`;
                         });
 
-                        html += '</tbody></table></div>';
+                        finalHtml += '</tbody></table></div>';
                     } else {
-                        html += '<p class="no-records">Brak błędów do wyświetlenia</p>';
+                        finalHtml += '<p class="no-records">Brak błędów do wyświetlenia</p>';
                     }
                 } catch (errorsError) {
                     console.error('Błąd ładowania błędów:', errorsError);
-                    html += '<h3>Błędy skryptu Facebook</h3><p class="error-message">Błąd ładowania błędów: ' + errorsError.message + '</p>';
+                    finalHtml += '<h3>Błędy skryptu Facebook</h3><p class="error-message">Błąd ładowania błędów: ' + errorsError.message + '</p>';
                 }
 
-                panel.innerHTML = html;
+                panel.innerHTML = finalHtml;
+
             } catch (error) {
                 panel.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
             }
+        }
+        
+        // NOWA FUNKCJA DO RENDEROWANIA WYKRESU
+        function renderHourlyChart(stats) {
+            const ctx = document.getElementById('hourlyStatsChart');
+            if (!ctx) return;
+
+            const labels = stats.map(s => {
+                const date = new Date(s.timestamp);
+                return date.toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+            });
+            const commentedData = stats.map(s => s.commented_posts);
+            const loadedData = stats.map(s => s.loaded_posts_total);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Skomentowane posty',
+                            data: commentedData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Przeskanowane posty',
+                            data: loadedData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1 // Idealne dla małych liczb
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Aktywność bota w ujęciu godzinowym'
+                        }
+                    }
+                }
+            });
         }
 
         // Funkcje panelu wiadomości
