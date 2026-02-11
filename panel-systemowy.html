@@ -1218,24 +1218,26 @@
                 }
 
                 // 2.5. NOWE: Pobierz screenshoty statusu
-                finalHtml += '<h3 style="margin-top: 2rem;">Zrzuty ekranu statusu (Ostatnie działania)</h3>';
+                finalHtml += '<h3 style="margin-top: 2rem;">Zrzuty ekranu statusu</h3>';
                 try {
                     const statusScreensResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-status-screenshots`);
                     const statusScreensData = await statusScreensResponse.json();
 
                     if (statusScreensData.screenshots && statusScreensData.screenshots.length > 0) {
-                        finalHtml += '<div class="records-table" style="max-height: 300px; overflow-y: auto;"><table><thead><tr><th>Data utworzenia</th><th>Nazwa pliku</th><th>Pobierz</th></tr></thead><tbody>';
+                        // Dodajemy licznik wszystkich plików
+                        finalHtml += `<p>Liczba plików: <strong>${statusScreensData.screenshots.length}</strong></p>`;
                         
-                        // Pokaż max 10 ostatnich, żeby nie zaśmiecać widoku
-                        statusScreensData.screenshots.slice(0, 10).forEach(screen => {
+                        // Zmieniono max-height na 500px dla wygody, jeśli plików jest dużo
+                        finalHtml += '<div class="records-table" style="max-height: 500px; overflow-y: auto;"><table><thead><tr><th>Data utworzenia</th><th>Nazwa pliku</th><th>Pobierz</th></tr></thead><tbody>';
+                        
+                        // USUNIĘTO .slice(0, 10) - teraz iterujemy po WSZYSTKICH elementach
+                        statusScreensData.screenshots.forEach(screen => {
                             const downloadLink = `<a href="${API_BASE_URL}/api/admin/download-status-screenshot?file=${screen.filename}" target="_blank" class="edit-btn" style="background-color: #4CAF50; text-decoration: none; color: white;">Pobierz PNG</a>`;
                             finalHtml += `<tr><td>${screen.timestamp}</td><td>${screen.filename}</td><td>${downloadLink}</td></tr>`;
                         });
 
                         finalHtml += '</tbody></table></div>';
-                        if (statusScreensData.screenshots.length > 10) {
-                            finalHtml += `<p style="font-size: 0.8rem; color: #666;">Wyświetlam 10 z ${statusScreensData.screenshots.length} zrzutów.</p>`;
-                        }
+                        // Usunięto warunek wyświetlający "Wyświetlam 10 z X", bo teraz wyświetlamy wszystkie
                     } else {
                         finalHtml += '<p class="no-records">Brak zrzutów statusu.</p>';
                     }
