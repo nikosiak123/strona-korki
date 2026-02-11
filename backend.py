@@ -54,6 +54,7 @@ import urllib.parse
 import threading
 import hashlib
 import sys
+from functools import wraps
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../strona')))
 from flask import Flask, jsonify, request, abort, session, send_from_directory
 from flask_cors import CORS
@@ -126,6 +127,14 @@ except Exception as e:
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
+
+def require_admin(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin' not in session:
+            abort(401)
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- Endpointy dla stron HTML (bez .html w URL) ---
 
@@ -3254,6 +3263,45 @@ def send_reminder_message():
     except Exception as e:
         traceback.print_exc()
         abort(500, f"Wystąpił błąd serwera: {str(e)}")
+
+@app.route('/api/admin/facebook-status-screenshots', methods=['GET'])
+def get_facebook_status_screenshots_proxy():
+    require_admin()
+    try:
+        # Zamieniamy końcówkę URL na odpowiednią dla statusów
+        external_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/facebook-status-screenshots')
+        response = requests.get(external_url, timeout=5)
+        response.raise_for_status()
+        return jsonify(response.json())
+    except Exception as e:
+        logging.error(f"Błąd pobierania listy statusów: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/download-status-screenshot', methods=['GET'])
+def download_status_screenshot_proxy():
+    require_admin()
+    try:
+        filename = request.args.get('file')
+        if not filename:
+            abort(400, "Brak parametru file.")
+
+        # Budujemy URL do pobrania z zewnętrznego serwera
+        external_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/download-status-screenshot') + f'?file={filename}'
+        
+        # Pobieramy plik z maszyny A
+        response = requests.get(external_url, stream=True, timeout=10)
+        response.raise_for_status()
+
+        # Przekazujemy plik do przeglądarki
+        from flask import Response
+        return Response(
+            response.content,
+            mimetype=response.headers.get('content-type'),
+            headers={"Content-Disposition": f'attachment; filename={filename}'}
+        )
+    except Exception as e:
+        logging.error(f"Błąd pobierania pliku statusu: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/<path:path>')
 def catch_all(path):

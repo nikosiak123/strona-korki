@@ -1217,6 +1217,33 @@
                     finalHtml += `<p class="error-message">Błąd ładowania statystyk godzinowych: ${hourlyError.message}</p>`;
                 }
 
+                // 2.5. NOWE: Pobierz screenshoty statusu
+                finalHtml += '<h3 style="margin-top: 2rem;">Zrzuty ekranu statusu (Ostatnie działania)</h3>';
+                try {
+                    const statusScreensResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-status-screenshots`);
+                    const statusScreensData = await statusScreensResponse.json();
+
+                    if (statusScreensData.screenshots && statusScreensData.screenshots.length > 0) {
+                        finalHtml += '<div class="records-table" style="max-height: 300px; overflow-y: auto;"><table><thead><tr><th>Data utworzenia</th><th>Nazwa pliku</th><th>Pobierz</th></tr></thead><tbody>';
+                        
+                        // Pokaż max 10 ostatnich, żeby nie zaśmiecać widoku
+                        statusScreensData.screenshots.slice(0, 10).forEach(screen => {
+                            const downloadLink = `<a href="${API_BASE_URL}/api/admin/download-status-screenshot?file=${screen.filename}" target="_blank" class="edit-btn" style="background-color: #4CAF50; text-decoration: none; color: white;">Pobierz PNG</a>`;
+                            finalHtml += `<tr><td>${screen.timestamp}</td><td>${screen.filename}</td><td>${downloadLink}</td></tr>`;
+                        });
+
+                        finalHtml += '</tbody></table></div>';
+                        if (statusScreensData.screenshots.length > 10) {
+                            finalHtml += `<p style="font-size: 0.8rem; color: #666;">Wyświetlam 10 z ${statusScreensData.screenshots.length} zrzutów.</p>`;
+                        }
+                    } else {
+                        finalHtml += '<p class="no-records">Brak zrzutów statusu.</p>';
+                    }
+                } catch (statusError) {
+                    console.error('Błąd ładowania statusów:', statusError);
+                    finalHtml += `<p class="error-message">Nie udało się pobrać listy zrzutów statusu: ${statusError.message}</p>`;
+                }
+
                 // 3. Pobierz błędy (istniejąca logika)
                 try {
                     const errorsResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
