@@ -965,8 +965,8 @@ def initiate_payment():
             # Zapisz wykorzystaną wolną kwotę w rekordzie lekcji
             reservations_table.update(lesson['id'], {"WolnaKwotaUzyta": wolna_kwota})
         
-        # POPRAWKA: Używamy istniejącego tokena lekcji jako identyfikatora sesji,
-        # aby móc ją potem znaleźć w bazie danych.
+        # --- NOWY, POPRAWNY KOD ---
+        # Używamy tokena lekcji jako ID sesji, aby móc ją potem znaleźć w bazie!
         session_id = token
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
@@ -3343,4 +3343,4 @@ if __name__ == '__main__':
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
     print("--- Uruchamianie serwera na porcie 8080 ---")
-    app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=8080, debug=False, threaded=False)
