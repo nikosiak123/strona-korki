@@ -971,7 +971,9 @@ def initiate_payment():
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
         # To rozwiązanie jest uniwersalne - bierze adres z paska przeglądarki (ten działający z 6vc)
-        current_host = request.host_url.replace('http://', 'https://')
+        # Wymuszamy adres techniczny (Punycode), który jest akceptowany przez P24
+        # Używamy końcówki 6vc, którą podałeś jako działającą
+        current_host = "https://xn--zakrcone-korepetycje-6vc.pl/"
 
         payload = {
             "merchantId": P24_MERCHANT_ID,
