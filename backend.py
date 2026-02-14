@@ -970,6 +970,9 @@ def initiate_payment():
         session_id = str(uuid.uuid4())
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
+        # To rozwiązanie jest uniwersalne - bierze adres z paska przeglądarki (ten działający z 6vc)
+        current_host = request.host_url.replace('http://', 'https://')
+
         payload = {
             "merchantId": P24_MERCHANT_ID,
             "posId": P24_POS_ID,
@@ -978,10 +981,11 @@ def initiate_payment():
             "currency": "PLN",
             "description": f"Lekcja {fields.get('Przedmiot')}",
             "email": client_email,
-            "country": "PL",      # DODANE
-            "language": "pl",     # DODANE
-            "urlReturn": f"{request.host_url.replace('http://', 'https://').replace('zakręcone-korepetycje.pl', 'xn--zakrcone-korepetycje-8ac.pl')}potwierdzenie-platnosci.html?token={token}",
-            "urlStatus": f"{request.host_url.replace('http://', 'https://').replace('zakręcone-korepetycje.pl', 'xn--zakrcone-korepetycje-8ac.pl')}api/payment-notification",
+            "country": "PL",
+            "language": "pl",
+            # Tutaj używamy dynamicznego adresu:
+            "urlReturn": f"{current_host}potwierdzenie-platnosci.html?token={token}",
+            "urlStatus": f"{current_host}api/payment-notification",
             "sign": sign
         }
 
