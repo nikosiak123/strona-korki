@@ -965,9 +965,9 @@ def initiate_payment():
             # Zapisz wykorzystaną wolną kwotę w rekordzie lekcji
             reservations_table.update(lesson['id'], {"WolnaKwotaUzyta": wolna_kwota})
         
-        # Przygotuj sesję dla P24 - generuj unikalny session_id (UUID)
-        import uuid
-        session_id = str(uuid.uuid4())
+        # POPRAWKA: Używamy istniejącego tokena lekcji jako identyfikatora sesji,
+        # aby móc ją potem znaleźć w bazie danych.
+        session_id = token
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
         # To rozwiązanie jest uniwersalne - bierze adres z paska przeglądarki (ten działający z 6vc)
