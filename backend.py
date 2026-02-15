@@ -104,7 +104,7 @@ MESSENGER_PAGE_TOKEN = None
 try:
     # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
     config_paths = [
-        '/home/korepetotor2/strona/config.json',  # oryginalna ścieżka
+        '/home/korepetotor3/strona/config.json',  # oryginalna ścieżka
         './config.json',  # lokalna ścieżka
         os.path.join(os.path.dirname(__file__), 'config.json')  # obok backend.py
     ]
