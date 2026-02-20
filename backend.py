@@ -113,7 +113,7 @@ if MESSENGER_PAGE_TOKEN:
 else:
     print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w pliku config.py.")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
@@ -174,16 +174,6 @@ def rezerwacja_stala():
 @app.route('/potwierdzenie-lekcji')
 def potwierdzenie_lekcji():
     return send_from_directory('templates', 'potwierdzenie-lekcji.html')
-
-# --- Endpointy dla plików statycznych ---
-
-@app.route('/<path:filename>')
-def static_files(filename):
-    # Obsługa plików CSS, JS, obrazów itp.
-    if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
-        return send_from_directory('.', filename)
-    # Jeśli to nie plik statyczny, zwróć 404
-    abort(404)
 
 # --- Endpointy API ---
 
@@ -975,7 +965,7 @@ def initiate_payment():
             "country": "PL",
             "language": "pl",
             # Tutaj używamy dynamicznego adresu:
-            "urlReturn": f"{current_host}potwierdzenie-platnosci.html?token={token}",
+            "urlReturn": f"{current_host}potwierdzenie-platnosci?token={token}",
             "urlStatus": f"{current_host}api/payment-notification",
             "sign": sign
         }
