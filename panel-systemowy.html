@@ -509,6 +509,17 @@
         .unread-checkmark:hover {
             background-color: #45a049;
         }
+        .user-search {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .user-search input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -568,6 +579,10 @@
 
                 <!-- Panel wiadomości -->
                 <div id="messagesPanel" class="messages-panel">
+                    <div class="user-search" style="margin-bottom: 20px; display: flex; gap: 10px;">
+                        <input type="text" id="searchPSID" placeholder="Wpisz PSID użytkownika" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        <button id="searchUserBtn" class="add-record-btn">Wczytaj użytkownika</button>
+                    </div>
                     <div class="manual-users-list" id="manualUsersList">
                         <p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>
                     </div>
@@ -1414,59 +1429,90 @@
             }
         }
 
-        async function loadUserDetails(psid) {
-            const details = document.getElementById('userDetails');
-            
-            try {
-                // Pobierz dane klienta
-                const clientResponse = await fetch(`${API_BASE_URL}/api/admin/table/Klienci`);
-                const clientData = await clientResponse.json();
-                const client = clientData.records.find(r => r.fields.ClientID === psid);
-                
-                // Pobierz rezerwacje
-                const reservationsResponse = await fetch(`${API_BASE_URL}/api/admin/table/Rezerwacje`);
-                const reservationsData = await reservationsResponse.json();
-                const userReservations = reservationsData.records.filter(r => r.fields.Klient === psid);
-                
-                // Pobierz stałe rezerwacje
-                const cyclicResponse = await fetch(`${API_BASE_URL}/api/admin/table/StaleRezerwacje`);
-                const cyclicData = await cyclicResponse.json();
-                const userCyclic = cyclicData.records.filter(r => r.fields.Klient_ID === psid);
-                
-                let html = '<h3>Dane klienta:</h3>';
-                if (client) {
-                    html += `<p><strong>Imię:</strong> ${client.fields.Imie || 'Brak'}</p>`;
-                    html += `<p><strong>Nazwisko:</strong> ${client.fields.Nazwisko || 'Brak'}</p>`;
-                    html += `<p><strong>Link:</strong> <a href="${client.fields.LINK || '#'}" target="_blank">${client.fields.LINK || 'Brak'}</a></p>`;
-                } else {
-                    html += '<p>Brak danych klienta</p>';
-                }
-                
-                html += '<div class="user-details-section"><h4>Rezerwacje:</h4>';
-                if (userReservations.length > 0) {
-                    userReservations.forEach(res => {
-                        html += `<p>${res.fields.Data} ${res.fields.Godzina} - ${res.fields.Przedmiot} (${res.fields.Status})</p>`;
-                    });
-                } else {
-                    html += '<p>Brak rezerwacji</p>';
-                }
-                html += '</div>';
-                
-                html += '<div class="user-details-section"><h4>Stałe rezerwacje:</h4>';
-                if (userCyclic.length > 0) {
-                    userCyclic.forEach(res => {
-                        html += `<p>${res.fields.DzienTygodnia} ${res.fields.Godzina} - ${res.fields.Przedmiot} (${res.fields.Aktywna ? 'Aktywna' : 'Nieaktywna'})</p>`;
-                    });
-                } else {
-                    html += '<p>Brak stałych rezerwacji</p>';
-                }
-                html += '</div>';
-                
-                details.innerHTML = html;
-            } catch (error) {
-                details.innerHTML = `<p class="error-message">Błąd ładowania danych: ${error.message}</p>`;
-            }
+async function loadUserDetails(psid) {
+    const details = document.getElementById('userDetails');
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/user-details/${psid}`);
+        if (!response.ok) throw new Error('Błąd ładowania danych użytkownika');
+        const data = await response.json();
+
+        const user = data.user;
+        const messages = data.messages;
+
+        // Wyświetl szczegóły użytkownika
+        let html = '<h3>Dane klienta:</h3>';
+        html += `<p><strong>PSID:</strong> ${user.psid}</p>`;
+        html += `<p><strong>Imię:</strong> ${user.name || 'Brak'}</p>`;
+        html += `<p><strong>Nazwisko (opiekun):</strong> ${user.studentParentName || 'Brak'}</p>`;
+        html += `<p><strong>Wolna kwota:</strong> ${user.freeAmount || 0} zł</p>`;
+
+        if (user.reservations && user.reservations.length > 0) {
+            html += '<p><strong>Rezerwacje:</strong><ul>';
+            user.reservations.forEach(res => {
+                html += `<li>${res.date} ${res.time} - ${res.subject} (${res.statuses.join(', ')})</li>`;
+            });
+            html += '</ul></p>';
+        } else {
+            html += '<p>Brak rezerwacji.</p>';
         }
+
+        // Przyciski akcji
+        html += '<div class="action-buttons" style="margin-top: 20px;">';
+        if (!user.manualModeActive) {
+            html += '<button id="enableManualBtn" class="add-record-btn">Włącz tryb ręczny</button> ';
+        }
+        html += '<button id="sendReservationLinkBtn" class="add-record-btn">Wyślij link rezerwacji</button>';
+        html += '</div>';
+
+        details.innerHTML = html;
+
+        // Podpięcie eventów
+        if (!user.manualModeActive) {
+            document.getElementById('enableManualBtn').addEventListener('click', async () => {
+                if (!confirm('Czy na pewno włączyć tryb ręczny dla tego użytkownika?')) return;
+                try {
+                    const resp = await fetch(`${API_BASE_URL}/api/admin/enable-manual/${psid}`, {
+                        method: 'POST'
+                    });
+                    const result = await resp.json();
+                    if (result.success) {
+                        alert('Tryb ręczny włączony.');
+                        await loadUserDetails(psid); // odśwież
+                    } else {
+                        alert('Błąd: ' + (result.error || 'Nieznany błąd'));
+                    }
+                } catch (err) {
+                    alert('Błąd: ' + err.message);
+                }
+            });
+        }
+
+        document.getElementById('sendReservationLinkBtn').addEventListener('click', async () => {
+            if (!confirm('Czy na pewno wysłać link rezerwacji? Po wysłaniu użytkownik przejdzie w tryb po-rezerwacyjny.')) return;
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/admin/send-reservation-link`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ psid: psid })
+                });
+                const result = await resp.json();
+                if (result.success) {
+                    alert('Link wysłany.');
+                    // Odśwież chat i szczegóły
+                    await loadChat(psid);
+                    await loadUserDetails(psid);
+                } else {
+                    alert('Błąd: ' + (result.error || 'Nieznany błąd'));
+                }
+            } catch (err) {
+                alert('Błąd: ' + err.message);
+            }
+        });
+
+    } catch (error) {
+        details.innerHTML = `<p class="error-message">Błąd ładowania danych: ${error.message}</p>`;
+    }
+}
 
         document.getElementById('sendMessageBtn').addEventListener('click', async () => {
             const message = document.getElementById('messageInput').value.trim();
@@ -1556,6 +1602,15 @@
                 } catch (error) {
                     alert('Błąd połączenia: ' + error.message);
                 }
+            }
+        });
+
+        document.getElementById('searchUserBtn').addEventListener('click', () => {
+            const psid = document.getElementById('searchPSID').value.trim();
+            if (psid) {
+                selectUser(psid);
+            } else {
+                alert('Wpisz PSID użytkownika.');
             }
         });
     </script>

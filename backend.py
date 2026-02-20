@@ -70,6 +70,8 @@ scheduler = None
 import logging 
 import pickle
 from io import BytesIO
+from bot import create_or_find_client_in_airtable, load_history, save_history
+from vertexai.generative_models import Content, Part
 
 # --- Konfiguracja ---
 from config import (
@@ -3134,6 +3136,70 @@ def get_user_details(psid):
     except Exception as e:
         logging.error(f"Błąd w get_user_details: {e}", exc_info=True)
         return jsonify({'error': 'Błąd serwera'}), 500
+
+@app.route('/api/admin/enable-manual/<psid>', methods=['POST'])
+def enable_manual_mode(psid):
+    """Włącza tryb ręczny dla użytkownika – bot zapisuje wiadomości, ale nie odpowiada."""
+    require_admin()
+    try:
+        history = load_history(psid)
+        # Sprawdź, czy tryb ręczny już jest aktywny
+        if any(msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE' for msg in history):
+            return jsonify({"message": "Tryb ręczny już aktywny."})
+
+        # Dodaj znacznik MANUAL_MODE jako wiadomość modelu
+        history.append(Content(role="model", parts=[Part.from_text('MANUAL_MODE')]))
+        save_history(psid, history)
+
+        logging.info(f"Tryb ręczny włączony dla {psid}")
+        return jsonify({"success": True, "message": "Tryb ręczny włączony."})
+    except Exception as e:
+        logging.error(f"Błąd włączania trybu ręcznego dla {psid}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/send-reservation-link', methods=['POST'])
+def send_reservation_link():
+    """Wysyła do użytkownika link rezerwacji i przełącza w tryb po-rezerwacyjny."""
+    require_admin()
+    try:
+        data = request.json
+        psid = data.get('psid')
+        if not psid:
+            abort(400, "Brak PSID")
+
+        page_token = MESSENGER_PAGE_TOKEN
+        if not page_token:
+            abort(500, "Brak tokena Messenger")
+
+        # Utwórz lub znajdź klienta w bazie (potrzebny do linku)
+        client_id = create_or_find_client_in_airtable(psid, page_token, clients_table)
+        if not client_id:
+            abort(500, "Nie udało się utworzyć/znaleźć klienta")
+
+        # Wygeneruj link rezerwacji
+        reservation_link = f"https://zakręcone-korepetycje.pl/rezerwacja-testowa.html?clientID={client_id}"
+        final_message = (f"Utworzyłem dla Państwa osobisty link do rezerwacji.\n\n"
+                         f"{reservation_link}\n\n"
+                         f"Lekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem.")
+
+        # Wyślij wiadomość przez Messenger
+        send_messenger_confirmation(psid, final_message, page_token)
+
+        # Załaduj historię i dodaj wysłaną wiadomość oraz znacznik POST_RESERVATION_MODE
+        history = load_history(psid)
+        history.append(Content(role="model", parts=[Part.from_text(final_message)]))
+
+        # Usuń ewentualny znacznik MANUAL_MODE (jeśli był)
+        history = [msg for msg in history if not (msg.role == 'model' and msg.parts[0].text == 'MANUAL_MODE')]
+
+        # Dodaj znacznik trybu po-rezerwacyjnego
+        history.append(Content(role="model", parts=[Part.from_text('POST_RESERVATION_MODE')]))
+        save_history(psid, history)
+
+        return jsonify({"success": True, "message": "Link wysłany."})
+    except Exception as e:
+        logging.error(f"Błąd wysyłania linku rezerwacji: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/admin/reset-test-user', methods=['POST'])
 def reset_test_user():
