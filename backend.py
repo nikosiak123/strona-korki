@@ -74,19 +74,13 @@ from bot import create_or_find_client_in_airtable, load_history, save_history
 from vertexai.generative_models import Content, Part
 
 # --- Konfiguracja ---
-import sys
-import os
-# Dodaj ścieżkę do katalogu nadrzędnego
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from config import (
     MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MEETING_ORGANIZER_USER_ID,
     ADMIN_PASSWORD,
     P24_MERCHANT_ID, P24_POS_ID, P24_CRC_KEY, P24_API_KEY, P24_SANDBOX, P24_API_URL,
     BREVO_API_KEY, BREVO_API_URL, FROM_EMAIL,
     EXTERNAL_STATS_URL,
-    MESSENGER_PAGE_ID,
-    FB_PAGE_ACCESS_TOKEN
+    MESSENGER_PAGE_ID
 )
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
@@ -107,13 +101,31 @@ reservations_table = DatabaseTable('Rezerwacje')
 clients_table = DatabaseTable('Klienci')
 cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 
-MESSENGER_PAGE_TOKEN = FB_PAGE_ACCESS_TOKEN
-if MESSENGER_PAGE_TOKEN:
-    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z config.py.")
-else:
-    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w pliku config.py.")
+MESSENGER_PAGE_TOKEN = None
 
-APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+try:
+    # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
+    config_paths = [
+        '/home/korepetotor3/strona/config.json',  # oryginalna ścieżka
+        './config.json',  # lokalna ścieżka
+        os.path.join(os.path.dirname(__file__), 'config.json')  # obok backend.py
+    ]
+    
+    MESSENGER_PAGE_TOKEN = None
+    for config_path in config_paths:
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                bot_config = json.load(f)
+                MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
+                if MESSENGER_PAGE_TOKEN:
+                    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z {config_path}.")
+                    break
+    
+    if not MESSENGER_PAGE_TOKEN:
+        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w żadnym z plików config.json.")
+except Exception as e:
+    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
@@ -130,57 +142,59 @@ def require_admin(f):
 
 @app.route('/')
 def index():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'index.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/login')
 def login():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'login.html')
+    return send_from_directory('.', 'login.html')
 
 @app.route('/panel-korepetytora')
 def panel_korepetytora():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'panel-korepetytora.html')
+    return send_from_directory('.', 'panel-korepetytora')
 
 @app.route('/moje-lekcje')
 def moje_lekcje():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'moje-lekcje.html')
+    return send_from_directory('.', 'moje-lekcje')
 
 @app.route('/panel-systemowy')
 def panel_systemowy():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'panel-systemowy.html')
+    return send_from_directory('.', 'panel-systemowy.html')
 
 @app.route('/confirmation')
 def confirmation():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'confirmation.html')
+    return send_from_directory('.', 'confirmation.html')
 
 @app.route('/edit')
 def edit():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'edit.html')
+    return send_from_directory('.', 'edit.html')
 
 @app.route('/polityka-prywatnosci')
 def polityka_prywatnosci():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'polityka-prywatnosci.html')
+    return send_from_directory('.', 'polityka-prywatnosci.html')
 
 @app.route('/potwierdzenie-platnosci')
 def potwierdzenie_platnosci():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'potwierdzenie-platnosci.html')
+    return send_from_directory('.', 'potwierdzenie-platnosci.html')
 
 @app.route('/regulamin')
 def regulamin():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'regulamin.html')
+    return send_from_directory('.', 'regulamin.html')
 
 @app.route('/rezerwacja-stala')
 def rezerwacja_stala():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'rezerwacja-stala.html')
+    return send_from_directory('.', 'rezerwacja-stala.html')
 
 @app.route('/potwierdzenie-lekcji')
 def potwierdzenie_lekcji():
-    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'potwierdzenie-lekcji.html')
+    return send_from_directory('.', 'potwierdzenie-lekcji.html')
+
+# --- Endpointy dla plików statycznych ---
 
 @app.route('/<path:filename>')
 def static_files(filename):
     # Obsługa plików CSS, JS, obrazów itp.
     if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
-        return send_from_directory(APP_ROOT, filename)
+        return send_from_directory('.', filename)
     # Jeśli to nie plik statyczny, zwróć 404
     abort(404)
 
@@ -974,7 +988,7 @@ def initiate_payment():
             "country": "PL",
             "language": "pl",
             # Tutaj używamy dynamicznego adresu:
-            "urlReturn": f"{current_host}potwierdzenie-platnosci?token={token}",
+            "urlReturn": f"{current_host}potwierdzenie-platnosci.html?token={token}",
             "urlStatus": f"{current_host}api/payment-notification",
             "sign": sign
         }
