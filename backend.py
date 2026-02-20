@@ -86,7 +86,21 @@ from config import (
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
 import database # Import modułu, aby sprawdzić jego ścieżkę
+import config
 
+print(f"DEBUG PATHS:")
+print(f"  backend.py location: {os.path.abspath(__file__)}")
+print(f"  database.py location: {database.__file__}")
+if hasattr(config, 'DB_PATH'):
+    print(f"  config.DB_PATH: {config.DB_PATH}")
+else:
+    print(f"  config.DB_PATH: NOT FOUND")
+
+try:
+    from config_loader import DB_PATH as LOADER_DB_PATH
+    print(f"  config_loader.DB_PATH: {LOADER_DB_PATH}")
+except ImportError:
+    print(f"  config_loader: NOT FOUND")
 
 print("--- Uruchamianie backend.py ---")
 
