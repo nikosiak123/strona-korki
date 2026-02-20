@@ -4,10 +4,10 @@ RewriteEngine On
 RewriteRule ^(.*)\.html$ - [R=404,L]
 
 # Serve HTML files without .html extension
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}.html -f
-RewriteRule ^(.*)$ $1.html [L]
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteCond %{REQUEST_FILENAME}.html -f
+# RewriteRule ^(.*)$ $1.html [L]
 
 # Handle static files
 RewriteCond %{REQUEST_FILENAME} !-f
