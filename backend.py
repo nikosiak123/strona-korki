@@ -86,21 +86,16 @@ from config import (
 # Import lokalnej bazy danych SQLite zamiast Airtable
 from database import DatabaseTable, init_database
 import database # Import modułu, aby sprawdzić jego ścieżkę
-import config
 
-print(f"DEBUG PATHS:")
-print(f"  backend.py location: {os.path.abspath(__file__)}")
-print(f"  database.py location: {database.__file__}")
-if hasattr(config, 'DB_PATH'):
-    print(f"  config.DB_PATH: {config.DB_PATH}")
-else:
-    print(f"  config.DB_PATH: NOT FOUND")
-
+# --- FIX: Wymuś poprawną ścieżkę do bazy danych ---
+# Problem: backend.py czasem ładował config.py ze złym DB_PATH (względnym), co tworzyło nową bazę.
+# Rozwiązanie: Nadpisujemy database.DB_PATH wartością z config_loader, która jest zawsze poprawna (/home/.../korki.db).
 try:
-    from config_loader import DB_PATH as LOADER_DB_PATH
-    print(f"  config_loader.DB_PATH: {LOADER_DB_PATH}")
+    from config_loader import DB_PATH as CORRECT_DB_PATH
+    print(f"--- FIX DATABASE PATH: Nadpisuję database.DB_PATH na: {CORRECT_DB_PATH}")
+    database.DB_PATH = CORRECT_DB_PATH
 except ImportError:
-    print(f"  config_loader: NOT FOUND")
+    print("!!! BŁĄD: Nie można zaimportować config_loader. Baza może być w złym miejscu.")
 
 print("--- Uruchamianie backend.py ---")
 
