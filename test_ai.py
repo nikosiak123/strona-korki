@@ -9,8 +9,9 @@ import sys
 import json
 import traceback
 
-# Dodaj ścieżkę do katalogu ze skryptami
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../strona')))
+# Dodaj ścieżkę do katalogu nadrzędnego (gdzie jest config.py)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config import AI_CONFIG
 
 try:
     # Import Vertex AI
@@ -19,22 +20,13 @@ try:
 
     print("=== TEST DZIAŁANIA GOOGLE VERTEX AI ===\n")
 
-    # Załaduj konfigurację
-    config_path = os.path.join(os.path.dirname(__file__), '../strona/config.json')
-    if not os.path.exists(config_path):
-        print("❌ BŁĄD: Nie znaleziono pliku config.json w ../strona/")
-        sys.exit(1)
-
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-
-    AI_CONFIG = config.get("AI_CONFIG", {})
+    # Konfiguracja jest teraz importowana z config.py
     PROJECT_ID = AI_CONFIG.get("PROJECT_ID")
     LOCATION = AI_CONFIG.get("LOCATION")
     MODEL_ID = AI_CONFIG.get("MODEL_ID")
 
     if not all([PROJECT_ID, LOCATION, MODEL_ID]):
-        print("❌ BŁĄD: Brak pełnej konfiguracji AI w config.json")
+        print("❌ BŁĄD: Brak pełnej konfiguracji AI w config.py")
         print(f"   PROJECT_ID: {PROJECT_ID}")
         print(f"   LOCATION: {LOCATION}")
         print(f"   MODEL_ID: {MODEL_ID}")
@@ -85,7 +77,7 @@ except ImportError as e:
     print("   Upewnij się, że zainstalowano: pip install google-cloud-aiplatform")
 
 except json.JSONDecodeError as e:
-    print("❌ BŁĄD: Nieprawidłowy format pliku config.json")
+    print("❌ BŁĄD: Nieprawidłowy format pliku konfiguracyjnego")
     print(f"   Szczegóły: {e}")
 
 except Exception as e:
@@ -99,4 +91,4 @@ print("\nAby naprawić błędy AI, sprawdź:")
 print("- Czy Vertex AI API jest włączone w Google Cloud Console")
 print("- Czy konto serwisowe ma rolę 'Vertex AI User'")
 print("- Czy GOOGLE_APPLICATION_CREDENTIALS wskazuje na prawidłowy plik JSON")
-print("- Czy PROJECT_ID, LOCATION i MODEL_ID są poprawne w config.json")
+print("- Czy PROJECT_ID, LOCATION i MODEL_ID są poprawne w config.py")

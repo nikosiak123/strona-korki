@@ -74,13 +74,19 @@ from bot import create_or_find_client_in_airtable, load_history, save_history
 from vertexai.generative_models import Content, Part
 
 # --- Konfiguracja ---
+import sys
+import os
+# Dodaj ścieżkę do katalogu nadrzędnego
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from config import (
     MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MEETING_ORGANIZER_USER_ID,
     ADMIN_PASSWORD,
     P24_MERCHANT_ID, P24_POS_ID, P24_CRC_KEY, P24_API_KEY, P24_SANDBOX, P24_API_URL,
     BREVO_API_KEY, BREVO_API_URL, FROM_EMAIL,
     EXTERNAL_STATS_URL,
-    MESSENGER_PAGE_ID
+    MESSENGER_PAGE_ID,
+    FB_PAGE_ACCESS_TOKEN
 )
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
@@ -101,30 +107,11 @@ reservations_table = DatabaseTable('Rezerwacje')
 clients_table = DatabaseTable('Klienci')
 cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 
-MESSENGER_PAGE_TOKEN = None
-
-try:
-    # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
-    config_paths = [
-        '/home/korepetotor3/strona/config.json',  # oryginalna ścieżka
-        './config.json',  # lokalna ścieżka
-        os.path.join(os.path.dirname(__file__), 'config.json')  # obok backend.py
-    ]
-    
-    MESSENGER_PAGE_TOKEN = None
-    for config_path in config_paths:
-        if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf-8') as f:
-                bot_config = json.load(f)
-                MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
-                if MESSENGER_PAGE_TOKEN:
-                    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z {config_path}.")
-                    break
-    
-    if not MESSENGER_PAGE_TOKEN:
-        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w żadnym z plików config.json.")
-except Exception as e:
-    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
+MESSENGER_PAGE_TOKEN = FB_PAGE_ACCESS_TOKEN
+if MESSENGER_PAGE_TOKEN:
+    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z config.py.")
+else:
+    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w pliku config.py.")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
