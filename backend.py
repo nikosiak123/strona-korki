@@ -113,7 +113,8 @@ if MESSENGER_PAGE_TOKEN:
 else:
     print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w pliku config.py.")
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
 CORS(app)
 
@@ -129,51 +130,59 @@ def require_admin(f):
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'index.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'index.html')
 
 @app.route('/login')
 def login():
-    return send_from_directory('templates', 'login.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'login.html')
 
 @app.route('/panel-korepetytora')
 def panel_korepetytora():
-    return send_from_directory('templates', 'panel-korepetytora.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'panel-korepetytora.html')
 
 @app.route('/moje-lekcje')
 def moje_lekcje():
-    return send_from_directory('templates', 'moje-lekcje.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'moje-lekcje.html')
 
 @app.route('/panel-systemowy')
 def panel_systemowy():
-    return send_from_directory('templates', 'panel-systemowy.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'panel-systemowy.html')
 
 @app.route('/confirmation')
 def confirmation():
-    return send_from_directory('templates', 'confirmation.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'confirmation.html')
 
 @app.route('/edit')
 def edit():
-    return send_from_directory('templates', 'edit.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'edit.html')
 
 @app.route('/polityka-prywatnosci')
 def polityka_prywatnosci():
-    return send_from_directory('templates', 'polityka-prywatnosci.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'polityka-prywatnosci.html')
 
 @app.route('/potwierdzenie-platnosci')
 def potwierdzenie_platnosci():
-    return send_from_directory('templates', 'potwierdzenie-platnosci.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'potwierdzenie-platnosci.html')
 
 @app.route('/regulamin')
 def regulamin():
-    return send_from_directory('templates', 'regulamin.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'regulamin.html')
 
 @app.route('/rezerwacja-stala')
 def rezerwacja_stala():
-    return send_from_directory('templates', 'rezerwacja-stala.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'rezerwacja-stala.html')
 
 @app.route('/potwierdzenie-lekcji')
 def potwierdzenie_lekcji():
-    return send_from_directory('templates', 'potwierdzenie-lekcji.html')
+    return send_from_directory(os.path.join(APP_ROOT, 'templates'), 'potwierdzenie-lekcji.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    # Obsługa plików CSS, JS, obrazów itp.
+    if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
+        return send_from_directory(APP_ROOT, filename)
+    # Jeśli to nie plik statyczny, zwróć 404
+    abort(404)
 
 # --- Endpointy API ---
 
