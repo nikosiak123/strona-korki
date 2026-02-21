@@ -3156,10 +3156,14 @@ def search_clients():
 
         all_clients = clients_table.all()
         matching_clients = []
-        
+        seen_psids = set()
+
+        # 1. Search in database
         for client in all_clients:
             fields = client.get('fields', {})
             psid = fields.get('ClientID', '')
+            if not psid: continue
+            
             imie = fields.get('Imie', '')
             nazwisko = fields.get('Nazwisko', '')
             imie_klienta = fields.get('ImieKlienta', '')
@@ -3174,9 +3178,31 @@ def search_clients():
                     'displayName': display_name,
                     'fullInfo': f"{display_name} ({psid})"
                 })
+                seen_psids.add(psid)
                 
-                if len(matching_clients) >= 20:
-                    break
+        # 2. Search in conversation_store (files)
+        import os
+        conversation_store_dir = "../strona/conversation_store"
+        if os.path.exists(conversation_store_dir):
+            for filename in os.listdir(conversation_store_dir):
+                if filename.endswith('.json'):
+                    psid_from_file = filename[:-5]  # remove .json
+                    
+                    # If already found in DB, skip
+                    if psid_from_file in seen_psids:
+                        continue
+
+                    # Check if PSID matches query
+                    if query in psid_from_file.lower():
+                        matching_clients.append({
+                            'psid': psid_from_file,
+                            'displayName': "Nieznany (tylko historia)",
+                            'fullInfo': f"Nieznany (tylko historia) ({psid_from_file})"
+                        })
+                        seen_psids.add(psid_from_file)
+
+        # Limit results
+        matching_clients = matching_clients[:20]
         
         return jsonify({'clients': matching_clients})
     except Exception as e:
