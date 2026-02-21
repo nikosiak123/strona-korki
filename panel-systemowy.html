@@ -513,12 +513,45 @@
             margin-bottom: 20px;
             display: flex;
             gap: 10px;
+            position: relative; /* Dla pozycjonowania autocomplete */
         }
         .user-search input {
             flex: 1;
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
+        }
+        
+        /* Autocomplete styles */
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .autocomplete-items div:hover {
+            background-color: #e9e9e9;
+        }
+        
+        .autocomplete-active {
+            background-color: var(--primary-color) !important;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -579,9 +612,10 @@
 
                 <!-- Panel wiadomości -->
                 <div id="messagesPanel" class="messages-panel">
-                    <div class="user-search" style="margin-bottom: 20px; display: flex; gap: 10px;">
-                        <input type="text" id="searchPSID" placeholder="Wpisz PSID użytkownika" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;">
+                    <div class="user-search">
+                        <input type="text" id="searchPSID" placeholder="Wpisz PSID, imię lub nazwisko użytkownika" autocomplete="off">
                         <button id="searchUserBtn" class="add-record-btn">Wczytaj użytkownika</button>
+                        <div id="autocomplete-list" class="autocomplete-items" style="display: none;"></div>
                     </div>
                     <div class="manual-users-list" id="manualUsersList">
                         <p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>
@@ -1606,11 +1640,74 @@ async function loadUserDetails(psid) {
         });
 
         document.getElementById('searchUserBtn').addEventListener('click', () => {
-            const psid = document.getElementById('searchPSID').value.trim();
+            const val = document.getElementById('searchPSID').value.trim();
+            // Próba wydobycia PSID z formatu "Imię Nazwisko (PSID)"
+            const psidMatch = val.match(/\(([^)]+)\)$/);
+            const psid = psidMatch ? psidMatch[1] : val;
+
             if (psid) {
                 selectUser(psid);
+                document.getElementById('autocomplete-list').style.display = 'none';
             } else {
                 alert('Wpisz PSID użytkownika.');
+            }
+        });
+
+        // Autocomplete Logic
+        const searchInput = document.getElementById('searchPSID');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function(e) {
+            const val = this.value;
+            
+            clearTimeout(debounceTimer);
+            
+            if (!val || val.length < 2) {
+                autocompleteList.innerHTML = '';
+                autocompleteList.style.display = 'none';
+                return;
+            }
+
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(val)}`);
+                    const data = await response.json();
+                    
+                    autocompleteList.innerHTML = '';
+                    
+                    if (data.clients && data.clients.length > 0) {
+                        data.clients.forEach(client => {
+                            const item = document.createElement('div');
+                            // Podświetlenie pasującego fragmentu można dodać opcjonalnie
+                            item.innerHTML = `<strong>${client.displayName}</strong> <span style="font-size: 0.8em; color: #666;">(${client.psid})</span>`;
+                            item.innerHTML += `<input type='hidden' value='${client.fullInfo}'>`;
+                            item.innerHTML += `<input type='hidden' value='${client.psid}' class='psid-val'>`;
+                            
+                            item.addEventListener('click', function(e) {
+                                searchInput.value = this.getElementsByTagName('input')[0].value;
+                                const psid = this.querySelector('.psid-val').value;
+                                autocompleteList.innerHTML = '';
+                                autocompleteList.style.display = 'none';
+                                selectUser(psid);
+                            });
+                            
+                            autocompleteList.appendChild(item);
+                        });
+                        autocompleteList.style.display = 'block';
+                    } else {
+                        autocompleteList.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Błąd autocomplete:', error);
+                }
+            }, 300); // Debounce 300ms
+        });
+
+        // Zamknij listę po kliknięciu poza nią
+        document.addEventListener('click', function (e) {
+            if (e.target !== searchInput && e.target !== autocompleteList) {
+                autocompleteList.style.display = 'none';
             }
         });
     </script>

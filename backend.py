@@ -3146,6 +3146,43 @@ def get_user_details(psid):
         logging.error(f"Błąd w get_user_details: {e}", exc_info=True)
         return jsonify({'error': 'Błąd serwera'}), 500
 
+@app.route('/api/admin/search-clients', methods=['GET'])
+def search_clients():
+    require_admin()
+    try:
+        query = request.args.get('query', '').strip().lower()
+        if not query or len(query) < 2:
+            return jsonify({'clients': []})
+
+        all_clients = clients_table.all()
+        matching_clients = []
+        
+        for client in all_clients:
+            fields = client.get('fields', {})
+            psid = fields.get('ClientID', '')
+            imie = fields.get('Imie', '')
+            nazwisko = fields.get('Nazwisko', '')
+            imie_klienta = fields.get('ImieKlienta', '')
+            nazwisko_klienta = fields.get('NazwiskoKlienta', '')
+            
+            search_text = f"{psid} {imie} {nazwisko} {imie_klienta} {nazwisko_klienta}".lower()
+            
+            if query in search_text:
+                display_name = f"{imie} {nazwisko}".strip() or "Nieznany"
+                matching_clients.append({
+                    'psid': psid,
+                    'displayName': display_name,
+                    'fullInfo': f"{display_name} ({psid})"
+                })
+                
+                if len(matching_clients) >= 20:
+                    break
+        
+        return jsonify({'clients': matching_clients})
+    except Exception as e:
+        logging.error(f"Błąd w search_clients: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/enable-manual/<psid>', methods=['POST'])
 def enable_manual_mode(psid):
     """Włącza tryb ręczny dla użytkownika – bot zapisuje wiadomości, ale nie odpowiada."""
