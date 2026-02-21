@@ -3460,6 +3460,61 @@ def stats():
     except Exception as e:
         return f"Błąd: {e}"
 
+@app.route('/api/admin/delete-conversation/<psid>', methods=['POST'])
+def delete_conversation(psid):
+    require_admin()
+    try:
+        conversation_file = os.path.join(os.path.dirname(__file__), "../strona/conversation_store", f"{psid}.json")
+        if os.path.exists(conversation_file):
+            os.remove(conversation_file)
+            logging.info(f"Usunięto plik konwersacji: {conversation_file}")
+            return jsonify({"message": "Konwersacja usunięta."})
+        else:
+            return jsonify({"error": "Plik konwersacji nie istnieje."}), 404
+    except Exception as e:
+        logging.error(f"Błąd usuwania konwersacji {psid}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/delete-client-record/<psid>', methods=['POST'])
+def delete_client_record(psid):
+    require_admin()
+    try:
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+        if client_record:
+            clients_table.delete(client_record['id'])
+            logging.info(f"Usunięto rekord klienta: {psid}")
+            return jsonify({"message": "Rekord klienta usunięty."})
+        else:
+            return jsonify({"error": "Klient nie znaleziony w bazie."}), 404
+    except Exception as e:
+        logging.error(f"Błąd usuwania rekordu klienta {psid}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/delete-client-full/<psid>', methods=['POST'])
+def delete_client_full(psid):
+    require_admin()
+    try:
+        # 1. Usuń rezerwacje
+        reservations = reservations_table.all(formula=f"{{Klient}} = '{psid}'")
+        for res in reservations:
+            reservations_table.delete(res['id'])
+        
+        # 2. Usuń stałe rezerwacje (cykliczne)
+        cyclic_reservations = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{psid}'")
+        for res in cyclic_reservations:
+            cyclic_reservations_table.delete(res['id'])
+            
+        # 3. Usuń rekord klienta
+        client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+        if client_record:
+            clients_table.delete(client_record['id'])
+            
+        logging.info(f"Pełne usunięcie klienta {psid} zakończone.")
+        return jsonify({"message": "Klient i wszystkie powiązane dane zostały usunięte."})
+    except Exception as e:
+        logging.error(f"Błąd pełnego usuwania klienta {psid}: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)

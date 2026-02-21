@@ -1493,6 +1493,9 @@ async function loadUserDetails(psid) {
         // Przyciski akcji
         html += '<div class="action-buttons" style="margin-top: 20px;">';
         html += '<button id="sendReservationLinkBtn" class="add-record-btn">Wyślij link rezerwacji</button>';
+        html += '<button id="deleteConvBtn" class="delete-btn" style="margin-left: 10px; background-color: #FF9800;">Usuń konwersację</button>';
+        html += '<button id="deleteClientBtn" class="delete-btn" style="margin-left: 10px; background-color: #F44336;">Usuń rekord klienta</button>';
+        html += '<button id="fullDeleteBtn" class="delete-btn" style="margin-left: 10px; background-color: #B71C1C;">Usuń z bazy danych (Full)</button>';
         html += '</div>';
 
         details.innerHTML = html;
@@ -1530,6 +1533,52 @@ async function loadUserDetails(psid) {
             } catch (err) {
                 alert('Błąd: ' + err.message);
             }
+        });
+
+        document.getElementById('deleteConvBtn').addEventListener('click', async () => {
+            if (!confirm('Czy na pewno usunąć historię konwersacji? Tej operacji nie można cofnąć.')) return;
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-conversation/${psid}`, { method: 'POST' });
+                const res = await resp.json();
+                if (resp.ok) {
+                    alert(res.message);
+                    await loadChat(psid);
+                } else {
+                    alert(res.error);
+                }
+            } catch(e) { alert(e.message); }
+        });
+
+        document.getElementById('deleteClientBtn').addEventListener('click', async () => {
+            if (!confirm('Czy na pewno usunąć rekord klienta z bazy?')) return;
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-client-record/${psid}`, { method: 'POST' });
+                const res = await resp.json();
+                if (resp.ok) {
+                    alert(res.message);
+                    await loadUserDetails(psid);
+                } else {
+                    alert(res.error);
+                }
+            } catch(e) { alert(e.message); }
+        });
+
+        document.getElementById('fullDeleteBtn').addEventListener('click', async () => {
+            if (!confirm('UWAGA: Czy na pewno usunąć klienta ORAZ wszystkie jego lekcje? TEJ OPERACJI NIE MOŻNA COFNĄĆ!')) return;
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-client-full/${psid}`, { method: 'POST' });
+                const res = await resp.json();
+                if (resp.ok) {
+                    alert(res.message);
+                    // Clear view
+                    document.getElementById('chatContainer').style.display = 'none';
+                    document.getElementById('userDetails').innerHTML = '';
+                    currentUserPSID = null;
+                    await loadManualUsers();
+                } else {
+                    alert(res.error);
+                }
+            } catch(e) { alert(e.message); }
         });
 
     } catch (error) {
