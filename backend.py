@@ -90,12 +90,7 @@ import database # Import modułu, aby sprawdzić jego ścieżkę
 # --- FIX: Wymuś poprawną ścieżkę do bazy danych ---
 # Problem: backend.py czasem ładował config.py ze złym DB_PATH (względnym), co tworzyło nową bazę.
 # Rozwiązanie: Nadpisujemy database.DB_PATH wartością z config_loader, która jest zawsze poprawna (/home/.../korki.db).
-try:
-    from config_loader import DB_PATH as CORRECT_DB_PATH
-    print(f"--- FIX DATABASE PATH: Nadpisuję database.DB_PATH na: {CORRECT_DB_PATH}")
-    database.DB_PATH = CORRECT_DB_PATH
-except ImportError:
-    print("!!! BŁĄD: Nie można zaimportować config_loader. Baza może być w złym miejscu.")
+database.DB_PATH = DB_PATH
 
 print("--- Uruchamianie backend.py ---")
 
