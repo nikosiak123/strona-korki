@@ -80,7 +80,8 @@ from config import (
     P24_MERCHANT_ID, P24_POS_ID, P24_CRC_KEY, P24_API_KEY, P24_SANDBOX, P24_API_URL,
     BREVO_API_KEY, BREVO_API_URL, FROM_EMAIL,
     EXTERNAL_STATS_URL,
-    MESSENGER_PAGE_ID
+    MESSENGER_PAGE_ID,
+    DB_PATH
 )
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
