@@ -627,7 +627,7 @@
                                 <h3 id="chatUserName">Rozmowa z użytkownikiem</h3>
                                 <a id="clientPanelLink" class="client-link" href="#" target="_blank">Panel klienta</a>
                             </div>
-                            <button id="endManualBtn" class="delete-btn">Zakończ tryb ręczny</button>
+                            <button id="toggleManualBtn" class="add-record-btn">Włącz tryb ręczny</button>
                         </div>
                         <div class="chat-messages" id="chatMessages"></div>
                         <div class="chat-input">
@@ -1492,35 +1492,24 @@ async function loadUserDetails(psid) {
 
         // Przyciski akcji
         html += '<div class="action-buttons" style="margin-top: 20px;">';
-        if (!user.manualModeActive) {
-            html += '<button id="enableManualBtn" class="add-record-btn">Włącz tryb ręczny</button> ';
-        }
         html += '<button id="sendReservationLinkBtn" class="add-record-btn">Wyślij link rezerwacji</button>';
         html += '</div>';
 
         details.innerHTML = html;
 
-        // Podpięcie eventów
-        if (!user.manualModeActive) {
-            document.getElementById('enableManualBtn').addEventListener('click', async () => {
-                if (!confirm('Czy na pewno włączyć tryb ręczny dla tego użytkownika?')) return;
-                try {
-                    const resp = await fetch(`${API_BASE_URL}/api/admin/enable-manual/${psid}`, {
-                        method: 'POST'
-                    });
-                    const result = await resp.json();
-                    if (result.success) {
-                        alert('Tryb ręczny włączony.');
-                        await loadUserDetails(psid); // odśwież
-                    } else {
-                        alert('Błąd: ' + (result.error || 'Nieznany błąd'));
-                    }
-                } catch (err) {
-                    alert('Błąd: ' + err.message);
-                }
-            });
+        // Aktualizacja przycisku trybu ręcznego w nagłówku
+        const toggleBtn = document.getElementById('toggleManualBtn');
+        if (user.manualModeActive) {
+            toggleBtn.textContent = 'Zakończ tryb ręczny';
+            toggleBtn.className = 'delete-btn';
+            toggleBtn.dataset.action = 'disable';
+        } else {
+            toggleBtn.textContent = 'Włącz tryb ręczny';
+            toggleBtn.className = 'add-record-btn';
+            toggleBtn.dataset.action = 'enable';
         }
 
+        // Podpięcie eventów
         document.getElementById('sendReservationLinkBtn').addEventListener('click', async () => {
             if (!confirm('Czy na pewno wysłać link rezerwacji? Po wysłaniu użytkownik przejdzie w tryb po-rezerwacyjny.')) return;
             try {
@@ -1589,32 +1578,44 @@ async function loadUserDetails(psid) {
             }
         }
 
-        async function endManualMode(psid) {
-            if (!confirm('Czy na pewno chcesz zakończyć tryb ręczny dla tego użytkownika?')) return;
+        async function toggleManualMode(psid) {
+            const btn = document.getElementById('toggleManualBtn');
+            const action = btn.dataset.action;
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/end-manual/${psid}`, {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    await loadManualUsers();
-                    if (currentUserPSID === psid) {
-                        document.getElementById('chatContainer').style.display = 'none';
-                        document.getElementById('userDetails').innerHTML = '';
-                        currentUserPSID = null;
+            if (action === 'enable') {
+                if (!confirm('Czy na pewno włączyć tryb ręczny dla tego użytkownika?')) return;
+                try {
+                    const resp = await fetch(`${API_BASE_URL}/api/admin/enable-manual/${psid}`, { method: 'POST' });
+                    const result = await resp.json();
+                    if (result.success) {
+                        // alert('Tryb ręczny włączony.');
+                        await loadUserDetails(psid);
+                        await loadManualUsers();
+                    } else {
+                        alert('Błąd: ' + (result.error || 'Nieznany błąd'));
                     }
-                } else {
-                    alert('Błąd kończenia trybu ręcznego');
+                } catch (err) {
+                    alert('Błąd: ' + err.message);
                 }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
+            } else {
+                if (!confirm('Czy na pewno chcesz zakończyć tryb ręczny dla tego użytkownika?')) return;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/end-manual/${psid}`, { method: 'POST' });
+                    if (response.ok) {
+                        await loadUserDetails(psid);
+                        await loadManualUsers();
+                    } else {
+                        alert('Błąd kończenia trybu ręcznego');
+                    }
+                } catch (error) {
+                    alert(`Błąd: ${error.message}`);
+                }
             }
         }
 
-        document.getElementById('endManualBtn').addEventListener('click', () => {
+        document.getElementById('toggleManualBtn').addEventListener('click', () => {
             if (typeof currentUserPSID !== 'undefined' && currentUserPSID) {
-                endManualMode(currentUserPSID);
+                toggleManualMode(currentUserPSID);
             } else {
                 alert('Najpierw wybierz użytkownika.');
             }
