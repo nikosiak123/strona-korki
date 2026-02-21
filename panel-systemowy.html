@@ -1658,50 +1658,49 @@ async function loadUserDetails(psid) {
         const autocompleteList = document.getElementById('autocomplete-list');
         let debounceTimer;
 
+        async function performSearch(val) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(val)}`);
+                const data = await response.json();
+                
+                autocompleteList.innerHTML = '';
+                
+                if (data.clients && data.clients.length > 0) {
+                    data.clients.forEach(client => {
+                        const item = document.createElement('div');
+                        // Podświetlenie pasującego fragmentu można dodać opcjonalnie
+                        item.innerHTML = `<strong>${client.displayName}</strong> <span style="font-size: 0.8em; color: #666;">(${client.psid})</span>`;
+                        item.innerHTML += `<input type='hidden' value='${client.fullInfo}'>`;
+                        item.innerHTML += `<input type='hidden' value='${client.psid}' class='psid-val'>`;
+                        
+                        item.addEventListener('click', function(e) {
+                            searchInput.value = this.getElementsByTagName('input')[0].value;
+                            const psid = this.querySelector('.psid-val').value;
+                            autocompleteList.innerHTML = '';
+                            autocompleteList.style.display = 'none';
+                            selectUser(psid);
+                        });
+                        
+                        autocompleteList.appendChild(item);
+                    });
+                    autocompleteList.style.display = 'block';
+                } else {
+                    autocompleteList.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Błąd autocomplete:', error);
+            }
+        }
+
+        // Pokaż listę po kliknięciu (focus) nawet przy pustym polu
+        searchInput.addEventListener('focus', function(e) {
+            performSearch(this.value);
+        });
+
         searchInput.addEventListener('input', function(e) {
             const val = this.value;
-            
             clearTimeout(debounceTimer);
-            
-            if (!val || val.length < 2) {
-                autocompleteList.innerHTML = '';
-                autocompleteList.style.display = 'none';
-                return;
-            }
-
-            debounceTimer = setTimeout(async () => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(val)}`);
-                    const data = await response.json();
-                    
-                    autocompleteList.innerHTML = '';
-                    
-                    if (data.clients && data.clients.length > 0) {
-                        data.clients.forEach(client => {
-                            const item = document.createElement('div');
-                            // Podświetlenie pasującego fragmentu można dodać opcjonalnie
-                            item.innerHTML = `<strong>${client.displayName}</strong> <span style="font-size: 0.8em; color: #666;">(${client.psid})</span>`;
-                            item.innerHTML += `<input type='hidden' value='${client.fullInfo}'>`;
-                            item.innerHTML += `<input type='hidden' value='${client.psid}' class='psid-val'>`;
-                            
-                            item.addEventListener('click', function(e) {
-                                searchInput.value = this.getElementsByTagName('input')[0].value;
-                                const psid = this.querySelector('.psid-val').value;
-                                autocompleteList.innerHTML = '';
-                                autocompleteList.style.display = 'none';
-                                selectUser(psid);
-                            });
-                            
-                            autocompleteList.appendChild(item);
-                        });
-                        autocompleteList.style.display = 'block';
-                    } else {
-                        autocompleteList.style.display = 'none';
-                    }
-                } catch (error) {
-                    console.error('Błąd autocomplete:', error);
-                }
-            }, 300); // Debounce 300ms
+            debounceTimer = setTimeout(() => performSearch(val), 300); // Debounce 300ms
         });
 
         // Zamknij listę po kliknięciu poza nią

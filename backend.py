@@ -3151,9 +3151,7 @@ def search_clients():
     require_admin()
     try:
         query = request.args.get('query', '').strip().lower()
-        if not query or len(query) < 2:
-            return jsonify({'clients': []})
-
+        
         matching_clients = []
         seen_psids = set()
 
@@ -3161,12 +3159,16 @@ def search_clients():
         import os
         conversation_store_dir = "../strona/conversation_store"
         if os.path.exists(conversation_store_dir):
-            for filename in os.listdir(conversation_store_dir):
+            all_files = os.listdir(conversation_store_dir)
+            # Sort files to ensure stable order (e.g. alphabetical)
+            all_files.sort()
+
+            for filename in all_files:
                 if filename.endswith('.json'):
                     psid_from_file = filename[:-5]  # remove .json
                     
-                    # Check if PSID matches query
-                    if query in psid_from_file.lower():
+                    # Check if PSID matches query OR if query is empty (show all/recent)
+                    if not query or query in psid_from_file.lower():
                         # Try to find client name in DB for better display, but search is done only by filename
                         display_name = "Nieznany (tylko historia)"
                         try:
@@ -3185,9 +3187,10 @@ def search_clients():
                             'fullInfo': f"{display_name} ({psid_from_file})"
                         })
                         seen_psids.add(psid_from_file)
-
-        # Limit results
-        matching_clients = matching_clients[:20]
+                        
+                        # Optimization: stop if we have enough results
+                        if len(matching_clients) >= 20:
+                            break
         
         return jsonify({'clients': matching_clients})
     except Exception as e:
