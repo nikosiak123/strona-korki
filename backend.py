@@ -81,7 +81,8 @@ from config import (
     BREVO_API_KEY, BREVO_API_URL, FROM_EMAIL,
     EXTERNAL_STATS_URL,
     MESSENGER_PAGE_ID,
-    DB_PATH
+    DB_PATH,
+    PAGE_CONFIG
 )
  
 # Import lokalnej bazy danych SQLite zamiast Airtable
@@ -109,27 +110,13 @@ cyclic_reservations_table = DatabaseTable('StaleRezerwacje')
 MESSENGER_PAGE_TOKEN = None
 
 try:
-    # Podajemy PEŁNĄ ścieżkę do pliku konfiguracyjnego bota
-    config_paths = [
-        '/home/korepetotor3/strona/config.json',  # oryginalna ścieżka
-        './config.json',  # lokalna ścieżka
-        os.path.join(os.path.dirname(__file__), 'config.json')  # obok backend.py
-    ]
-    
-    MESSENGER_PAGE_TOKEN = None
-    for config_path in config_paths:
-        if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf-8') as f:
-                bot_config = json.load(f)
-                MESSENGER_PAGE_TOKEN = bot_config.get("PAGE_CONFIG", {}).get(MESSENGER_PAGE_ID, {}).get("token")
-                if MESSENGER_PAGE_TOKEN:
-                    print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z {config_path}.")
-                    break
-    
-    if not MESSENGER_PAGE_TOKEN:
-        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w żadnym z plików config.json.")
+    MESSENGER_PAGE_TOKEN = PAGE_CONFIG.get(MESSENGER_PAGE_ID, {}).get("token")
+    if MESSENGER_PAGE_TOKEN:
+        print(f"--- MESSENGER: Pomyślnie załadowano token dostępu do strony z config.py.")
+    else:
+        print(f"!!! MESSENGER: OSTRZEŻENIE - Nie znaleziono tokena dla strony {MESSENGER_PAGE_ID} w pliku config.py.")
 except Exception as e:
-    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać pliku config.json bota: {e}")
+    print(f"!!! MESSENGER: OSTRZEŻENIE - Nie udało się wczytać tokena z config.py: {e}")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
