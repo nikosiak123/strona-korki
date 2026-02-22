@@ -3155,21 +3155,49 @@ def search_clients():
 
         # 2. Search by name in database, but only for clients with conversation history
         if query:
-            formula = f"OR(FIND(LOWER('{query}'), LOWER({{Imie}})), FIND(LOWER('{query}'), LOWER({{Nazwisko}})), FIND(LOWER('{query}'), LOWER({{ImieKlienta}})), FIND(LOWER('{query}'), LOWER({{NazwiskoKlienta}})))"
-            db_clients = clients_table.all(formula=formula)
+            # Note: DatabaseTable.all() with OR formula might return all records if not supported,
+            # so we perform manual filtering here to be safe and ensure correct results.
+            db_clients = clients_table.all()
+            query_lower = query.lower()
+            
             for record in db_clients:
-                psid = record['fields'].get('ClientID')
-                if psid and psid in psids_in_store and psid not in seen_psids:
-                    display_name = f"{record['fields'].get('ImieKlienta', '')} {record['fields'].get('NazwiskoKlienta', '')}".strip()
-                    if not display_name:
-                        display_name = f"{record['fields'].get('Imie', '')} {record['fields'].get('Nazwisko', '')}".strip()
-                    
-                    matching_clients.append({
-                        'psid': psid,
-                        'displayName': f"{display_name} (z bazy danych)",
-                        'fullInfo': f"{display_name} ({psid})"
-                    })
-                    seen_psids.add(psid)
+                fields = record.get('fields', {})
+                
+                # Manual filtering check
+                imie = str(fields.get('Imie', '')).lower()
+                nazwisko = str(fields.get('Nazwisko', '')).lower()
+                imie_klienta = str(fields.get('ImieKlienta', '')).lower()
+                nazwisko_klienta = str(fields.get('NazwiskoKlienta', '')).lower()
+                
+                # Check if query is part of any name field
+                is_match = (query_lower in imie or 
+                           query_lower in nazwisko or 
+                           query_lower in imie_klienta or 
+                           query_lower in nazwisko_klienta)
+                           
+                # Also check full name combinations for better UX (e.g. "Tomasz Jankowski")
+                if not is_match:
+                    full_name_1 = f"{imie} {nazwisko}".strip()
+                    full_name_2 = f"{imie_klienta} {nazwisko_klienta}".strip()
+                    full_name_3 = f"{nazwisko} {imie}".strip() # Reverse order
+                    if (query_lower in full_name_1 or 
+                        query_lower in full_name_2 or
+                        query_lower in full_name_3):
+                        is_match = True
+
+                if is_match:
+                    psid = fields.get('ClientID')
+                    if psid and psid in psids_in_store and psid not in seen_psids:
+                        display_name = f"{fields.get('ImieKlienta', '')} {fields.get('NazwiskoKlienta', '')}".strip()
+                        if not display_name:
+                            display_name = f"{fields.get('Imie', '')} {fields.get('Nazwisko', '')}".strip()
+                        
+                        matching_clients.append({
+                            'psid': psid,
+                            'displayName': f"{display_name} (z bazy danych)",
+                            'fullInfo': f"{display_name} ({psid})"
+                        })
+                        seen_psids.add(psid)
 
         # 3. Search by PSID in conversation_store
         for psid_from_file in psids_in_store:
