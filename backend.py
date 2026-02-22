@@ -97,7 +97,7 @@ import database # Import modułu, aby sprawdzić jego ścieżkę
 database.DB_PATH = DB_PATH
 
 print("--- Uruchamianie backend.py ---")
-logging.info(f"--- Backend łączy się z bazą danych: {DB_PATH} ---")
+logging.info(f"--- Backend łączy się z bazą danych: {os.path.abspath(DB_PATH)} ---")
 
 # Jawne wywołanie migracji bazy danych na starcie
 print("--- Inicjalizacja bazy danych ---")
