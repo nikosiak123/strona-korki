@@ -961,8 +961,12 @@ def initiate_payment():
             reservations_table.update(lesson['id'], {"WolnaKwotaUzyta": wolna_kwota})
         
         # --- NOWY, POPRAWNY KOD ---
-        # Używamy tokena lekcji jako ID sesji, aby móc ją potem znaleźć w bazie!
-        session_id = token
+        # Używamy tokena lekcji jako ID sesji, ale dodajemy unikalny sufiks (timestamp),
+        # aby każda próba płatności miała unikalne sessionId w P24.
+        import time
+        timestamp = int(time.time())
+        session_id = f"{token}_{timestamp}"
+        
         sign = generate_p24_sign(session_id, P24_MERCHANT_ID, amount, "PLN", P24_CRC_KEY)
 
         # To rozwiązanie jest uniwersalne - bierze adres z paska przeglądarki (ten działający z 6vc)
@@ -1100,9 +1104,15 @@ def payment_notification():
             return "Verify failed", 500
 
         # --- KROK 3: Aktualizacja bazy danych ---
-        # SessionId to nasz ManagementToken
-        safe_session_id = ''.join(c for c in session_id if c.isalnum() or c == '-')
-        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{safe_session_id}'")
+        # SessionId to ManagementToken_Timestamp
+        # Musimy wyciągnąć oryginalny token
+        if '_' in session_id:
+            management_token = session_id.split('_')[0]
+        else:
+            management_token = session_id
+            
+        safe_token = ''.join(c for c in management_token if c.isalnum() or c == '-')
+        lesson = reservations_table.first(formula=f"{{ManagementToken}} = '{safe_token}'")
         
         if lesson:
             reservations_table.update(lesson['id'], {
@@ -1131,7 +1141,7 @@ def payment_notification():
                     )
                     send_messenger_confirmation(psid, msg, MESSENGER_PAGE_TOKEN)
         else:
-            logging.warning(f"P24: Otrzymano płatność, ale nie znaleziono lekcji dla sesji: {safe_session_id}")
+            logging.warning(f"P24: Otrzymano płatność, ale nie znaleziono lekcji dla sesji: {session_id} (szukano tokena: {safe_token})")
 
         # P24 oczekuje odpowiedzi "OK" (status 200)
         return "OK", 200
