@@ -68,6 +68,8 @@ import atexit
 
 scheduler = None
 import logging 
+logging.basicConfig(level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 import pickle
 from io import BytesIO
 from bot import create_or_find_client_in_airtable, load_history, save_history
@@ -211,8 +213,6 @@ LEVEL_MAPPING = {
     "technikum_rozszerzony": ["liceum_rozszerzenie"]
 }
 last_fetched_schedule = {}
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Obniżenie poziomu logowania dla innych, bardziej "hałaśliwych" bibliotek,
 # aby skupić się na zapytaniach HTTP i logach Flask.
