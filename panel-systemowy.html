@@ -1517,10 +1517,144 @@
             document.getElementById('view-tutor-details').classList.remove('hidden');
             
             // Set header
-            document.getElementById('tutorDetailsName').textContent = record.fields.ImieNazwisko || 'Nieznany';
+            const tName = record.fields.ImieNazwisko || 'Nieznany';
+            document.getElementById('tutorDetailsName').textContent = tName;
             document.getElementById('tutorDetailsId').textContent = `TutorID: ${record.fields.TutorID}`;
             
             state.currentTutorRecord = record; // Store for later use
+            
+            // Load stats
+            loadTutorStats(tName);
+        }
+
+        async function loadTutorStats(tutorName) {
+            const container = document.getElementById('tutorManagementContent');
+            container.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Obliczanie statystyk...</div>';
+            
+            try {
+                // Fetch all reservations
+                const res = await fetch(`${API_BASE_URL}/api/admin/table/Rezerwacje`);
+                const data = await res.json();
+                
+                if (!data.records) throw new Error('Brak danych rezerwacji');
+
+                // Filter for this tutor
+                const lessons = data.records.filter(r => r.fields.Korepetytor === tutorName);
+                
+                // --- CALCULATE STATS ---
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastMonth = lastMonthDate.getMonth();
+                const lastMonthYear = lastMonthDate.getFullYear();
+
+                let stats = {
+                    thisMonth: 0,
+                    lastMonth: 0,
+                    primary: 0,
+                    highSchool: {
+                        nonMatric: { basic: 0, extended: 0 },
+                        matric: { basic: 0, extended: 0 }
+                    }
+                };
+
+                lessons.forEach(l => {
+                    const f = l.fields;
+                    if (!f.Data) return;
+                    
+                    // Filter out cancelled/invalid statuses if needed. 
+                    // Assuming we count completed and scheduled (paid/unpaid) but not cancelled.
+                    if (f.Status && (f.Status.includes('Anulowana') || f.Status.includes('Odwołana'))) return;
+
+                    const date = new Date(f.Data);
+                    
+                    // Month counts
+                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) stats.thisMonth++;
+                    if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) stats.lastMonth++;
+
+                    // Breakdown
+                    const type = f.TypSzkoly;
+                    const level = f.Poziom; // 'podstawowy', 'rozszerzony'
+                    const cls = String(f.Klasa || '');
+
+                    if (type === 'szkola_podstawowa') {
+                        stats.primary++;
+                    } else if (type === 'liceum' || type === 'technikum') {
+                        // Check if matriculation class
+                        // Liceum: 4, Technikum: 5
+                        let isMatric = false;
+                        if (type === 'liceum' && cls.includes('4')) isMatric = true;
+                        if (type === 'technikum' && cls.includes('5')) isMatric = true;
+
+                        const isExtended = level === 'rozszerzony';
+
+                        if (isMatric) {
+                            if (isExtended) stats.highSchool.matric.extended++;
+                            else stats.highSchool.matric.basic++;
+                        } else {
+                            if (isExtended) stats.highSchool.nonMatric.extended++;
+                            else stats.highSchool.nonMatric.basic++;
+                        }
+                    }
+                });
+
+                // --- RENDER ---
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth}</div>
+                        </div>
+                        <div class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu</div>
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonth}</div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Typ Szkoły</th>
+                                    <th>Poziom / Klasa</th>
+                                    <th style="text-align: right;">Ilość</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Podstawówka</strong></td>
+                                    <td>Wszystkie klasy</td>
+                                    <td style="text-align: right; font-weight: bold;">${stats.primary}</td>
+                                </tr>
+                                <tr style="background-color: #f9f9fc;">
+                                    <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy niematuralne</small></td>
+                                    <td>Podstawa</td>
+                                    <td style="text-align: right;">${stats.highSchool.nonMatric.basic}</td>
+                                </tr>
+                                <tr style="background-color: #f9f9fc;">
+                                    <td>Rozszerzenie</td>
+                                    <td style="text-align: right;">${stats.highSchool.nonMatric.extended}</td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy maturalne</small></td>
+                                    <td>Podstawa</td>
+                                    <td style="text-align: right;">${stats.highSchool.matric.basic}</td>
+                                </tr>
+                                <tr>
+                                    <td>Rozszerzenie</td>
+                                    <td style="text-align: right;">${stats.highSchool.matric.extended}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } catch(e) {
+                console.error(e);
+                container.innerHTML = `<div style="color:red; padding:1rem; text-align:center;">Błąd ładowania statystyk: ${e.message}</div>`;
+            }
         }
 
         function backToTutorsList() {
