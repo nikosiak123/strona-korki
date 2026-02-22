@@ -1058,8 +1058,7 @@
                 const value = fields[key];
                 html += `<div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:5px;">${key}</label>`;
                 
-                // Autocomplete for Client/Tutor
-                } else if (['Klient', 'Klient_ID', 'Korepetytor'].includes(key)) {
+                if (['Klient', 'Klient_ID', 'Korepetytor'].includes(key)) {
                     const valStr = value || '';
                     const resultsId = `autocomplete-${key}-${Date.now()}`;
                     
@@ -1069,6 +1068,25 @@
                             <div id="${resultsId}" style="display:none; border:1px solid #ddd; border-radius:4px; max-height:150px; overflow:auto; position:absolute; top:100%; left:0; right:0; background:white; z-index:1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
                         </div>
                     `;
+                } else if (multipleFields.includes(key)) {
+                    // Multiple select box
+                    html += `<select name="${key}" class="form-control" multiple style="height: 120px;">`;
+                    const options = fieldOptions[key] || [];
+                    const selectedValues = Array.isArray(value) ? value : (value ? String(value).split(',').map(s=>s.trim()) : []);
+                    options.forEach(opt => {
+                        html += `<option value="${opt}" ${selectedValues.includes(opt) ? 'selected' : ''}>${opt}</option>`;
+                    });
+                    html += `</select>`;
+                } else if (fieldOptions[key]) {
+                    // Select dropdown
+                    html += `<select name="${key}" class="form-control">`;
+                    const options = fieldOptions[key];
+                    options.forEach(opt => {
+                        // Handle boolean values correctly
+                        const isSelected = String(value) === String(opt);
+                        html += `<option value="${opt}" ${isSelected ? 'selected' : ''}>${opt}</option>`;
+                    });
+                    html += `</select>`;
                 } else {
                     // Text input
                     let valStr = value;
