@@ -74,7 +74,7 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 #reservationStatus.success { background-color: #D4EDDA; color: #155724; border: 1px solid #C3E6CB; }
 #reservationStatus.error { background-color: #F8D7DA; color: #721C24; border: 1px solid #F5C6CB; }
 
-.time-slot-calendar { margin-top: 1.5rem; background-color: var(--container-bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; min-height: 350px; }
+#calendar-container { margin-top: 1.5rem; background-color: var(--container-bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; min-height: 350px; }
 .calendar-navigation { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
 .calendar-navigation h3 { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-dark); text-align: center; flex-grow: 1; }
 .calendar-navigation button { background-color: #E0E0E0; color: var(--text-dark); border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.9em; font-weight: 600; transition: background-color 0.2s ease; }
@@ -223,7 +223,7 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    .time-slot-calendar { 
+    #calendar-container { 
         display: none !important; /* Ukrywamy siatkę kalendarza PC */
     }
     #calendar-mobile-container {
