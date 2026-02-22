@@ -246,9 +246,10 @@
             padding-bottom: 5px; /* Space for scrollbar */
         }
 
-        /* Custom Scrollbar for Table */
+        /* Custom Scrollbar for Table - Forced Visibility */
         .table-responsive::-webkit-scrollbar {
-            height: 10px;
+            height: 12px;
+            display: block;
         }
         
         .table-responsive::-webkit-scrollbar-track {
@@ -257,12 +258,19 @@
         }
         
         .table-responsive::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
+            background: #a0a0a0; /* Darker for better visibility */
             border-radius: 4px;
+            border: 2px solid #f1f1f1;
         }
         
         .table-responsive::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
+        }
+
+        /* Firefox support */
+        .table-responsive {
+            scrollbar-width: auto;
+            scrollbar-color: #c1c1c1 #f1f1f1;
         }
         
         table {
@@ -570,7 +578,7 @@
                                 <button class="btn btn-sm btn-info table-selector" data-table="StaleRezerwacje">Stałe</button>
                             </div>
                             
-                            <div class="actions" style="display: flex; gap: 10px; margin-left: auto;">
+                            <div class="actions" style="display: flex !important; gap: 10px; margin-left: auto; align-items: center;">
                                 <button id="resetTestUserBtn" class="btn btn-sm btn-primary">
                                     <i class="fas fa-sync"></i> Reset Testowy
                                 </button>
