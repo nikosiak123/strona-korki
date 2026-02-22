@@ -508,6 +508,30 @@
                 margin-bottom: 1rem;
             }
         }
+        .tutor-card-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .tutor-card-item:hover {
+            background-color: #f9f9fc;
+        }
+        .tutor-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #e1f0ff;
+            color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 15px;
+        }
     </style>
 </head>
 <body>
@@ -611,11 +635,8 @@
                 <!-- VIEW: TUTORS -->
                 <div id="view-tutors" class="panel-view hidden">
                     <div class="panel-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="margin-bottom: 1.5rem;">
                             <h3 style="margin: 0;">Lista Korepetytorów</h3>
-                            <button class="btn btn-sm btn-primary" onclick="openSimpleTutorAddModal()">
-                                <i class="fas fa-plus"></i> Dodaj Korepetytora
-                            </button>
                         </div>
                         <div id="tutorsListContent">
                             <p style="text-align: center; color: #999;">Ładowanie listy...</p>
@@ -1459,23 +1480,28 @@
                     return;
                 }
 
-                let html = '<div class="table-responsive"><table><thead><tr><th>Imię i Nazwisko</th><th>Przedmioty</th></tr></thead><tbody>';
+                let html = '<div class="tutors-list-container">';
                 
                 data.records.forEach(rec => {
                     const f = rec.fields;
                     let subjects = Array.isArray(f.Przedmioty) ? f.Przedmioty.join(', ') : f.Przedmioty || '-';
+                    const initials = (f.ImieNazwisko || '?').charAt(0).toUpperCase();
                     
                     html += `
-                        <tr onclick='openTutorManagement(${JSON.stringify(rec).replace(/'/g, "'")})' style="cursor: pointer;">
-                            <td>
-                                <div style="font-weight: bold; color: #181c32;">${f.ImieNazwisko || 'Brak danych'}</div>
-                            </td>
-                            <td>${subjects}</td>
-                        </tr>
+                        <div class="tutor-card-item" onclick='openTutorManagement(${JSON.stringify(rec).replace(/'/g, "'")})'>
+                            <div class="tutor-avatar">${initials}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 1.05rem; color: #181c32; margin-bottom: 3px;">${f.ImieNazwisko || 'Brak danych'}</div>
+                                <div style="font-size: 0.9rem; color: #7e8299;">${subjects}</div>
+                            </div>
+                            <div>
+                                <i class="fas fa-chevron-right" style="color: #b5b5c3;"></i>
+                            </div>
+                        </div>
                     `;
                 });
                 
-                html += '</tbody></table></div>';
+                html += '</div>';
                 container.innerHTML = html;
 
             } catch(e) {
