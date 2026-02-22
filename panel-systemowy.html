@@ -243,12 +243,60 @@
             -webkit-overflow-scrolling: touch;
             border-radius: 6px;
             border: 1px solid var(--border-color);
+            padding-bottom: 5px; /* Space for scrollbar */
+        }
+
+        /* Custom Scrollbar for Table */
+        .table-responsive::-webkit-scrollbar {
+            height: 10px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.95rem;
+            min-width: 1200px; /* Force wider table to ensure scrollbar appears */
+        }
+        
+        th, td {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            vertical-align: middle;
+            white-space: nowrap; /* Prevent wrapping */
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        th {
+            background-color: #f9f9fc;
+            text-align: left;
+            font-weight: 600;
+            color: #b5b5c3;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:hover td {
+            background-color: #f9f9fc;
         }
         
         th {
@@ -522,7 +570,7 @@
                                 <button class="btn btn-sm btn-info table-selector" data-table="StaleRezerwacje">Stałe</button>
                             </div>
                             
-                            <div class="actions" style="display: flex; gap: 10px;">
+                            <div class="actions" style="display: flex; gap: 10px; margin-left: auto;">
                                 <button id="resetTestUserBtn" class="btn btn-sm btn-primary">
                                     <i class="fas fa-sync"></i> Reset Testowy
                                 </button>
