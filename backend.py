@@ -3144,21 +3144,38 @@ def search_clients():
         matching_clients = []
         seen_psids = set()
 
-        # Search ONLY in conversation_store (files) as requested
+        # Search in conversation_store and database
         import os
         conversation_store_dir = "../strona/conversation_store"
+        
+        # 1. Search in database by name
+        if query:
+            formula = f"OR(LOWER({{Imie}}) = '{query}', LOWER({{Nazwisko}}) = '{query}', LOWER({{ImieKlienta}}) = '{query}', LOWER({{NazwiskoKlienta}}) = '{query}')"
+            db_clients = clients_table.all(formula=formula)
+            for record in db_clients:
+                psid = record['fields'].get('ClientID')
+                if psid and psid not in seen_psids:
+                    display_name = f"{record['fields'].get('ImieKlienta', '')} {record['fields'].get('NazwiskoKlienta', '')}".strip()
+                    if not display_name:
+                        display_name = f"{record['fields'].get('Imie', '')} {record['fields'].get('Nazwisko', '')}".strip()
+                    
+                    matching_clients.append({
+                        'psid': psid,
+                        'displayName': f"{display_name} (z bazy danych)",
+                        'fullInfo': f"{display_name} ({psid})"
+                    })
+                    seen_psids.add(psid)
+
+        # 2. Search in conversation_store by PSID
         if os.path.exists(conversation_store_dir):
             all_files = os.listdir(conversation_store_dir)
-            # Sort files to ensure stable order (e.g. alphabetical)
             all_files.sort()
 
             for filename in all_files:
                 if filename.endswith('.json'):
-                    psid_from_file = filename[:-5]  # remove .json
+                    psid_from_file = filename[:-5]
                     
-                    # Check if PSID matches query OR if query is empty (show all/recent)
-                    if not query or query in psid_from_file.lower():
-                        # Try to find client name in DB for better display, but search is done only by filename
+                    if (not query or query in psid_from_file.lower()) and psid_from_file not in seen_psids:
                         display_name = "Nieznany (tylko historia)"
                         try:
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid_from_file}'")
@@ -3187,11 +3204,16 @@ def search_clients():
                         })
                         seen_psids.add(psid_from_file)
                         
-                        # Optimization: stop if we have enough results
                         if len(matching_clients) >= 20:
                             break
         
-        return jsonify({'clients': matching_clients})
+        # Remove duplicates
+        final_clients = []
+        for client in matching_clients:
+            if client not in final_clients:
+                final_clients.append(client)
+        
+        return jsonify({'clients': final_clients})
     except Exception as e:
         logging.error(f"Błąd w search_clients: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
