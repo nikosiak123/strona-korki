@@ -3,1762 +3,1328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Systemowy</title>
+    <title>Panel Systemowy - FIRMA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        .admin-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
+        /* RESET & BASE */
+        :root {
+            --sidebar-width: 250px;
+            --header-height: 60px;
+            --primary-color: #F2C94C;
+            --primary-dark: #dcb338;
+            --text-color: #333;
+            --bg-color: #f0f2f5;
+            --sidebar-bg: #1e1e2d;
+            --sidebar-text: #a2a3b7;
+            --sidebar-active-bg: #1b1b28;
+            --sidebar-active-text: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #e4e6ef;
         }
-        
-        .login-box {
-            max-width: 400px;
-            margin: 5rem auto;
-            padding: 2rem;
-            background-color: var(--container-bg-color);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px var(--shadow-color);
-        }
-        
-        .login-box h2 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .login-box input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
+
+        body {
             font-family: 'Nunito', sans-serif;
-        }
-        
-        .login-box button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .login-box button:hover {
-            background-color: var(--primary-hover-color);
-        }
-        
-        .error-message {
-            color: #D32F2F;
-            text-align: center;
-            margin-top: 1rem;
-            display: none;
-        }
-        
-        .admin-panel {
-            display: none;
-        }
-        
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .logout-btn {
-            padding: 8px 16px;
-            background-color: #E0E0E0;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .logout-btn:hover {
-            background-color: #BDBDBD;
-        }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .dashboard-card {
-            background-color: var(--container-bg-color);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px var(--shadow-color);
-        }
-        
-        .dashboard-card:hover {
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px var(--shadow-color);
-        }
-        
-        .dashboard-card.active {
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-        }
-        
-        .dashboard-card i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
-        .dashboard-card h4 {
             margin: 0;
-            font-size: 1.2rem;
-            font-weight: 700;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
         }
-        
-        .table-selector {
+
+        /* LOGIN SCREEN */
+        #loginScreen {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .table-btn {
-            padding: 10px 20px;
-            background-color: #E0E0E0;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .table-btn:hover {
-            background-color: #BDBDBD;
-        }
-        
-        .table-btn.active {
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-        }
-        
-        .action-buttons {
-            margin-bottom: 1.5rem;
-        }
-        
-        .add-record-btn {
-            padding: 10px 20px;
-            background-color: var(--available-text-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .add-record-btn:hover {
-            background-color: #2E7D32;
-        }
-        
-        .records-table {
-            width: 100%;
-            background-color: white;
-            border-radius: 8px;
-            overflow-x: auto;
-            box-shadow: 0 2px 8px var(--shadow-color);
-        }
-        
-        .records-table table {
-            width: 100%;
-            min-width: 1200px;
-            border-collapse: collapse;
-        }
-        
-        .records-table th {
-            background-color: #F5F5F5;
-            padding: 12px;
-            text-align: left;
-            font-weight: 700;
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .records-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .records-table tr:hover {
-            background-color: #FAFAFA;
-        }
-        
-        .record-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .edit-btn, .delete-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        
-        .edit-btn {
-            background-color: #2196F3;
-            color: white;
-        }
-        
-        .edit-btn:hover {
-            background-color: #1976D2;
-        }
-        
-        .delete-btn {
-            background-color: #E53935;
-            color: white;
-        }
-        
-        .delete-btn:hover {
-            background-color: #C62828;
-        }
-        
-        /* Modal */
-        .modal {
-            display: none;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-color);
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
+            z-index: 2000;
         }
         
-        .modal.active {
+        .login-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* LAYOUT STRUCTURE */
+        .admin-wrapper {
             display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            background-color: #1a1a27;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--sidebar-active-text);
+        }
+
+        .menu-item.active {
+            background-color: var(--sidebar-active-bg);
+            color: var(--sidebar-active-text);
+            border-left-color: var(--primary-color);
+        }
+
+        .menu-item i {
+            width: 25px;
+            margin-right: 10px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        /* MAIN CONTENT */
+        .admin-main {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .top-header {
+            height: var(--header-height);
+            background-color: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+        
+        .page-title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #181c32;
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .content-container {
+            padding: 2rem;
+            flex: 1;
+        }
+
+        /* CARDS & PANELS */
+        .panel-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.03);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* UTILS */
+        .hidden { display: none !important; }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary { background-color: var(--primary-color); color: #333; }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        
+        .btn-success { background-color: #1bc5bd; color: white; }
+        .btn-success:hover { background-color: #0bb7af; }
+        
+        .btn-danger { background-color: #f64e60; color: white; }
+        .btn-danger:hover { background-color: #ee2d41; }
+
+        .btn-info { background-color: #3699ff; color: white; }
+        .btn-info:hover { background-color: #187de4; }
+
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+
+        /* TABLES */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        
+        th {
+            background-color: #f9f9fc;
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            color: #b5b5c3;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        
+        tr:hover td {
+            background-color: #f9f9fc;
+        }
+
+        /* FORMS */
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #fff;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        /* CHAT SPECIFIC */
+        .chat-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 1.5rem;
+            height: calc(100vh - 180px); /* Dopasowanie do wysokości */
+            min-height: 500px;
+        }
+
+        .user-list {
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+            padding-right: 1rem;
+        }
+
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #f9f9fc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .msg-bot {
+            align-self: flex-start;
+            background-color: #f0f2f5;
+            color: #333;
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-user {
+            align-self: flex-end;
+            background-color: #e1f0ff; /* Lekki niebieski */
+            color: #0050a5;
+            border-bottom-right-radius: 2px;
+        }
+        
+        .msg-user.unread {
+            border: 2px solid var(--primary-color);
+        }
+
+        .chat-input-area {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            background: #f9f9fc;
+            display: flex;
+            gap: 10px;
+        }
+
+        .user-item {
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+            background: #fff;
+            border: 1px solid var(--border-color);
+        }
+
+        .user-item:hover {
+            background-color: #f9f9fc;
+            border-color: #d1d3e0;
+        }
+
+        .user-item.active {
+            background-color: #e1f0ff;
+            border-color: #b5d0f5;
+        }
+        
+        .user-item.has-unread {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* MODALS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
             align-items: center;
             justify-content: center;
         }
         
+        .modal.active { display: flex; }
+        
         .modal-content {
-            background-color: white;
+            background: white;
             padding: 2rem;
-            border-radius: 12px;
-            max-width: 600px;
+            border-radius: 8px;
             width: 90%;
-            max-height: 80vh;
+            max-width: 600px;
+            max-height: 90vh;
             overflow-y: auto;
         }
-        
-        .modal-content h3 {
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-        
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: 'Nunito', sans-serif;
-        }
-        
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-        
-        .modal-buttons button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .save-btn {
-            background-color: var(--available-text-color);
-            color: white;
-        }
-        
-        .save-btn:hover {
-            background-color: #2E7D32;
-        }
-        
-        .cancel-btn {
-            background-color: #E0E0E0;
-        }
-        
-        .cancel-btn:hover {
-            background-color: #BDBDBD;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-medium);
-        }
-        
-        .no-records {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-medium);
-        }
-        
-        /* Panel wiadomości */
-        .messages-panel {
-            display: none;
-        }
-        
-        /* Panel statystyk */
-        .stats-panel {
-            display: none;
-        }
-        
-        .manual-users-list {
-            margin-bottom: 2rem;
-        }
-        
-        .manual-user-item {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px var(--shadow-color);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .manual-user-item:hover {
-            background-color: #FAFAFA;
-        }
-        
-        .manual-user-item.unread {
-            background-color: #FFF9C4;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .manual-user-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .manual-user-name {
-            font-weight: 700;
-        }
-        
-        .manual-user-psid {
-            color: var(--text-medium);
-            font-size: 0.9rem;
-        }
-        
-        .manual-user-last-msg {
-            margin-top: 0.5rem;
-            color: var(--text-medium);
-        }
-        
-        .chat-container {
-            display: none;
-            background-color: white;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 2px 8px var(--shadow-color);
-        }
-        
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .chat-messages {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background-color: #F9F9F9;
-            border-radius: 8px;
-        }
-        
-        .chat-message {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-        
-        .chat-message.user {
-            background-color: #E3F2FD;
-            text-align: right;
-        }
-        
-        .chat-message.bot {
-            background-color: #F5F5F5;
-        }
-        
-        .chat-input {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .chat-input textarea {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            resize: none;
-        }
-        
-        .chat-input button {
-            padding: 10px 20px;
-            background-color: var(--primary-color);
-            color: var(--text-dark);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        .chat-input button:hover {
-            background-color: var(--primary-hover-color);
-        }
-        
-        .user-details {
-            margin-top: 2rem;
-        }
-        
-        .user-details h3 {
-            margin-bottom: 1rem;
-        }
-        
-        .user-details-section {
-            margin-bottom: 2rem;
-        }
-        
-        .client-link {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-        
-        .client-link:hover {
-            text-decoration: underline;
-        }
-        
-        .manual-user-balance, .manual-user-names, .manual-user-reservations {
-            margin-top: 0.5rem;
-            color: var(--text-medium);
-            font-size: 0.9rem;
-        }
-        
-        .manual-user-reservations {
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        
-        .unread-checkmark {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        
-        .unread-checkmark:hover {
-            background-color: #45a049;
-        }
-        .user-search {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            position: relative; /* Dla pozycjonowania autocomplete */
-        }
-        .user-search input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-        }
-        
-        /* Autocomplete styles */
-        .autocomplete-items {
-            position: absolute;
-            border: 1px solid var(--border-color);
-            border-bottom: none;
-            border-top: none;
-            z-index: 99;
-            top: 100%;
-            left: 0;
-            right: 0;
-            border-radius: 0 0 6px 6px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .autocomplete-items div {
-            padding: 10px;
-            cursor: pointer;
-            background-color: #fff;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .autocomplete-items div:hover {
-            background-color: #e9e9e9;
-        }
-        
-        .autocomplete-active {
-            background-color: var(--primary-color) !important;
-            color: #ffffff;
+
+        /* RESPONSIVE */
+        @media (max-width: 992px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+            .admin-main {
+                margin-left: 0;
+            }
+            .sidebar-open .admin-sidebar {
+                transform: translateX(0);
+            }
+            .mobile-toggle {
+                display: block;
+            }
+            .chat-layout {
+                grid-template-columns: 1fr;
+            }
+            .user-list {
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Panel Systemowy</h1>
-    </header>
 
-    <main>
-        <!-- Ekran logowania -->
-        <div id="loginScreen" class="login-box">
-            <h2>Zaloguj się</h2>
-            <input type="password" id="passwordInput" placeholder="Hasło" />
-            <button id="loginBtn">Zaloguj</button>
-            <p id="loginError" class="error-message">Nieprawidłowe hasło</p>
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2 style="margin-bottom: 1.5rem; color: #181c32;">Panel Systemowy</h2>
+            <div style="margin-bottom: 1.5rem;">
+                <input type="password" id="passwordInput" class="form-control" placeholder="Hasło dostępu" />
+            </div>
+            <button id="loginBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">Zaloguj</button>
+            <p id="loginError" style="color: #f64e60; margin-top: 10px; display: none;">Nieprawidłowe hasło</p>
         </div>
+    </div>
 
-        <!-- Panel administracyjny -->
-        <div id="adminPanel" class="admin-panel">
-            <div class="admin-container">
-                <div class="admin-header">
-                    <h2>Panel Systemowy</h2>
-                    <button id="logoutBtn" class="logout-btn">Wyloguj</button>
+    <!-- Admin Panel Layout -->
+    <div id="adminPanel" class="admin-wrapper" style="display: none;">
+        
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-brand">
+                <i class="fas fa-shield-alt" style="margin-right: 10px; color: var(--primary-color);"></i>
+                FIRMA Admin
+            </div>
+            
+            <nav class="sidebar-menu">
+                <div class="menu-item active" data-target="database">
+                    <i class="fas fa-database"></i>
+                    <span>Baza Danych</span>
                 </div>
-
-                <div class="dashboard-grid">
-                    <div class="dashboard-card active" data-panel="database">
-                        <i class="fas fa-database"></i>
-                        <h4>Baza danych</h4>
-                    </div>
-                    <div class="dashboard-card" data-panel="messages">
-                        <i class="fas fa-comments"></i>
-                        <h4>Panel wiadomości</h4>
-                    </div>
-                    <div class="dashboard-card" data-panel="stats">
-                        <i class="fas fa-chart-bar"></i>
-                        <h4>Statystyki Facebook</h4>
-                    </div>
+                <div class="menu-item" data-target="messages">
+                    <i class="fas fa-comments"></i>
+                    <span>Wiadomości</span>
                 </div>
-
-                <div class="admin-actions" style="margin-bottom: 2rem; text-align: center;">
-                    <button id="resetTestUserBtn" class="add-record-btn">Reset użytkownika testowego</button>
+                <div class="menu-item" data-target="stats">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Statystyki</span>
                 </div>
+            </nav>
 
-                <!-- Panel bazy danych -->
-                <div id="databasePanel">
-                    <div class="table-selector">
-                        <button class="table-btn" data-table="Klienci">Klienci</button>
-                        <button class="table-btn" data-table="Korepetytorzy">Korepetytorzy</button>
-                        <button class="table-btn" data-table="Rezerwacje">Rezerwacje</button>
-                        <button class="table-btn" data-table="StaleRezerwacje">Stałe Rezerwacje</button>
-                    </div>
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Wyloguj
+                </button>
+            </div>
+        </aside>
 
-                    <div id="tableContent">
-                        <p class="no-records">Wybierz tabelę, aby zobaczyć dane</p>
-                    </div>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button id="mobileMenuToggle" class="mobile-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title" id="headerTitle">Baza Danych</h1>
                 </div>
+                <div style="font-size: 0.9rem; color: #7e8299;">
+                    <i class="far fa-user"></i> Administrator
+                </div>
+            </header>
 
-                <!-- Panel wiadomości -->
-                <div id="messagesPanel" class="messages-panel">
-                    <div class="user-search">
-                        <input type="text" id="searchPSID" placeholder="Wpisz PSID użytkownika" autocomplete="off">
-                        <button id="searchUserBtn" class="add-record-btn">Wczytaj użytkownika</button>
-                        <div id="autocomplete-list" class="autocomplete-items" style="display: none;"></div>
-                    </div>
-                    <div class="manual-users-list" id="manualUsersList">
-                        <p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>
-                    </div>
-
-                    <div class="chat-container" id="chatContainer">
-                        <div class="chat-header">
-                            <div>
-                                <h3 id="chatUserName">Rozmowa z użytkownikiem</h3>
-                                <a id="clientPanelLink" class="client-link" href="#" target="_blank">Panel klienta</a>
+            <!-- Content Area -->
+            <div class="content-container">
+                
+                <!-- VIEW: DATABASE -->
+                <div id="view-database" class="panel-view">
+                    <div class="panel-card">
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div class="table-tabs" style="display: flex; gap: 0.5rem; overflow-x: auto;">
+                                <button class="btn btn-sm btn-info table-selector active" data-table="Klienci">Klienci</button>
+                                <button class="btn btn-sm btn-info table-selector" data-table="Korepetytorzy">Korepetytorzy</button>
+                                <button class="btn btn-sm btn-info table-selector" data-table="Rezerwacje">Rezerwacje</button>
+                                <button class="btn btn-sm btn-info table-selector" data-table="StaleRezerwacje">Stałe</button>
                             </div>
-                            <button id="toggleManualBtn" class="add-record-btn">Włącz tryb ręczny</button>
+                            
+                            <div class="actions">
+                                <button id="resetTestUserBtn" class="btn btn-sm btn-primary" style="margin-right: 10px;">
+                                    <i class="fas fa-sync"></i> Reset Testowy
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                                    <i class="fas fa-plus"></i> Dodaj Rekord
+                                </button>
+                                <button id="quickTutorBtn" class="btn btn-sm btn-info hidden" onclick="openSimpleTutorAddModal()">
+                                    <i class="fas fa-user-plus"></i> Szybki Korepetytor
+                                </button>
+                            </div>
                         </div>
-                        <div class="chat-messages" id="chatMessages"></div>
-                        <div class="chat-input">
-                            <textarea id="messageInput" rows="3" placeholder="Wpisz wiadomość..."></textarea>
-                            <button id="sendMessageBtn">Wyślij</button>
+
+                        <div id="databaseContent">
+                            <p style="text-align: center; color: #7e8299; padding: 2rem;">Wybierz tabelę powyżej...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: MESSAGES -->
+                <div id="view-messages" class="panel-view hidden">
+                    <div class="panel-card" style="height: 100%;">
+                        <div class="search-bar">
+                            <input type="text" id="searchUser" class="form-control" placeholder="Szukaj użytkownika (Imię, Nazwisko, PSID)...">
+                            <button id="btnSearchUser" class="btn btn-primary"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div id="autocomplete-results" style="display:none; border:1px solid #ddd; border-radius:4px; max-height:200px; overflow:auto; position:absolute; background:white; z-index:100; width:300px;"></div>
+
+                        <div class="chat-layout">
+                            <!-- Left: User List -->
+                            <div class="user-list">
+                                <h3 style="margin-top: 0; font-size: 1rem; color: #7e8299; text-transform: uppercase;">Użytkownicy (Manual)</h3>
+                                <div id="manualUsersList">
+                                    <p style="text-align: center; color: #999;">Ładowanie...</p>
+                                </div>
+                            </div>
+
+                            <!-- Right: Chat Area -->
+                            <div class="chat-area" id="chatWrapper" style="display: none;">
+                                <div class="chat-header">
+                                    <div>
+                                        <strong id="chatUserNameDisplay">Użytkownik</strong>
+                                        <div style="font-size: 0.8rem; color: #7e8299;" id="chatUserPsidDisplay">PSID: ...</div>
+                                    </div>
+                                    <div style="display: flex; gap: 5px;">
+                                        <a id="clientLink" href="#" target="_blank" class="btn btn-sm btn-info" title="Panel klienta"><i class="fas fa-external-link-alt"></i></a>
+                                        <button id="toggleManualModeBtn" class="btn btn-sm btn-danger">Wyłącz Manual</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="chat-messages" id="chatMessagesBox"></div>
+                                
+                                <div class="chat-input-area">
+                                    <input type="text" id="msgInput" class="form-control" placeholder="Napisz wiadomość..." style="border-radius: 20px;">
+                                    <button id="sendMsgBtn" class="btn btn-primary" style="border-radius: 50%; width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center;"><i class="fas fa-paper-plane"></i></button>
+                                </div>
+
+                                <div style="padding: 10px; border-top: 1px solid #eee; background: #fafafa; font-size: 0.85rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span id="userDetailsFooter">Saldo: -</span>
+                                        <button id="sendLinkActionBtn" class="btn btn-sm btn-primary" style="font-size: 0.75rem;">Wyślij link rezerwacyjny</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="chatPlaceholder" style="display: flex; align-items: center; justify-content: center; color: #999; flex-direction: column;">
+                                <i class="far fa-comments" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                                <p>Wybierz użytkownika z listy, aby rozpocząć czat</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: STATS -->
+                <div id="view-stats" class="panel-view hidden">
+                    <!-- Status Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;" id="statsCards">
+                        <!-- Wstrzykiwane dynamicznie -->
+                    </div>
+
+                    <div class="panel-card">
+                        <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
+                        <div style="height: 300px;">
+                            <canvas id="hourlyStatsChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="user-details" id="userDetails">
-                        <!-- Szczegóły użytkownika będą ładowane tutaj -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="panel-card">
+                            <h3 style="margin-top: 0;">Ostatnie Logi/Błędy</h3>
+                            <div id="errorLogsList" style="max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                        <div class="panel-card">
+                            <h3 style="margin-top: 0;">Zrzuty ekranu (Bot Status)</h3>
+                            <div id="screenshotList" style="max-height: 300px; overflow-y: auto;"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Panel statystyk -->
-                <div id="statsPanel" class="stats-panel">
-                    <p class="loading">Ładowanie statystyk...</p>
-                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Generic Edit/Add -->
+    <div id="recordModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle" style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 1rem;">Edycja</h3>
+            <div id="modalFormContainer" style="margin: 1.5rem 0;"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('recordModal')">Anuluj</button>
+                <button class="btn btn-primary" id="saveRecordBtn">Zapisz</button>
             </div>
         </div>
+    </div>
 
-        <!-- Modal do edycji/dodawania rekordu -->
-        <div id="recordModal" class="modal">
-            <div class="modal-content">
-                <h3 id="modalTitle">Edytuj rekord</h3>
-                <div id="modalForm"></div>
-                <div class="modal-buttons">
-                    <button id="saveRecordBtn" class="save-btn">Zapisz</button>
-                    <button id="cancelModalBtn" class="cancel-btn">Anuluj</button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal do uproszczonego dodawania korepetytora -->
+    <!-- Modal: Simple Tutor -->
     <div id="simpleTutorModal" class="modal">
         <div class="modal-content">
-            <h3 id="simpleModalTitle">Dodaj Korepetytora (uproszczony)</h3>
-            <div id="simpleModalForm">
-                <div class="form-group">
-                    <label for="tutorNameInput">Imię i Nazwisko</label>
-                    <input type="text" id="tutorNameInput" name="ImieNazwisko" placeholder="np. Jan Kowalski" />
+            <h3 style="margin-top: 0;">Szybkie dodawanie korepetytora</h3>
+            <div style="margin: 1.5rem 0;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Imię i Nazwisko</label>
+                    <input type="text" id="simpleTutorName" class="form-control" placeholder="Jan Kowalski">
                 </div>
-                <div class="form-group">
-                    <label for="tutorSubjectSelect">Przedmiot</label>
-                    <select id="tutorSubjectSelect" name="Przedmioty"></select>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Główny przedmiot</label>
+                    <select id="simpleTutorSubject" class="form-control">
+                        <!-- Options from JS -->
+                    </select>
                 </div>
             </div>
-            <div class="modal-buttons">
-                <button id="saveSimpleTutorBtn" class="save-btn">Zapisz</button>
-                <button id="cancelSimpleModalBtn" class="cancel-btn">Anuluj</button>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('simpleTutorModal')">Anuluj</button>
+                <button class="btn btn-primary" id="saveSimpleTutorBtn">Dodaj</button>
             </div>
         </div>
     </div>
 
     <script>
         const API_BASE_URL = '';
-        let currentTable = null;
-        let currentRecord = null;
-        let currentMode = 'edit'; // 'edit' lub 'add'
-        let currentPanel = 'database';
+        
+        // --- STATE ---
+        let state = {
+            currentTable: 'Klienci',
+            currentUserPSID: null,
+            currentRecordId: null,
+            currentMode: 'add', // 'add' or 'edit'
+            isMobileMenuOpen: false
+        };
 
-        // Lista pól, które mogą przyjmować wiele wartości (multiple select)
-        const multipleFields = ['Przedmioty', 'PoziomNauczania'];
-
-        // Opcje dla pól z wyborem zamiast ręcznego wpisywania
         const fieldOptions = {
             'Status': ['Oczekuje na płatność', 'Opłacona', 'Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Przeniesiona', 'Przeniesiona (zakończona)', 'Dostępny', 'Niedostępny'],
             'TypSzkoly': ['szkola_podstawowa', 'liceum', 'technikum'],
             'Poziom': ['podstawowy', 'rozszerzony'],
             'Klasa': ['1', '2', '3', '4', '5', '6', '7', '8'],
-            // --- DODAJ/POPRAW TO: ---
             'JestTestowa': ['false', 'true'],
             'Oplacona': ['false', 'true'],
             'confirmed': ['false', 'true'],
             'Aktywna': ['true', 'false'],
-            // ------------------------
             'DzienTygodnia': ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'],
             'Przedmiot': ['matematyka', 'fizyka', 'chemia', 'biologia', 'polski', 'angielski', 'historia', 'geografia', 'informatyka', 'plastyka', 'muzyka'],
             'Przedmioty': ['polski', 'matematyka', 'angielski'],
             'PoziomNauczania': ['podstawowka', 'liceum_podstawa', 'liceum_rozszerzenie']
         };
+        const multipleFields = ['Przedmioty', 'PoziomNauczania'];
 
-        let currentUserPSID = null;
-
-        // Ignoruj błędy JS, aby nie wyświetlały się na stronie
-        window.onerror = function(msg, url, line, col, error) {
-            console.error('JS Error:', msg, url, line, col, error);
-            return true; // Zapobiega domyślnemu wyświetlaniu
-        };
-
-        // Sprawdź autoryzację przy załadowaniu strony
+        // --- INIT ---
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
-                const data = await response.json();
+            // Check Auth
+            await checkAuth();
 
-                if (data.authenticated) {
-                    showAdminPanel();
-                }
-            } catch (error) {
-                console.error('Błąd ładowania:', error);
-            }
-        });
-
-        // Logowanie
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            const password = document.getElementById('passwordInput').value;
-            const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password})
+            // Mobile Menu
+            document.getElementById('mobileMenuToggle').addEventListener('click', () => {
+                document.getElementById('adminPanel').classList.toggle('sidebar-open');
             });
+
+            // Navigation
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const target = item.dataset.target;
+                    
+                    // Update active state
+                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    // Switch views
+                    document.querySelectorAll('.panel-view').forEach(view => view.classList.add('hidden'));
+                    document.getElementById(`view-${target}`).classList.remove('hidden');
+
+                    // Update Header
+                    const titles = { 'database': 'Baza Danych', 'messages': 'Wiadomości', 'stats': 'Statystyki' };
+                    document.getElementById('headerTitle').textContent = titles[target];
+
+                    // Close mobile menu
+                    document.getElementById('adminPanel').classList.remove('sidebar-open');
+
+                    // Load data if needed
+                    if (target === 'database') loadTableData(state.currentTable);
+                    if (target === 'messages') loadManualUsers();
+                    if (target === 'stats') loadStats();
+
+                    // Save state
+                    localStorage.setItem('adminLastView', target);
+                });
+            });
+
+            // Restore last view
+            const lastView = localStorage.getItem('adminLastView') || 'database';
+            const navItem = document.querySelector(`.menu-item[data-target="${lastView}"]`);
+            if (navItem) navItem.click();
+
+            // Login Handler
+            document.getElementById('loginBtn').addEventListener('click', handleLogin);
+            document.getElementById('passwordInput').addEventListener('keypress', e => { if(e.key==='Enter') handleLogin(); });
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+            // Table Selection
+            document.querySelectorAll('.table-selector').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.table-selector').forEach(b => {
+                        b.classList.remove('active');
+                        b.classList.remove('btn-primary');
+                        b.classList.add('btn-info');
+                    });
+                    btn.classList.add('active');
+                    btn.classList.remove('btn-info');
+                    btn.classList.add('btn-primary');
+                    
+                    state.currentTable = btn.dataset.table;
+                    loadTableData(state.currentTable);
+                });
+            });
+
+            // Set initial active table button style
+            const activeTableBtn = document.querySelector(`.table-selector[data-table="${state.currentTable}"]`);
+            if(activeTableBtn) {
+                activeTableBtn.classList.remove('btn-info');
+                activeTableBtn.classList.add('btn-primary');
+            }
+
+            // Modal Handlers
+            document.getElementById('saveRecordBtn').addEventListener('click', saveRecord);
+            document.getElementById('saveSimpleTutorBtn').addEventListener('click', saveSimpleTutor);
             
-            const data = await response.json();
-            if (data.success) {
-                showAdminPanel();
-            } else {
-                document.getElementById('loginError').style.display = 'block';
-            }
+            // Search Users
+            setupUserSearch();
         });
 
-        // Enter na logowaniu
-        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
-        });
-
-        // Wylogowanie
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await fetch(`${API_BASE_URL}/api/admin/logout`, {method: 'POST'});
-            location.reload();
-        });
-
-        function showAdminPanel() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-
-            // Sprawdź zapisany panel w localStorage
-            const savedPanel = localStorage.getItem('adminCurrentPanel') || 'database';
-            currentPanel = savedPanel;
-
-            // Aktywuj odpowiednią kartę
-            document.querySelectorAll('.dashboard-card').forEach(card => {
-                if (card.dataset.panel === currentPanel) {
-                    card.classList.add('active');
+        // --- AUTH ---
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/check-auth`);
+                const data = await res.json();
+                if (data.authenticated) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'flex';
                 } else {
-                    card.classList.remove('active');
+                    document.getElementById('loginScreen').style.display = 'flex';
                 }
-            });
-
-            // Wyświetl odpowiedni panel
-            document.getElementById('databasePanel').style.display = currentPanel === 'database' ? 'block' : 'none';
-            document.getElementById('messagesPanel').style.display = currentPanel === 'messages' ? 'block' : 'none';
-            document.getElementById('statsPanel').style.display = currentPanel === 'stats' ? 'block' : 'none';
-
-            // Załaduj dane jeśli potrzebne
-            if (currentPanel === 'messages') {
-                loadManualUsers();
-            } else if (currentPanel === 'stats') {
-                loadStats();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loginScreen').style.display = 'flex';
             }
         }
 
-        // Przełączanie paneli
-        document.querySelectorAll('.dashboard-card').forEach(card => {
-            card.addEventListener('click', () => {
-                document.querySelectorAll('.dashboard-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                currentPanel = card.dataset.panel;
-
-                // Zapisz wybór w localStorage
-                localStorage.setItem('adminCurrentPanel', currentPanel);
-
-                document.getElementById('databasePanel').style.display = currentPanel === 'database' ? 'block' : 'none';
-                document.getElementById('messagesPanel').style.display = currentPanel === 'messages' ? 'block' : 'none';
-                document.getElementById('statsPanel').style.display = currentPanel === 'stats' ? 'block' : 'none';
-
-                if (currentPanel === 'messages') {
-                    loadManualUsers();
-                } else if (currentPanel === 'stats') {
-                    loadStats();
+        async function handleLogin() {
+            const password = document.getElementById('passwordInput').value;
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    document.getElementById('loginError').style.display = 'block';
                 }
-            });
-        });
+            } catch (e) { alert('Błąd połączenia'); }
+        }
 
-        // Wybór tabeli
-        document.querySelectorAll('.table-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentTable = btn.dataset.table;
-                await loadTableData(currentTable);
-            });
-        });
+        async function handleLogout() {
+            await fetch(`${API_BASE_URL}/api/admin/logout`, {method: 'POST'});
+            location.reload();
+        }
 
+        // --- DATABASE PANEL ---
         async function loadTableData(tableName) {
-            const content = document.getElementById('tableContent');
-            content.innerHTML = '<p class="loading">Ładowanie...</p>';
+            const container = document.getElementById('databaseContent');
+            container.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Ładowanie danych...</div>';
+
+            // Show/Hide "Quick Tutor" button
+            const quickBtn = document.getElementById('quickTutorBtn');
+            if(tableName === 'Korepetytorzy') quickBtn.classList.remove('hidden');
+            else quickBtn.classList.add('hidden');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/table/${tableName}`);
-                const data = await response.json();
+                const res = await fetch(`${API_BASE_URL}/api/admin/table/${tableName}`);
+                const data = await res.json();
 
-                if (data.records.length === 0) {
-                    content.innerHTML = `
-                        <div class="action-buttons">
-                            <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
-                            ${tableName === 'Korepetytorzy' ? '<button class="add-record-btn" onclick="openSimpleTutorAddModal()" style="margin-left: 10px;">+ Dodaj Korepetytora (uproszczony)</button>' : ''}
-                        </div>
-                        <p class="no-records">Brak rekordów w tej tabeli</p>
-                    `;
+                if (!data.records || data.records.length === 0) {
+                    container.innerHTML = '<div style="padding:2rem; text-align:center;">Brak rekordów. <a href="#" onclick="openAddModal()">Dodaj pierwszy</a></div>';
                     return;
                 }
 
-                // Sortuj kolumny w odpowiedniej kolejności
+                // Determine columns
                 let fields = Object.keys(data.records[0].fields);
-                const tutorAddButton = tableName === 'Korepetytorzy' ? '<button class="add-record-btn" onclick="openSimpleTutorAddModal()" style="margin-left: 10px;">+ Dodaj Korepetytora (uproszczony)</button>' : '';
                 
+                // Specific column order for Tutors
                 if (tableName === 'Korepetytorzy') {
-                    const dayOrder = ['Czwartek', 'Poniedziałek', 'Wtorek', 'Środa', 'Piątek', 'Sobota', 'Niedziela'];
-                    const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
-                    fields = correctOrder.filter(f => fields.includes(f));
-                    // Dodaj pozostałe pola, których nie ma w correctOrder
-                    fields.push(...Object.keys(data.records[0].fields).filter(f => !correctOrder.includes(f)));
+                    const order = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
+                    fields = order.filter(f => fields.includes(f)); // Keep only existing
+                    // Add remaining if any
+                    const remaining = Object.keys(data.records[0].fields).filter(f => !order.includes(f));
+                    fields.push(...remaining);
                 }
-                let tableHTML = `
-                    <div class="action-buttons">
-                        <button class="add-record-btn" onclick="openAddModal()">+ Dodaj rekord</button>
-                        ${tutorAddButton}
-                    </div>
-                    <div class="records-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    ${fields.map(f => `<th>${f}</th>`).join('')}
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
 
-                data.records.forEach(record => {
-                    tableHTML += `<tr>
-                        <td>${record.id}</td>
-                        ${fields.map(f => {
-                            let value = record.fields[f];
-                            // 1. Tablice
-                            if (Array.isArray(value)) value = value.join(', ');
-                            
-                            // 2. Pola logiczne (0/1/true/false)
-                            const boolFields = ['confirmed', 'Oplacona', 'JestTestowa', 'Aktywna'];
-                            if (boolFields.includes(f)) {
-                                const isTrue = (value === 1 || value === true || value === 'true');
-                                value = isTrue ? 'Tak' : 'Nie';
-                            }
-                            // 3. Zwykłe booleany
-                            else if (typeof value === 'boolean') {
-                                value = value ? 'Tak' : 'Nie';
-                            }
-                            
-                            if (value === null || value === undefined) value = '';
-                            
-                            let cellContent = String(value).substring(0, 50);
+                let html = `<div class="table-responsive"><table><thead><tr><th>ID</th>`;
+                fields.forEach(f => html += `<th>${f}</th>`);
+                html += `<th>Akcje</th></tr></thead><tbody>`;
 
-                            if (tableName === 'Korepetytorzy' && f === 'ImieNazwisko' && record.fields.TutorID) {
-                                cellContent = `<a href="panel-korepetytora.html?tutorID=${record.fields.TutorID}" target="_blank">${cellContent}</a>`;
-                            } else if (tableName === 'Klienci' && f === 'Imie' && record.fields.ClientID) {
-                                cellContent = `<a href="moje-lekcje.html?clientID=${record.fields.ClientID}" target="_blank">${cellContent}</a>`;
-                            }
-
-                            return `<td>${cellContent}</td>`;
-                        }).join('')}
-                        <td class="record-actions">
-                            <button class="edit-btn" data-action="edit" data-record-id="${record.id}">Edytuj</button>
-                            <button class="delete-btn" data-action="delete" data-record-id="${record.id}">Usuń</button>
-                        </td>
-                    </tr>`;
-                });
-
-                tableHTML += `</tbody></table></div>`;
-                content.innerHTML = tableHTML;
-
-                // Dodaj event listeners dla przycisków
-                content.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const recordId = btn.dataset.recordId;
-                        try {
-                            const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`);
-                            const record = await response.json();
-                            editRecord(record);
-                        } catch (error) {
-                            alert(`Błąd ładowania rekordu: ${error.message}`);
+                data.records.forEach(rec => {
+                    html += `<tr><td><small style="color:#999;">${rec.id}</small></td>`;
+                    fields.forEach(f => {
+                        let val = rec.fields[f];
+                        
+                        // Formatting
+                        if (Array.isArray(val)) val = val.join(', ');
+                        if (val === true) val = '<span style="color:#1bc5bd; font-weight:bold;">Tak</span>';
+                        if (val === false) val = '<span style="color:#f64e60;">Nie</span>';
+                        if (val === null || val === undefined) val = '';
+                        
+                        // Links
+                        if (tableName === 'Korepetytorzy' && f === 'ImieNazwisko' && rec.fields.TutorID) {
+                            val = `<a href="panel-korepetytora.html?tutorID=${rec.fields.TutorID}" target="_blank" style="color:var(--primary-dark); font-weight:bold; text-decoration:none;">${val} <i class="fas fa-external-link-alt" style="font-size:0.7em;"></i></a>`;
                         }
+                        if (tableName === 'Klienci' && f === 'Imie' && rec.fields.ClientID) {
+                            val = `<a href="moje-lekcje.html?clientID=${rec.fields.ClientID}" target="_blank" style="color:var(--primary-dark); font-weight:bold; text-decoration:none;">${val} <i class="fas fa-external-link-alt" style="font-size:0.7em;"></i></a>`;
+                        }
+
+                        html += `<td>${val}</td>`;
                     });
+                    
+                    html += `
+                        <td>
+                            <div style="display:flex; gap:5px;">
+                                <button class="btn btn-sm btn-info" onclick='editRecordInit(${JSON.stringify(rec).replace(/'/g, "'")})'><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteRecord('${rec.id}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td></tr>
+                    `;
                 });
-
-                content.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const recordId = btn.dataset.recordId;
-                        deleteRecord(recordId);
-                    });
-                });
-            } catch (error) {
-                content.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
-            }
-        }
-
-        function openAddModal() {
-            currentMode = 'add';
-            currentRecord = null;
-            document.getElementById('modalTitle').textContent = 'Dodaj nowy rekord';
-            generateModalForm({fields: {}});
-            document.getElementById('recordModal').classList.add('active');
-        }
-
-        function editRecord(record) {
-            console.log("Dane rekordu przekazane do edycji:", record);
-            currentMode = 'edit';
-            currentRecord = record;
-            document.getElementById('modalTitle').textContent = 'Edytuj rekord';
-            generateModalForm(record);
-            document.getElementById('recordModal').classList.add('active');
-        }
-
-        function generateModalForm(record) {
-            const formContainer = document.getElementById('modalForm');
-            // Jeśli nie ma pól lub obiekt jest pusty, użyj domyślnego zestawu pól dla danej tabeli
-            let fields = (record && record.fields && Object.keys(record.fields).length > 0)
-                ? record.fields
-                : getDefaultFields(currentTable);
-            
-            // Sortuj pola w odpowiedniej kolejności dla Korepetytorzy
-            let sortedKeys = Object.keys(fields);
-            if (currentTable === 'Korepetytorzy') {
-                const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
-                sortedKeys = correctOrder.filter(f => sortedKeys.includes(f));
-                // Dodaj pozostałe pola, których nie ma w correctOrder
-                sortedKeys.push(...Object.keys(fields).filter(f => !correctOrder.includes(f)));
-            }
-            
-            let formHTML = '';
-            for (const key of sortedKeys) {
-                let value = fields[key];
-                let inputValue = '';
-
-                // --- NOWA LOGIKA ---
-                if (Array.isArray(value)) {
-                    inputValue = JSON.stringify(value);
-                } 
-                // Obsługa 0 i 1 dla pól zdefiniowanych w fieldOptions
-                else if (fieldOptions[key] && (value === 0 || value === 1)) {
-                    inputValue = (value === 1) ? 'true' : 'false';
-                }
-                else if (typeof value === 'boolean') {
-                    inputValue = value ? 'true' : 'false';
-                } 
-                else if (value !== null && value !== undefined) {
-                    inputValue = String(value);
-                }
-                // -------------------
+                html += `</tbody></table></div>`;
                 
-                const escapedValue = inputValue.replace(/"/g, '&quot;');
-                let placeholder = '';
-                if (key === 'Data') placeholder = 'np. 2026-01-08';
-                else if (key === 'Godzina') placeholder = 'np. 14:00';
-                else if (key === 'Przedmioty') placeholder = 'np. ["matematyka", "fizyka"]';
-                else if (key === 'PoziomNauczania') placeholder = 'np. ["podstawowka", "liceum_podstawa"]';
+                container.innerHTML = html;
 
-                // GENEROWANIE HTML
-                if (fieldOptions[key]) {
-                    let selectHTML = `<select name="${key}"${multipleFields.includes(key) ? ' multiple' : ''}>`;
-                    fieldOptions[key].forEach(option => {
-                        // Porównanie jako stringi
-                        let selected = '';
-                        // Logika dla multiple select (tablice)
-                        if (multipleFields.includes(key)) {
-                             try {
-                                const selectedArray = JSON.parse(inputValue || '[]');
-                                selected = selectedArray.includes(option) ? ' selected' : '';
-                            } catch { selected = ''; }
-                        } else {
-                            // Logika dla zwykłego select
-                            selected = (String(inputValue) === String(option)) ? ' selected' : '';
-                        }
-                        selectHTML += `<option value="${option}"${selected}>${option}</option>`;
-                    });
-                    selectHTML += '</select>';
-                    if (multipleFields.includes(key)) selectHTML += '<small style="color: #666;">Ctrl+Click dla wielu</small>';
-
-                    formHTML += `
-                        <div class="form-group">
-                            <label>${key}</label>
-                            ${selectHTML}
-                        </div>
-                    `;
-                } else {
-                    // To jest zwykły INPUT
-                    formHTML += `
-                        <div class="form-group">
-                            <label>${key}</label>
-                            <input type="text" name="${key}" value="${escapedValue}" placeholder="${placeholder}" />
-                        </div>
-                    `;
-                }
+            } catch (e) {
+                container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
             }
-            formContainer.innerHTML = formHTML;
         }
 
-        function getDefaultFields(tableName) {
+        // --- CRUD OPERATIONS ---
+        function openAddModal() {
+            state.currentMode = 'add';
+            state.currentRecordId = null;
+            document.getElementById('modalTitle').textContent = 'Dodaj nowy rekord';
+            
+            // Generate empty form based on current table defaults
             const defaults = {
                 'Klienci': {ClientID: '', Imie: '', Nazwisko: '', LINK: ''},
-'Korepetytorzy': {TutorID: '', ImieNazwisko: '', LINK: '', Poniedziałek: '', Wtorek: '', Środa: '', Czwartek: '', Piątek: '', Sobota: '', Niedziela: '', Przedmioty: '[]', PoziomNauczania: '[]'},
-                'Rezerwacje': {Klient: '', Korepetytor: '', Data: '', Godzina: '', Przedmiot: '', Klasa: '', TypSzkoly: '', Poziom: '', Oplacona: false, Status: 'Oczekuje na płatność'},
-                'StaleRezerwacje': {Klient_ID: '', Korepetytor: '', DzienTygodnia: '', Godzina: '', Przedmiot: '', Aktywna: true}
+                'Korepetytorzy': {TutorID: '', ImieNazwisko: '', LINK: '', Przedmioty: [], PoziomNauczania: []},
+                'Rezerwacje': {Klient: '', Korepetytor: '', Data: '', Godzina: '', Status: 'Oczekuje na płatność'},
+                'StaleRezerwacje': {Klient_ID: '', Korepetytor: '', DzienTygodnia: '', Godzina: '', Aktywna: true}
             };
-            return defaults[tableName] || {};
+            
+            generateForm(defaults[state.currentTable] || {});
+            openModal('recordModal');
         }
 
-        document.getElementById('saveRecordBtn').addEventListener('click', async () => {
-            const formData = {};
-            // Obsługa inputów tekstowych
-            document.querySelectorAll('#modalForm input').forEach(input => {
-                let value = input.value;
+        function editRecordInit(record) {
+            state.currentMode = 'edit';
+            state.currentRecordId = record.id;
+            document.getElementById('modalTitle').textContent = `Edycja rekordu (${record.id})`;
+            generateForm(record.fields);
+            openModal('recordModal');
+        }
 
-                // Próba parsowania JSON dla tablic
-                if (value.startsWith('[') || value.startsWith('{')) {
-                    try {
-                        value = JSON.parse(value);
-                    } catch (e) {}
-                }
+        function generateForm(fields) {
+            const container = document.getElementById('modalFormContainer');
+            let html = '';
 
-                // Konwersja boolean
-                if (value === 'true') value = true;
-                if (value === 'false') value = false;
-
-                formData[input.name] = value;
-            });
-
-            // Obsługa selectów
-            document.querySelectorAll('#modalForm select').forEach(select => {
-                if (select.multiple) {
-                    // Dla multiple select, zbieramy wybrane opcje jako tablicę
-                    const selectedValues = Array.from(select.selectedOptions).map(option => option.value);
-                    formData[select.name] = selectedValues;
-                } else {
-                    // Dla pojedynczego select
-                    const value = select.value;
-                    // Dla kompatybilności, niektóre pola mogą wymagać tablicy
-                    if (['Przedmioty'].includes(select.name)) {
-                        formData[select.name] = [value];
-                    } else {
-                        formData[select.name] = value;
-                    }
-                }
-            });
-
-            try {
-                let response;
-                if (currentMode === 'add') {
-                    response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({fields: formData})
-                    });
-                } else {
-                    response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${currentRecord.id}`, {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({fields: formData})
-                    });
-                }
-
-                if (response.ok) {
-                    document.getElementById('recordModal').classList.remove('active');
-                    await loadTableData(currentTable);
-                } else {
-                    alert('Błąd podczas zapisywania rekordu');
-                }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
+            // Sort keys based on table type
+            let sortedKeys = Object.keys(fields);
+            if (state.currentTable === 'Korepetytorzy') {
+                const correctOrder = ['TutorID', 'ImieNazwisko', 'LINK', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela', 'Przedmioty', 'PoziomNauczania'];
+                const orderedPart = correctOrder.filter(k => sortedKeys.includes(k));
+                const remainingPart = sortedKeys.filter(k => !correctOrder.includes(k));
+                sortedKeys = [...orderedPart, ...remainingPart];
             }
-        });
 
-        document.getElementById('cancelModalBtn').addEventListener('click', () => {
-            document.getElementById('recordModal').classList.remove('active');
-        });
+            for (const key of sortedKeys) {
+                const value = fields[key];
+                html += `<div style="margin-bottom:1rem;"><label style="display:block; font-weight:600; font-size:0.9rem; margin-bottom:5px;">${key}</label>`;
+                
+                // Select input
+                if (fieldOptions[key]) {
+                    const isMultiple = multipleFields.includes(key);
+                    html += `<select name="${key}" class="form-control" ${isMultiple ? 'multiple style="height:100px;"' : ''}>`;
+                    
+                    fieldOptions[key].forEach(opt => {
+                        let isSelected = false;
+                        if (isMultiple && Array.isArray(value)) isSelected = value.includes(opt);
+                        else isSelected = String(value) === String(opt);
+                        
+                        html += `<option value="${opt}" ${isSelected ? 'selected' : ''}>${opt}</option>`;
+                    });
+                    html += `</select>`;
+                } else {
+                    // Text input
+                    let valStr = value;
+                    if (typeof value === 'object' && value !== null) valStr = JSON.stringify(value);
+                    if (valStr === null || valStr === undefined) valStr = '';
+                    
+                    html += `<input type="text" name="${key}" class="form-control" value="${String(valStr).replace(/"/g, '"')}">`;
+                }
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        }
 
-        async function deleteRecord(recordId) {
-            if (!confirm('Czy na pewno chcesz usunąć ten rekord?')) return;
+        async function saveRecord() {
+            const formData = {};
+            const container = document.getElementById('modalFormContainer');
+            
+            // Inputs
+            container.querySelectorAll('input').forEach(inp => {
+                let val = inp.value;
+                // Auto-detect JSON or Boolean
+                if (val === 'true') val = true;
+                if (val === 'false') val = false;
+                if (val.startsWith('[') || val.startsWith('{')) { try { val = JSON.parse(val); } catch(e){} }
+                formData[inp.name] = val;
+            });
+
+            // Selects
+            container.querySelectorAll('select').forEach(sel => {
+                if (sel.multiple) {
+                    formData[sel.name] = Array.from(sel.selectedOptions).map(o => o.value);
+                } else {
+                    let val = sel.value;
+                    if (val === 'true') val = true;
+                    if (val === 'false') val = false;
+                    formData[sel.name] = val;
+                }
+            });
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/table/${currentTable}/record/${recordId}`, {
-                    method: 'DELETE'
+                const url = `${API_BASE_URL}/api/admin/table/${state.currentTable}/record` + (state.currentMode === 'edit' ? `/${state.currentRecordId}` : '');
+                const method = state.currentMode === 'edit' ? 'PUT' : 'POST';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({fields: formData})
                 });
 
-                if (response.ok) {
-                    await loadTableData(currentTable);
+                if (res.ok) {
+                    closeModal('recordModal');
+                    loadTableData(state.currentTable);
                 } else {
-                    alert('Błąd podczas usuwania rekordu');
+                    alert('Błąd zapisu');
                 }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
-            }
+            } catch (e) { alert('Błąd: ' + e.message); }
         }
 
-        // Funkcje dla uproszczonego dodawania korepetytora
-        function openSimpleTutorAddModal() {
-            if (currentTable !== 'Korepetytorzy') return;
-
-            document.getElementById('simpleModalTitle').textContent = 'Dodaj Korepetytora (uproszczony)';
-
-            // Wypełnij select przedmiotów
-            const subjectSelect = document.getElementById('tutorSubjectSelect');
-            subjectSelect.innerHTML = '';
-            // Używamy fieldOptions.Przedmiot (pojedynczy) dla opcji do wyboru
-            const subjects = fieldOptions['Przedmiot'] || [];
-            
-            // Dodaj opcję domyślną
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'Wybierz przedmiot';
-            subjectSelect.appendChild(defaultOption);
-
-            subjects.forEach(subject => {
-                const option = document.createElement('option');
-                option.value = subject;
-                option.textContent = subject.charAt(0).toUpperCase() + subject.slice(1);
-                subjectSelect.appendChild(option);
-            });
-            
-            // Wyczyść pole nazwy
-            document.getElementById('tutorNameInput').value = '';
-
-            document.getElementById('simpleTutorModal').classList.add('active');
-        }
-
-        document.getElementById('saveSimpleTutorBtn').addEventListener('click', async () => {
-            const nameInput = document.getElementById('tutorNameInput').value.trim();
-            const subjectSelect = document.getElementById('tutorSubjectSelect');
-            const subject = subjectSelect.value;
-
-            if (!nameInput || !subject) {
-                alert('Proszę wypełnić wszystkie pola: Imię i Nazwisko oraz Przedmiot.');
-                return;
-            }
-
+        async function deleteRecord(id) {
+            if(!confirm('Czy na pewno usunąć?')) return;
             try {
-                // Nowy endpoint i wysyłamy Przedmioty jako tablicę [subject]
-                const response = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy/record`, {
+                await fetch(`${API_BASE_URL}/api/admin/table/${state.currentTable}/record/${id}`, {method: 'DELETE'});
+                loadTableData(state.currentTable);
+            } catch(e) { alert('Błąd usuwania'); }
+        }
+
+        // Quick Tutor
+        function openSimpleTutorAddModal() {
+            const sel = document.getElementById('simpleTutorSubject');
+            sel.innerHTML = '';
+            (fieldOptions['Przedmiot'] || []).forEach(p => {
+                sel.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+            openModal('simpleTutorModal');
+        }
+
+        async function saveSimpleTutor() {
+            const name = document.getElementById('simpleTutorName').value;
+            const subject = document.getElementById('simpleTutorSubject').value;
+            if(!name) return alert('Podaj imię');
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy/record`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        "fields": {
-                            "ImieNazwisko": nameInput,
+                        fields: {
+                            "ImieNazwisko": name,
                             "Przedmioty": [subject],
                             "PoziomNauczania": ["podstawowka", "liceum_podstawa"],
                             "TutorID": "temp-" + Date.now()
                         }
                     })
                 });
-
-                if (response.ok) {
-                    document.getElementById('simpleTutorModal').classList.remove('active');
-                    alert('Korepetytor został pomyślnie dodany.');
-                    await loadTableData(currentTable); // Odśwież tabelę
-                } else {
-                    let errorMsg = 'Błąd podczas dodawania korepetytora';
-                    try {
-                        const errorData = await response.json();
-                        errorMsg = errorData.error || errorMsg;
-                    } catch {}
-                    alert(errorMsg);
-                }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
-            }
-        });
-
-        document.getElementById('cancelSimpleModalBtn').addEventListener('click', () => {
-            document.getElementById('simpleTutorModal').classList.remove('active');
-        });
-
-        // Funkcje panelu statystyk
-        async function loadStats() {
-            const panel = document.getElementById('statsPanel');
-            panel.innerHTML = '<p class="loading">Ładowanie statystyk...</p>';
-
-            let finalHtml = '<h3>Statystyki Facebook</h3>';
-
-            try {
-                // 1. Pobierz statystyki dzienne (istniejąca logika)
-                const dailyResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
-                const dailyData = await dailyResponse.json();
-
-                if (dailyData.error) {
-                    finalHtml += `<p class="error-message">${dailyData.error}</p>`;
-                } else {
-                    const statusText = dailyData.isRunning ? 'Tak' : 'Nie';
-                    const statusColor = dailyData.isRunning ? '#4CAF50' : '#F44336';
-                    finalHtml += `<p><strong>Skrypt analizy działa:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span> (ostatni komentarz: ${dailyData.lastCommentTime})</p>`;
-                    finalHtml += '<h4>Podsumowanie dzienne</h4><div class="records-table"><table><thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ostatni komentarz</th></tr></thead><tbody>';
-                    dailyData.stats.forEach(stat => {
-                        finalHtml += `<tr><td>${stat.Data}</td><td>${stat.Przeslane || 0}</td><td>${stat.Odrzucone || 0}</td><td>${stat.Oczekuje || 0}</td><td>${stat.LastCommentTime || 'Brak'}</td></tr>`;
-                    });
-                    finalHtml += '</tbody></table></div>';
-                }
-
-                // 2. Pobierz i wyrenderuj statystyki godzinowe (NOWA LOGIKA)
-                finalHtml += '<h4 style="margin-top: 2rem;">Aktywność w ostatnich 48 godzinach</h4>';
-                try {
-                    const hourlyResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
-                    const hourlyData = await hourlyResponse.json();
-
-                    if (hourlyData.stats && hourlyData.stats.length > 0) {
-                        // Dodaj płótno dla wykresu
-                        finalHtml += '<canvas id="hourlyStatsChart" style="margin-top: 1rem;"></canvas>';
-                        
-                        // Dodaj tabelę ze szczegółowymi danymi
-                        finalHtml += '<h4 style="margin-top: 2rem;">Szczegółowe dane godzinowe</h4><div class="records-table"><table><thead><tr><th>Godzina</th><th>Skomentowane posty</th><th>Przeskanowane posty</th></tr></thead><tbody>';
-                        hourlyData.stats.forEach(stat => {
-                            const date = new Date(stat.timestamp);
-                            const formattedDate = date.toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                            finalHtml += `<tr><td>${formattedDate}</td><td>${stat.commented_posts || 0}</td><td>${stat.loaded_posts_total || 0}</td></tr>`;
-                        });
-                        finalHtml += '</tbody></table></div>';
-
-                        // Opóźnione renderowanie wykresu
-                        setTimeout(() => renderHourlyChart(hourlyData.stats), 100);
-
-                    } else {
-                        finalHtml += '<p class="no-records">Brak statystyk godzinowych.</p>';
-                    }
-                } catch (hourlyError) {
-                    finalHtml += `<p class="error-message">Błąd ładowania statystyk godzinowych: ${hourlyError.message}</p>`;
-                }
-
-                // 2.5. NOWE: Pobierz screenshoty statusu
-                finalHtml += '<h3 style="margin-top: 2rem;">Zrzuty ekranu statusu</h3>';
-                try {
-                    const statusScreensResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-status-screenshots`);
-                    const statusScreensData = await statusScreensResponse.json();
-
-                    if (statusScreensData.screenshots && statusScreensData.screenshots.length > 0) {
-                        // Dodajemy licznik wszystkich plików
-                        finalHtml += `<p>Liczba plików: <strong>${statusScreensData.screenshots.length}</strong></p>`;
-                        
-                        // Zmieniono max-height na 500px dla wygody, jeśli plików jest dużo
-                        finalHtml += '<div class="records-table" style="max-height: 500px; overflow-y: auto;"><table><thead><tr><th>Data utworzenia</th><th>Nazwa pliku</th><th>Pobierz</th></tr></thead><tbody>';
-                        
-                        // USUNIĘTO .slice(0, 10) - teraz iterujemy po WSZYSTKICH elementach
-                        statusScreensData.screenshots.forEach(screen => {
-                            const downloadLink = `<a href="${API_BASE_URL}/api/admin/download-status-screenshot?file=${screen.filename}" target="_blank" class="edit-btn" style="background-color: #4CAF50; text-decoration: none; color: white;">Pobierz PNG</a>`;
-                            finalHtml += `<tr><td>${screen.timestamp}</td><td>${screen.filename}</td><td>${downloadLink}</td></tr>`;
-                        });
-
-                        finalHtml += '</tbody></table></div>';
-                        // Usunięto warunek wyświetlający "Wyświetlam 10 z X", bo teraz wyświetlamy wszystkie
-                    } else {
-                        finalHtml += '<p class="no-records">Brak zrzutów statusu.</p>';
-                    }
-                } catch (statusError) {
-                    console.error('Błąd ładowania statusów:', statusError);
-                    finalHtml += `<p class="error-message">Nie udało się pobrać listy zrzutów statusu: ${statusError.message}</p>`;
-                }
-
-                // 3. Pobierz błędy (istniejąca logika)
-                try {
-                    const errorsResponse = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
-                    const errorsData = await errorsResponse.json();
-                    finalHtml += '<h3>Błędy skryptu Facebook</h3>';
-                    if (errorsData.errors && errorsData.errors.length > 0) {
-                        finalHtml += '<div class="records-table"><table><thead><tr><th>Data</th><th>Lokalizacja błędu</th><th>Zrzut ekranu</th><th>Kod HTML</th></tr></thead><tbody>';
-
-                        errorsData.errors.forEach(error => {
-                            const dateStr = new Date(error.timestamp).toLocaleString('pl-PL');
-                            const pngLink = error.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.png}" target="_blank">Pobierz PNG</a>` : 'Brak';
-                            const htmlLink = error.html ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${error.html}" target="_blank">Pobierz HTML</a>` : 'Brak';
-                            finalHtml += `<tr><td>${dateStr}</td><td>${error.location}</td><td>${pngLink}</td><td>${htmlLink}</td></tr>`;
-                        });
-
-                        finalHtml += '</tbody></table></div>';
-                    } else {
-                        finalHtml += '<p class="no-records">Brak błędów do wyświetlenia</p>';
-                    }
-                } catch (errorsError) {
-                    console.error('Błąd ładowania błędów:', errorsError);
-                    finalHtml += '<h3>Błędy skryptu Facebook</h3><p class="error-message">Błąd ładowania błędów: ' + errorsError.message + '</p>';
-                }
-
-                panel.innerHTML = finalHtml;
-
-            } catch (error) {
-                panel.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
-            }
-        }
-        
-        // NOWA FUNKCJA DO RENDEROWANIA WYKRESU
-        function renderHourlyChart(stats) {
-            const ctx = document.getElementById('hourlyStatsChart');
-            if (!ctx) return;
-
-            const labels = stats.map(s => {
-                const date = new Date(s.timestamp);
-                return date.toLocaleString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-            });
-            const commentedData = stats.map(s => s.commented_posts);
-            const loadedData = stats.map(s => s.loaded_posts_total);
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Skomentowane posty',
-                            data: commentedData,
-                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Przeskanowane posty',
-                            data: loadedData,
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1 // Idealne dla małych liczb
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Aktywność bota w ujęciu godzinowym'
-                        }
-                    }
-                }
-            });
+                if(res.ok) {
+                    closeModal('simpleTutorModal');
+                    loadTableData('Korepetytorzy');
+                } else alert('Błąd');
+            } catch(e) { alert(e.message); }
         }
 
-        // Funkcje panelu wiadomości
+        // --- MESSAGES & CHAT ---
         async function loadManualUsers() {
             const list = document.getElementById('manualUsersList');
-            list.innerHTML = '<p class="loading">Ładowanie użytkowników w trybie ręcznym...</p>';
-
+            list.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-spinner fa-spin"></i></div>';
+            
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/manual-users`);
-                const data = await response.json();
+                const res = await fetch(`${API_BASE_URL}/api/admin/manual-users`);
+                const data = await res.json();
                 
                 if (data.users.length === 0) {
-                    list.innerHTML = '<p class="no-records">Brak użytkowników w trybie ręcznym</p>';
+                    list.innerHTML = '<p style="color:#999; text-align:center;">Brak użytkowników</p>';
                     return;
                 }
 
-                // Sortuj po nieodczytanych na górze
-                data.users.sort((a, b) => {
-                    if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
-                    if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-                    return a.name.localeCompare(b.name);
-                });
+                data.users.sort((a,b) => (b.unreadCount - a.unreadCount) || a.name.localeCompare(b.name));
 
-                let html = '<h3>Użytkownicy w trybie ręcznym:</h3>';
-                data.users.forEach(user => {
-                    const unreadClass = user.unreadCount > 0 ? 'unread' : '';
-                    const escapedPsid = user.psid.replace(/'/g, "\\'");
-                    const escapedName = (user.name || 'Nieznany użytkownik').replace(/'/g, "\\'").replace(/</g, '<').replace(/>/g, '>');
-                    const escapedLastMsg = (user.lastMessage || 'Brak wiadomości').replace(/'/g, "\\'").replace(/</g, '<').replace(/>/g, '>');
-                    const unreadText = user.unreadCount > 0 ? ` (${user.unreadCount} nieodczytanych)` : '';
+                let html = '';
+                data.users.forEach(u => {
                     html += `
-                        <div class="manual-user-item ${unreadClass}" onclick="window.location.href = '/panel-user-detail.html?psid=${user.psid}'">
-                            <div class="manual-user-header">
-                                <div>
-                                    <div class="manual-user-name">${escapedName}${unreadText}</div>
-                                    <div class="manual-user-psid">PSID: ${user.psid}</div>
-                                </div>
-                                <div>
-                                    <button class="delete-btn" onclick="event.stopPropagation(); endManualMode('${escapedPsid}')">Zakończ tryb</button>
-                                </div>
+                        <div class="user-item ${u.unreadCount > 0 ? 'has-unread' : ''}" onclick="openChat('${u.psid}', '${u.name}')">
+                            <div style="font-weight:600;">${u.name}</div>
+                            <div style="font-size:0.8rem; color:#777; display:flex; justify-content:space-between;">
+                                <span>${u.lastMessage ? u.lastMessage.substring(0,25)+'...' : ''}</span>
+                                ${u.unreadCount > 0 ? `<span style="background:var(--primary-color); color:#333; padding:1px 6px; border-radius:10px; font-weight:bold;">${u.unreadCount}</span>` : ''}
                             </div>
-                            <div class="manual-user-last-msg">${escapedLastMsg}</div>
                         </div>
                     `;
                 });
                 list.innerHTML = html;
-            } catch (error) {
-                list.innerHTML = `<p class="error-message">Błąd: ${error.message}</p>`;
-            }
+            } catch (e) { console.error(e); }
         }
 
-        async function selectUser(psid) {
-            currentUserPSID = psid;
-            document.getElementById('chatContainer').style.display = 'block';
+        async function openChat(psid, name) {
+            state.currentUserPSID = psid;
             
-            // Załaduj chat i dane użytkownika
-            await loadChat(psid);
-            await loadUserDetails(psid);
-        }
+            document.getElementById('chatWrapper').style.display = 'flex';
+            document.getElementById('chatPlaceholder').style.display = 'none';
+            
+            document.getElementById('chatUserNameDisplay').textContent = name || psid;
+            document.getElementById('chatUserPsidDisplay').textContent = `PSID: ${psid}`;
+            document.getElementById('clientLink').href = `moje-lekcje.html?clientID=${psid}`;
 
-        async function loadChat(psid) {
+            // Load Messages
+            const box = document.getElementById('chatMessagesBox');
+            box.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i></div>';
+            
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/user-chat/${psid}`);
-                const data = await response.json();
+                const res = await fetch(`${API_BASE_URL}/api/admin/user-chat/${psid}`);
+                const data = await res.json();
                 
-                const chatMessages = document.getElementById('chatMessages');
-                chatMessages.innerHTML = '';
-                
-                data.messages.forEach((msg, index) => {
-                    const msgClass = msg.role === 'user' ? 'user' : 'bot';
-                    const checkmark = msg.role === 'user' && !msg.read ? `<button class="unread-checkmark" onclick="markAsRead('${currentUserPSID}', ${msg.fullIndex})">✓</button>` : '';
-                    chatMessages.innerHTML += `<div class="chat-message ${msgClass}">${checkmark}${msg.text}</div>`;
+                box.innerHTML = '';
+                data.messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = `message-bubble ${msg.role === 'user' ? 'msg-user' : 'msg-bot'} ${!msg.read && msg.role==='user' ? 'unread' : ''}`;
+                    div.textContent = msg.text;
+                    
+                    if (msg.role === 'user' && !msg.read) {
+                        const check = document.createElement('i');
+                        check.className = 'fas fa-check';
+                        check.style.marginLeft = '10px';
+                        check.style.cursor = 'pointer';
+                        check.style.color = 'var(--primary-color)';
+                        check.title = 'Oznacz jako przeczytane';
+                        check.onclick = () => markAsRead(psid, msg.fullIndex);
+                        div.appendChild(check);
+                    }
+                    box.appendChild(div);
                 });
-                
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                
-                document.getElementById('chatUserName').textContent = `Rozmowa z użytkownikiem ${psid}`;
-                document.getElementById('clientPanelLink').href = `https://zakręcone-korepetycje.pl/moje-lekcje?clientID=${psid}`;
-            } catch (error) {
-                document.getElementById('chatMessages').innerHTML = `<p class="error-message">Błąd ładowania chatu: ${error.message}</p>`;
-            }
+                box.scrollTop = box.scrollHeight;
+
+                // Load Details
+                loadUserDetails(psid);
+
+            } catch(e) { console.error(e); }
         }
 
-async function loadUserDetails(psid) {
-    const details = document.getElementById('userDetails');
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/user-details/${psid}`);
-        if (!response.ok) throw new Error('Błąd ładowania danych użytkownika');
-        const data = await response.json();
-
-        const user = data.user;
-        const messages = data.messages;
-
-        // Wyświetl szczegóły użytkownika
-        let html = '<h3>Dane klienta:</h3>';
-        html += `<p><strong>PSID:</strong> ${user.psid}</p>`;
-        html += `<p><strong>Imię:</strong> ${user.name || 'Brak'}</p>`;
-        html += `<p><strong>Nazwisko (opiekun):</strong> ${user.studentParentName || 'Brak'}</p>`;
-        html += `<p><strong>Wolna kwota:</strong> ${user.freeAmount || 0} zł</p>`;
-
-        if (user.reservations && user.reservations.length > 0) {
-            html += '<p><strong>Rezerwacje:</strong><ul>';
-            user.reservations.forEach(res => {
-                html += `<li>${res.date} ${res.time} - ${res.subject} (${res.statuses.join(', ')})</li>`;
+        async function markAsRead(psid, idx) {
+            await fetch(`${API_BASE_URL}/api/admin/mark-read/${psid}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({upToFullIndex: idx})
             });
-            html += '</ul></p>';
-        } else {
-            html += '<p>Brak rezerwacji.</p>';
+            openChat(psid, document.getElementById('chatUserNameDisplay').textContent); // Reload
+            loadManualUsers(); // Refresh list count
         }
 
-        // Przyciski akcji
-        html += '<div class="action-buttons" style="margin-top: 20px;">';
-        html += '<button id="sendReservationLinkBtn" class="add-record-btn">Wyślij link rezerwacji</button>';
-        html += '<button id="deleteConvBtn" class="delete-btn" style="margin-left: 10px; background-color: #FF9800;">Usuń konwersację</button>';
-        html += '<button id="deleteClientBtn" class="delete-btn" style="margin-left: 10px; background-color: #F44336;">Usuń rekord klienta</button>';
-        html += '<button id="fullDeleteBtn" class="delete-btn" style="margin-left: 10px; background-color: #B71C1C;">Usuń z bazy danych (Full)</button>';
-        html += '</div>';
-
-        details.innerHTML = html;
-
-        // Aktualizacja przycisku trybu ręcznego w nagłówku
-        const toggleBtn = document.getElementById('toggleManualBtn');
-        if (user.manualModeActive) {
-            toggleBtn.textContent = 'Zakończ tryb ręczny';
-            toggleBtn.className = 'delete-btn';
-            toggleBtn.dataset.action = 'disable';
-        } else {
-            toggleBtn.textContent = 'Włącz tryb ręczny';
-            toggleBtn.className = 'add-record-btn';
-            toggleBtn.dataset.action = 'enable';
-        }
-
-        // Podpięcie eventów
-        document.getElementById('sendReservationLinkBtn').addEventListener('click', async () => {
-            if (!confirm('Czy na pewno wysłać link rezerwacji? Po wysłaniu użytkownik przejdzie w tryb po-rezerwacyjny.')) return;
+        async function loadUserDetails(psid) {
             try {
-                const resp = await fetch(`${API_BASE_URL}/api/admin/send-reservation-link`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ psid: psid })
-                });
-                const result = await resp.json();
-                if (result.success) {
-                    alert('Link wysłany.');
-                    // Odśwież chat i szczegóły
-                    await loadChat(psid);
-                    await loadUserDetails(psid);
-                } else {
-                    alert('Błąd: ' + (result.error || 'Nieznany błąd'));
-                }
-            } catch (err) {
-                alert('Błąd: ' + err.message);
-            }
-        });
-
-        document.getElementById('deleteConvBtn').addEventListener('click', async () => {
-            if (!confirm('Czy na pewno usunąć historię konwersacji? Tej operacji nie można cofnąć.')) return;
-            try {
-                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-conversation/${psid}`, { method: 'POST' });
-                const res = await resp.json();
-                if (resp.ok) {
-                    alert(res.message);
-                    await loadChat(psid);
-                } else {
-                    alert(res.error);
-                }
-            } catch(e) { alert(e.message); }
-        });
-
-        document.getElementById('deleteClientBtn').addEventListener('click', async () => {
-            if (!confirm('Czy na pewno usunąć rekord klienta z bazy?')) return;
-            try {
-                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-client-record/${psid}`, { method: 'POST' });
-                const res = await resp.json();
-                if (resp.ok) {
-                    alert(res.message);
-                    await loadUserDetails(psid);
-                } else {
-                    alert(res.error);
-                }
-            } catch(e) { alert(e.message); }
-        });
-
-        document.getElementById('fullDeleteBtn').addEventListener('click', async () => {
-            if (!confirm('UWAGA: Czy na pewno usunąć klienta ORAZ wszystkie jego lekcje? TEJ OPERACJI NIE MOŻNA COFNĄĆ!')) return;
-            try {
-                const resp = await fetch(`${API_BASE_URL}/api/admin/delete-client-full/${psid}`, { method: 'POST' });
-                const res = await resp.json();
-                if (resp.ok) {
-                    alert(res.message);
-                    // Clear view
-                    document.getElementById('chatContainer').style.display = 'none';
-                    document.getElementById('userDetails').innerHTML = '';
-                    currentUserPSID = null;
-                    await loadManualUsers();
-                } else {
-                    alert(res.error);
-                }
-            } catch(e) { alert(e.message); }
-        });
-
-    } catch (error) {
-        details.innerHTML = `<p class="error-message">Błąd ładowania danych: ${error.message}</p>`;
-    }
-}
-
-        document.getElementById('sendMessageBtn').addEventListener('click', async () => {
-            const message = document.getElementById('messageInput').value.trim();
-            if (!message || !currentUserPSID) return;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/send-message`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({psid: currentUserPSID, message})
-                });
-
-                if (response.ok) {
-                    document.getElementById('messageInput').value = '';
-                    await loadChat(currentUserPSID);
-                } else {
-                    alert('Błąd wysyłania wiadomości');
-                }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
-            }
-        });
-
-        async function markAsRead(psid, upToFullIndex) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/mark-read/${psid}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({upToFullIndex})
-                });
-
-                if (response.ok) {
-                    await loadChat(psid);
-                    await loadManualUsers();
-                } else {
-                    alert('Błąd oznaczania jako przeczytane');
-                }
-            } catch (error) {
-                alert(`Błąd: ${error.message}`);
-            }
-        }
-
-        async function toggleManualMode(psid) {
-            const btn = document.getElementById('toggleManualBtn');
-            const action = btn.dataset.action;
-
-            if (action === 'enable') {
-                if (!confirm('Czy na pewno włączyć tryb ręczny dla tego użytkownika?')) return;
-                try {
-                    const resp = await fetch(`${API_BASE_URL}/api/admin/enable-manual/${psid}`, { method: 'POST' });
-                    const result = await resp.json();
-                    if (result.success) {
-                        // alert('Tryb ręczny włączony.');
-                        await loadUserDetails(psid);
-                        await loadManualUsers();
-                    } else {
-                        alert('Błąd: ' + (result.error || 'Nieznany błąd'));
-                    }
-                } catch (err) {
-                    alert('Błąd: ' + err.message);
-                }
-            } else {
-                if (!confirm('Czy na pewno chcesz zakończyć tryb ręczny dla tego użytkownika?')) return;
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/admin/end-manual/${psid}`, { method: 'POST' });
-                    if (response.ok) {
-                        await loadUserDetails(psid);
-                        await loadManualUsers();
-                    } else {
-                        alert('Błąd kończenia trybu ręcznego');
-                    }
-                } catch (error) {
-                    alert(`Błąd: ${error.message}`);
-                }
-            }
-        }
-
-        document.getElementById('toggleManualBtn').addEventListener('click', () => {
-            if (typeof currentUserPSID !== 'undefined' && currentUserPSID) {
-                toggleManualMode(currentUserPSID);
-            } else {
-                alert('Najpierw wybierz użytkownika.');
-            }
-        });
-
-        // Reset test user button
-        document.getElementById('resetTestUserBtn').addEventListener('click', async () => {
-            if (confirm('Czy na pewno chcesz zresetować użytkownika testowego? To usunie wszystkie przypomnienia i plik konwersacji.')) {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/admin/reset-test-user`, {
-                        method: 'POST'
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        alert(data.message);
-                    } else {
-                        alert('Błąd: ' + (data.error || 'Nieznany błąd'));
-                    }
-                } catch (error) {
-                    alert('Błąd połączenia: ' + error.message);
-                }
-            }
-        });
-
-        document.getElementById('searchUserBtn').addEventListener('click', () => {
-            const val = document.getElementById('searchPSID').value.trim();
-            // Próba wydobycia PSID z formatu "Imię Nazwisko (PSID)"
-            const psidMatch = val.match(/\(([^)]+)\)$/);
-            const psid = psidMatch ? psidMatch[1] : val;
-
-            if (psid) {
-                selectUser(psid);
-                document.getElementById('autocomplete-list').style.display = 'none';
-            } else {
-                alert('Wpisz PSID użytkownika.');
-            }
-        });
-
-        // Autocomplete Logic
-        const searchInput = document.getElementById('searchPSID');
-        const autocompleteList = document.getElementById('autocomplete-list');
-        let debounceTimer;
-
-        async function performSearch(val) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(val)}`);
-                const data = await response.json();
+                const res = await fetch(`${API_BASE_URL}/api/admin/user-details/${psid}`);
+                const data = await res.json();
                 
-                autocompleteList.innerHTML = '';
+                document.getElementById('userDetailsFooter').textContent = `Saldo: ${data.user.freeAmount || 0} zł`;
                 
-                if (data.clients && data.clients.length > 0) {
-                    data.clients.forEach(client => {
-                        const item = document.createElement('div');
-                        // Podświetlenie pasującego fragmentu można dodać opcjonalnie
-                        item.innerHTML = `<strong>${client.displayName}</strong> <span style="font-size: 0.8em; color: #666;">(${client.psid})</span>`;
-                        item.innerHTML += `<input type='hidden' value='${client.fullInfo}'>`;
-                        item.innerHTML += `<input type='hidden' value='${client.psid}' class='psid-val'>`;
-                        
-                        item.addEventListener('click', function(e) {
-                            searchInput.value = this.getElementsByTagName('input')[0].value;
-                            const psid = this.querySelector('.psid-val').value;
-                            autocompleteList.innerHTML = '';
-                            autocompleteList.style.display = 'none';
-                            selectUser(psid);
+                const btn = document.getElementById('toggleManualModeBtn');
+                if (data.user.manualModeActive) {
+                    btn.textContent = 'Wyłącz Manual';
+                    btn.className = 'btn btn-sm btn-danger';
+                    btn.onclick = () => toggleManual(psid, 'end-manual');
+                } else {
+                    btn.textContent = 'Włącz Manual';
+                    btn.className = 'btn btn-sm btn-success';
+                    btn.onclick = () => toggleManual(psid, 'enable-manual');
+                }
+
+                // Send link handler
+                document.getElementById('sendLinkActionBtn').onclick = async () => {
+                    if(confirm('Wysłać link?')) {
+                        await fetch(`${API_BASE_URL}/api/admin/send-reservation-link`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({psid})
                         });
-                        
-                        autocompleteList.appendChild(item);
-                    });
-                    autocompleteList.style.display = 'block';
-                } else {
-                    autocompleteList.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Błąd autocomplete:', error);
-            }
+                        alert('Wysłano');
+                    }
+                };
+
+            } catch(e) { console.error(e); }
         }
 
-        // Pokaż listę po kliknięciu (focus) nawet przy pustym polu
-        searchInput.addEventListener('focus', function(e) {
-            performSearch(this.value);
+        async function toggleManual(psid, endpoint) {
+            if(!confirm('Zmienić tryb manualny?')) return;
+            await fetch(`${API_BASE_URL}/api/admin/${endpoint}/${psid}`, {method: 'POST'});
+            loadUserDetails(psid);
+            loadManualUsers();
+        }
+
+        document.getElementById('sendMsgBtn').addEventListener('click', async () => {
+            const txt = document.getElementById('msgInput').value;
+            if(!txt || !state.currentUserPSID) return;
+            
+            await fetch(`${API_BASE_URL}/api/admin/send-message`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({psid: state.currentUserPSID, message: txt})
+            });
+            document.getElementById('msgInput').value = '';
+            openChat(state.currentUserPSID, document.getElementById('chatUserNameDisplay').textContent);
         });
 
-        searchInput.addEventListener('input', function(e) {
-            const val = this.value;
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => performSearch(val), 300); // Debounce 300ms
-        });
+        // Search
+        function setupUserSearch() {
+            const input = document.getElementById('searchUser');
+            const results = document.getElementById('autocomplete-results');
+            let debounce;
+            
+            input.addEventListener('input', () => {
+                clearTimeout(debounce);
+                debounce = setTimeout(async () => {
+                    const q = input.value;
+                    if(q.length < 2) { results.style.display = 'none'; return; }
+                    
+                    const res = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+                    
+                    if(data.clients && data.clients.length) {
+                        results.innerHTML = '';
+                        results.style.display = 'block';
+                        data.clients.forEach(c => {
+                            const div = document.createElement('div');
+                            div.style.padding = '10px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid #eee';
+                            div.innerHTML = `<strong>${c.displayName}</strong> <br><small>${c.psid}</small>`;
+                            div.onmouseover = () => div.style.backgroundColor = '#f0f2f5';
+                            div.onmouseout = () => div.style.backgroundColor = 'white';
+                            div.onclick = () => {
+                                openChat(c.psid, c.displayName);
+                                results.style.display = 'none';
+                                input.value = '';
+                            };
+                            results.appendChild(div);
+                        });
+                    } else results.style.display = 'none';
+                }, 300);
+            });
+            
+            document.addEventListener('click', e => {
+                if(e.target !== input && e.target !== results) results.style.display = 'none';
+            });
+        }
 
-        // Zamknij listę po kliknięciu poza nią
-        document.addEventListener('click', function (e) {
-            if (e.target !== searchInput && e.target !== autocompleteList) {
-                autocompleteList.style.display = 'none';
-            }
-        });
+        // --- STATS PANEL ---
+        async function loadStats() {
+            const container = document.getElementById('statsCards');
+            const errList = document.getElementById('errorLogsList');
+            const scrList = document.getElementById('screenshotList');
+            
+            try {
+                // 1. Hourly Stats
+                const resH = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
+                const dataH = await resH.json();
+                
+                if(dataH.stats) {
+                    const ctx = document.getElementById('hourlyStatsChart');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: dataH.stats.map(s => {
+                                const d = new Date(s.timestamp);
+                                return `${d.getHours()}:${(d.getMinutes()<10?'0':'')+d.getMinutes()}`;
+                            }),
+                            datasets: [{
+                                label: 'Posty',
+                                data: dataH.stats.map(s => s.loaded_posts_total),
+                                backgroundColor: '#3699ff'
+                            }, {
+                                label: 'Komentarze',
+                                data: dataH.stats.map(s => s.commented_posts),
+                                backgroundColor: '#1bc5bd'
+                            }]
+                        },
+                        options: { maintainAspectRatio: false }
+                    });
+                }
+
+                // 2. Daily Summary (FB Status)
+                const resD = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
+                const dataD = await resD.json();
+                
+                let statusHtml = `
+                    <div class="panel-card" style="border-left: 5px solid ${dataD.isRunning ? '#1bc5bd' : '#f64e60'};">
+                        <div style="font-size:0.9rem; color:#7e8299;">Status Bota FB</div>
+                        <div style="font-size:1.5rem; font-weight:700;">${dataD.isRunning ? 'AKTYWNY' : 'ZATRZYMANY'}</div>
+                        <small>Ost. komentarz: ${dataD.lastCommentTime || '-'}</small>
+                    </div>
+                `;
+                
+                // Add Daily Stats Table
+                if(dataD.stats && dataD.stats.length > 0) {
+                    statusHtml += `<div class="panel-card" style="grid-column: 1 / -1;">
+                        <h3 style="margin-top:0;">Podsumowanie dzienne</h3>
+                        <div class="table-responsive">
+                            <table class="table-sm">
+                                <thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ost. Komentarz</th></tr></thead>
+                                <tbody>
+                                    ${dataD.stats.map(s => `<tr>
+                                        <td>${s.Data}</td>
+                                        <td>${s.Przeslane || 0}</td>
+                                        <td>${s.Odrzucone || 0}</td>
+                                        <td>${s.Oczekuje || 0}</td>
+                                        <td>${s.LastCommentTime || '-'}</td>
+                                    </tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                }
+                
+                container.innerHTML = statusHtml;
+
+                // 3. Screenshots
+                const resS = await fetch(`${API_BASE_URL}/api/admin/facebook-status-screenshots`);
+                const dataS = await resS.json();
+                
+                if(dataS.screenshots) {
+                    let html = '<table class="table-sm">';
+                    dataS.screenshots.forEach(s => {
+                        html += `<tr><td><small>${s.timestamp}</small></td><td><a href="${API_BASE_URL}/api/admin/download-status-screenshot?file=${s.filename}" target="_blank">Pobierz</a></td></tr>`;
+                    });
+                    html += '</table>';
+                    scrList.innerHTML = html;
+                }
+
+                // 4. Errors
+                const resE = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
+                const dataE = await resE.json();
+                
+                if(dataE.errors) {
+                    let html = '<table class="table-sm">';
+                    dataE.errors.forEach(e => {
+                        html += `<tr>
+                            <td><small>${new Date(e.timestamp).toLocaleTimeString()}</small></td>
+                            <td>${e.location}</td>
+                            <td>${e.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${e.png}" target="_blank">IMG</a>` : ''}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    errList.innerHTML = html;
+                }
+
+            } catch(e) { console.error(e); }
+        }
+
+        // --- UTILS ---
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
     </script>
 </body>
 </html>
