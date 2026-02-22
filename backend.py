@@ -3177,8 +3177,6 @@ def search_clients():
                                     display_name += " (z bazy danych)"
                                 else:
                                     display_name = "Nieznany (tylko historia)"
-                                else:
-                                    display_name += " (z bazy danych)"
                         except:
                             pass
 
