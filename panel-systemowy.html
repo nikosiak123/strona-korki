@@ -1550,8 +1550,8 @@
                 const lastMonthYear = lastMonthDate.getFullYear();
 
                 let stats = {
-                    thisMonth: 0,
-                    lastMonth: 0,
+                    thisMonth: { total: 0, paid: 0, unpaid: 0 },
+                    lastMonthPaid: 0,
                     primary: 0,
                     highSchool: {
                         nonMatric: { basic: 0, extended: 0 },
@@ -1563,26 +1563,30 @@
                     const f = l.fields;
                     if (!f.Data) return;
                     
-                    // Filter out cancelled/invalid statuses if needed. 
-                    // Assuming we count completed and scheduled (paid/unpaid) but not cancelled.
                     if (f.Status && (f.Status.includes('Anulowana') || f.Status.includes('Odwołana'))) return;
 
                     const date = new Date(f.Data);
+                    const isPaid = f.Oplacona === true || f.Status === 'Opłacona';
                     
                     // Month counts
-                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) stats.thisMonth++;
-                    if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) stats.lastMonth++;
+                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+                        stats.thisMonth.total++;
+                        if (isPaid) stats.thisMonth.paid++;
+                        else stats.thisMonth.unpaid++;
+                    }
+                    
+                    if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
+                        if (isPaid) stats.lastMonthPaid++;
+                    }
 
                     // Breakdown
                     const type = f.TypSzkoly;
-                    const level = f.Poziom; // 'podstawowy', 'rozszerzony'
+                    const level = f.Poziom;
                     const cls = String(f.Klasa || '');
 
                     if (type === 'szkola_podstawowa') {
                         stats.primary++;
                     } else if (type === 'liceum' || type === 'technikum') {
-                        // Check if matriculation class
-                        // Liceum: 4, Technikum: 5
                         let isMatric = false;
                         if (type === 'liceum' && cls.includes('4')) isMatric = true;
                         if (type === 'technikum' && cls.includes('5')) isMatric = true;
@@ -1604,22 +1608,26 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
                         <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center;">
                             <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
-                            <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth}</div>
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth.total}</div>
+                            <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
+                                <span style="color: #28a745; font-weight: bold;">${stats.thisMonth.paid} opłacone</span> / 
+                                <span style="color: #dc3545; font-weight: bold;">${stats.thisMonth.unpaid} nieopłacone</span>
+                            </div>
                         </div>
                         <div class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu</div>
-                            <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonth}</div>
+                            <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu (opłacone)</div>
+                            <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonthPaid}</div>
                         </div>
                     </div>
 
                     <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table" style="width: auto; min-width: 600px;">
                             <thead>
                                 <tr>
-                                    <th>Typ Szkoły</th>
+                                    <th style="width: 200px;">Typ Szkoły</th>
                                     <th>Poziom / Klasa</th>
-                                    <th style="text-align: right;">Ilość</th>
+                                    <th style="width: 100px; text-align: right;">Ilość</th>
                                 </tr>
                             </thead>
                             <tbody>
