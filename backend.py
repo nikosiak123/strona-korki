@@ -3155,7 +3155,7 @@ def search_clients():
 
         # 2. Search by name in database, but only for clients with conversation history
         if query:
-            formula = f"OR(LOWER({{Imie}}) = '{query}', LOWER({{Nazwisko}}) = '{query}', LOWER({{ImieKlienta}}) = '{query}', LOWER({{NazwiskoKlienta}}) = '{query}')"
+            formula = f"OR(FIND(LOWER('{query}'), LOWER({{Imie}})), FIND(LOWER('{query}'), LOWER({{Nazwisko}})), FIND(LOWER('{query}'), LOWER({{ImieKlienta}})), FIND(LOWER('{query}'), LOWER({{NazwiskoKlienta}})))"
             db_clients = clients_table.all(formula=formula)
             for record in db_clients:
                 psid = record['fields'].get('ClientID')
