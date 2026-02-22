@@ -607,11 +607,13 @@
                 <!-- VIEW: MESSAGES -->
                 <div id="view-messages" class="panel-view hidden">
                     <div class="panel-card" style="height: 100%;">
-                        <div class="search-bar">
-                            <input type="text" id="searchUser" class="form-control" placeholder="Szukaj użytkownika (Imię, Nazwisko, PSID)...">
+                        <div class="search-bar" style="position: relative;">
+                            <div style="flex:1; position:relative;">
+                                <input type="text" id="searchUser" class="form-control" placeholder="Szukaj użytkownika (Imię, Nazwisko, PSID)...">
+                                <div id="autocomplete-results" style="display:none; border:1px solid #ddd; border-radius:4px; max-height:200px; overflow:auto; position:absolute; top: 100%; left: 0; right: 0; background:white; z-index:1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                            </div>
                             <button id="btnSearchUser" class="btn btn-primary"><i class="fas fa-search"></i></button>
                         </div>
-                        <div id="autocomplete-results" style="display:none; border:1px solid #ddd; border-radius:4px; max-height:200px; overflow:auto; position:absolute; background:white; z-index:100; width:300px;"></div>
 
                         <div class="chat-layout">
                             <!-- Left: User List -->
@@ -1253,30 +1255,40 @@
                 clearTimeout(debounce);
                 debounce = setTimeout(async () => {
                     const q = input.value;
-                    if(q.length < 2) { results.style.display = 'none'; return; }
+                    if(q.length < 1) { results.style.display = 'none'; return; } // Allow single char search for testing
                     
-                    const res = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(q)}`);
-                    const data = await res.json();
-                    
-                    if(data.clients && data.clients.length) {
-                        results.innerHTML = '';
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/api/admin/search-clients?query=${encodeURIComponent(q)}`);
+                        if (!res.ok) throw new Error('Network error');
+                        const data = await res.json();
+                        
+                        if(data.clients && data.clients.length) {
+                            results.innerHTML = '';
+                            results.style.display = 'block';
+                            data.clients.forEach(c => {
+                                const div = document.createElement('div');
+                                div.style.padding = '10px';
+                                div.style.cursor = 'pointer';
+                                div.style.borderBottom = '1px solid #eee';
+                                div.innerHTML = `<strong>${c.displayName}</strong> <br><small>${c.psid}</small>`;
+                                div.onmouseover = () => div.style.backgroundColor = '#f0f2f5';
+                                div.onmouseout = () => div.style.backgroundColor = 'white';
+                                div.onclick = () => {
+                                    openChat(c.psid, c.displayName);
+                                    results.style.display = 'none';
+                                    input.value = '';
+                                };
+                                results.appendChild(div);
+                            });
+                        } else {
+                            results.style.display = 'block';
+                            results.innerHTML = '<div style="padding:10px; color:#999;">Brak wyników</div>';
+                        }
+                    } catch (e) {
+                        console.error(e);
                         results.style.display = 'block';
-                        data.clients.forEach(c => {
-                            const div = document.createElement('div');
-                            div.style.padding = '10px';
-                            div.style.cursor = 'pointer';
-                            div.style.borderBottom = '1px solid #eee';
-                            div.innerHTML = `<strong>${c.displayName}</strong> <br><small>${c.psid}</small>`;
-                            div.onmouseover = () => div.style.backgroundColor = '#f0f2f5';
-                            div.onmouseout = () => div.style.backgroundColor = 'white';
-                            div.onclick = () => {
-                                openChat(c.psid, c.displayName);
-                                results.style.display = 'none';
-                                input.value = '';
-                            };
-                            results.appendChild(div);
-                        });
-                    } else results.style.display = 'none';
+                        results.innerHTML = '<div style="padding:10px; color:red;">Błąd wyszukiwania</div>';
+                    }
                 }, 300);
             });
             
