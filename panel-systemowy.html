@@ -623,6 +623,28 @@
                     </div>
                 </div>
 
+                <!-- VIEW: TUTOR DETAILS (Dynamic) -->
+                <div id="view-tutor-details" class="panel-view hidden">
+                    <div class="panel-card">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;">
+                            <button class="btn btn-sm" onclick="backToTutorsList()" style="background: #e4e6ef; color: #333;">
+                                <i class="fas fa-arrow-left"></i> Wróć
+                            </button>
+                            <div>
+                                <h2 style="margin: 0;" id="tutorDetailsName">Imię Nazwisko</h2>
+                                <span style="font-size: 0.9rem; color: #7e8299;" id="tutorDetailsId">ID: ...</span>
+                            </div>
+                        </div>
+
+                        <div id="tutorManagementContent">
+                            <p style="padding: 2rem; text-align: center; color: #999;">
+                                <i class="fas fa-tools" style="font-size: 2rem; margin-bottom: 1rem;"></i><br>
+                                Panel zarządzania korepetytorem - funkcje wkrótce...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- VIEW: MESSAGES -->
                 <div id="view-messages" class="panel-view hidden">
                     <div class="panel-card" style="height: 100%;">
@@ -1437,26 +1459,18 @@
                     return;
                 }
 
-                let html = '<div class="table-responsive"><table><thead><tr><th>Imię i Nazwisko</th><th>Przedmioty</th><th>Poziom</th><th>Link</th><th>Akcje</th></tr></thead><tbody>';
+                let html = '<div class="table-responsive"><table><thead><tr><th>Imię i Nazwisko</th><th>Przedmioty</th></tr></thead><tbody>';
                 
                 data.records.forEach(rec => {
                     const f = rec.fields;
                     let subjects = Array.isArray(f.Przedmioty) ? f.Przedmioty.join(', ') : f.Przedmioty || '-';
-                    let levels = Array.isArray(f.PoziomNauczania) ? f.PoziomNauczania.join(', ') : f.PoziomNauczania || '-';
                     
                     html += `
-                        <tr>
-                            <td><strong>${f.ImieNazwisko || 'Brak danych'}</strong></td>
+                        <tr onclick='openTutorManagement(${JSON.stringify(rec).replace(/'/g, "'")})' style="cursor: pointer;">
+                            <td>
+                                <div style="font-weight: bold; color: #181c32;">${f.ImieNazwisko || 'Brak danych'}</div>
+                            </td>
                             <td>${subjects}</td>
-                            <td>${levels}</td>
-                            <td>
-                                ${f.TutorID ? `<a href="panel-korepetytora.html?tutorID=${f.TutorID}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-external-link-alt"></i> Panel</a>` : '-'}
-                            </td>
-                            <td>
-                                <div style="display:flex; gap:5px;">
-                                    <button class="btn btn-sm btn-info" onclick='editRecordInit(${JSON.stringify(rec).replace(/'/g, "'")})'><i class="fas fa-edit"></i> Edytuj</button>
-                                </div>
-                            </td>
                         </tr>
                     `;
                 });
@@ -1467,6 +1481,25 @@
             } catch(e) {
                 container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
             }
+        }
+
+        // --- TUTOR MANAGEMENT ---
+        function openTutorManagement(record) {
+            // Hide all views
+            document.querySelectorAll('.panel-view').forEach(view => view.classList.add('hidden'));
+            // Show details view
+            document.getElementById('view-tutor-details').classList.remove('hidden');
+            
+            // Set header
+            document.getElementById('tutorDetailsName').textContent = record.fields.ImieNazwisko || 'Nieznany';
+            document.getElementById('tutorDetailsId').textContent = `TutorID: ${record.fields.TutorID}`;
+            
+            state.currentTutorRecord = record; // Store for later use
+        }
+
+        function backToTutorsList() {
+             document.querySelectorAll('.panel-view').forEach(view => view.classList.add('hidden'));
+             document.getElementById('view-tutors').classList.remove('hidden');
         }
 
         // --- UTILS ---
