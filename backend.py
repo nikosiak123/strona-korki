@@ -2717,6 +2717,11 @@ def create_table_record(table_name):
         abort(400, "Brak danych do utworzenia rekordu.")
     
     table = DatabaseTable(table_name)
+    if table_name == 'Klienci' and 'ClientID' in fields:
+        existing_record = table.first(formula=f"{{ClientID}} = '{fields['ClientID']}'")
+        if existing_record:
+            return jsonify({"success": True, "record": existing_record, "existed": True})
+    
     try:
         new_record = table.create(fields)
         return jsonify({"success": True, "record": new_record})
