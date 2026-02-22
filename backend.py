@@ -3167,13 +3167,18 @@ def search_clients():
                                 imie = fields.get('Imie', '')
                                 nazwisko = fields.get('Nazwisko', '')
                                 display_name = f"{imie} {nazwisko}".strip()
+
                                 if not display_name:
                                     imie_klienta = fields.get('ImieKlienta', '')
                                     nazwisko_klienta = fields.get('NazwiskoKlienta', '')
                                     display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
                                 
-                                if not display_name:
-                                    display_name = "Nieznany"
+                                if display_name:
+                                    display_name += " (z bazy danych)"
+                                else:
+                                    display_name = "Nieznany (tylko historia)"
+                                else:
+                                    display_name += " (z bazy danych)"
                         except:
                             pass
 
