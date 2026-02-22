@@ -539,6 +539,10 @@
                     <i class="fas fa-database"></i>
                     <span>Baza Danych</span>
                 </div>
+                <div class="menu-item" data-target="tutors">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>Korepetytorzy</span>
+                </div>
                 <div class="menu-item" data-target="messages">
                     <i class="fas fa-comments"></i>
                     <span>Wiadomości</span>
@@ -600,6 +604,21 @@
 
                         <div id="databaseContent">
                             <p style="text-align: center; color: #7e8299; padding: 2rem;">Wybierz tabelę powyżej...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: TUTORS -->
+                <div id="view-tutors" class="panel-view hidden">
+                    <div class="panel-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h3 style="margin: 0;">Lista Korepetytorów</h3>
+                            <button class="btn btn-sm btn-primary" onclick="openSimpleTutorAddModal()">
+                                <i class="fas fa-plus"></i> Dodaj Korepetytora
+                            </button>
+                        </div>
+                        <div id="tutorsListContent">
+                            <p style="text-align: center; color: #999;">Ładowanie listy...</p>
                         </div>
                     </div>
                 </div>
@@ -777,7 +796,7 @@
                     document.getElementById(`view-${target}`).classList.remove('hidden');
 
                     // Update Header
-                    const titles = { 'database': 'Baza Danych', 'messages': 'Wiadomości', 'stats': 'Bot Facebook' };
+                    const titles = { 'database': 'Baza Danych', 'messages': 'Wiadomości', 'stats': 'Bot Facebook', 'tutors': 'Korepetytorzy' };
                     document.getElementById('headerTitle').textContent = titles[target];
 
                     // Close mobile menu
@@ -787,6 +806,10 @@
                     if (target === 'database') loadTableData(state.currentTable);
                     if (target === 'messages') loadManualUsers();
                     if (target === 'stats') loadStats();
+                    if (target === 'tutors') {
+                        state.currentTable = 'Korepetytorzy'; // Ensure correct table context for editing
+                        loadTutorsView();
+                    }
 
                     // Save state
                     localStorage.setItem('adminLastView', target);
@@ -1397,6 +1420,53 @@
                 }
 
             } catch(e) { console.error(e); }
+        }
+
+        // --- TUTORS VIEW ---
+        async function loadTutorsView() {
+            const container = document.getElementById('tutorsListContent');
+            container.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Ładowanie listy korepetytorów...</div>';
+            
+            try {
+                // Reuse existing API for table data
+                const res = await fetch(`${API_BASE_URL}/api/admin/table/Korepetytorzy`);
+                const data = await res.json();
+
+                if (!data.records || data.records.length === 0) {
+                    container.innerHTML = '<div style="padding:2rem; text-align:center;">Brak korepetytorów.</div>';
+                    return;
+                }
+
+                let html = '<div class="table-responsive"><table><thead><tr><th>Imię i Nazwisko</th><th>Przedmioty</th><th>Poziom</th><th>Link</th><th>Akcje</th></tr></thead><tbody>';
+                
+                data.records.forEach(rec => {
+                    const f = rec.fields;
+                    let subjects = Array.isArray(f.Przedmioty) ? f.Przedmioty.join(', ') : f.Przedmioty || '-';
+                    let levels = Array.isArray(f.PoziomNauczania) ? f.PoziomNauczania.join(', ') : f.PoziomNauczania || '-';
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${f.ImieNazwisko || 'Brak danych'}</strong></td>
+                            <td>${subjects}</td>
+                            <td>${levels}</td>
+                            <td>
+                                ${f.TutorID ? `<a href="panel-korepetytora.html?tutorID=${f.TutorID}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-external-link-alt"></i> Panel</a>` : '-'}
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:5px;">
+                                    <button class="btn btn-sm btn-info" onclick='editRecordInit(${JSON.stringify(rec).replace(/'/g, "'")})'><i class="fas fa-edit"></i> Edytuj</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+            } catch(e) {
+                container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
+            }
         }
 
         // --- UTILS ---
