@@ -3144,17 +3144,22 @@ def search_clients():
         matching_clients = []
         seen_psids = set()
 
-        # Search in conversation_store and database
+        # 1. Get all PSIDs from conversation_store
         import os
         conversation_store_dir = "../strona/conversation_store"
-        
-        # 1. Search in database by name
+        psids_in_store = []
+        if os.path.exists(conversation_store_dir):
+            for filename in os.listdir(conversation_store_dir):
+                if filename.endswith('.json'):
+                    psids_in_store.append(filename[:-5])
+
+        # 2. Search by name in database, but only for clients with conversation history
         if query:
             formula = f"OR(LOWER({{Imie}}) = '{query}', LOWER({{Nazwisko}}) = '{query}', LOWER({{ImieKlienta}}) = '{query}', LOWER({{NazwiskoKlienta}}) = '{query}')"
             db_clients = clients_table.all(formula=formula)
             for record in db_clients:
                 psid = record['fields'].get('ClientID')
-                if psid and psid not in seen_psids:
+                if psid and psid in psids_in_store and psid not in seen_psids:
                     display_name = f"{record['fields'].get('ImieKlienta', '')} {record['fields'].get('NazwiskoKlienta', '')}".strip()
                     if not display_name:
                         display_name = f"{record['fields'].get('Imie', '')} {record['fields'].get('Nazwisko', '')}".strip()
@@ -3166,46 +3171,39 @@ def search_clients():
                     })
                     seen_psids.add(psid)
 
-        # 2. Search in conversation_store by PSID
-        if os.path.exists(conversation_store_dir):
-            all_files = os.listdir(conversation_store_dir)
-            all_files.sort()
+        # 3. Search by PSID in conversation_store
+        for psid_from_file in psids_in_store:
+            if (not query or query in psid_from_file.lower()) and psid_from_file not in seen_psids:
+                display_name = "Nieznany (tylko historia)"
+                try:
+                    client_record = clients_table.first(formula=f"{{ClientID}} = '{psid_from_file}'")
+                    if client_record:
+                        fields = client_record.get('fields', {})
+                        imie_klienta = fields.get('ImieKlienta', '')
+                        nazwisko_klienta = fields.get('NazwiskoKlienta', '')
+                        display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
 
-            for filename in all_files:
-                if filename.endswith('.json'):
-                    psid_from_file = filename[:-5]
-                    
-                    if (not query or query in psid_from_file.lower()) and psid_from_file not in seen_psids:
-                        display_name = "Nieznany (tylko historia)"
-                        try:
-                            client_record = clients_table.first(formula=f"{{ClientID}} = '{psid_from_file}'")
-                            if client_record:
-                                fields = client_record.get('fields', {})
-                                imie_klienta = fields.get('ImieKlienta', '')
-                                nazwisko_klienta = fields.get('NazwiskoKlienta', '')
-                                display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
-
-                                if not display_name:
-                                    imie = fields.get('Imie', '')
-                                    nazwisko = fields.get('Nazwisko', '')
-                                    display_name = f"{imie} {nazwisko}".strip()
-                                
-                                if display_name:
-                                    display_name += " (z bazy danych)"
-                                else:
-                                    display_name = "Nieznany (tylko historia)"
-                        except:
-                            pass
-
-                        matching_clients.append({
-                            'psid': psid_from_file,
-                            'displayName': display_name,
-                            'fullInfo': f"{display_name} ({psid_from_file})"
-                        })
-                        seen_psids.add(psid_from_file)
+                        if not display_name:
+                            imie = fields.get('Imie', '')
+                            nazwisko = fields.get('Nazwisko', '')
+                            display_name = f"{imie} {nazwisko}".strip()
                         
-                        if len(matching_clients) >= 20:
-                            break
+                        if display_name:
+                            display_name += " (z bazy danych)"
+                        else:
+                            display_name = "Nieznany (tylko historia)"
+                except:
+                    pass
+
+                matching_clients.append({
+                    'psid': psid_from_file,
+                    'displayName': display_name,
+                    'fullInfo': f"{display_name} ({psid_from_file})"
+                })
+                seen_psids.add(psid_from_file)
+                
+                if len(matching_clients) >= 20:
+                    break
         
         # Remove duplicates
         final_clients = []
