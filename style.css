@@ -223,7 +223,7 @@ footer { text-align: center; padding: 1.5rem; background-color: var(--text-dark)
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    .time-slot-calendar { 
+    .calendar-wrapper { 
         display: none !important; /* Ukrywamy siatkę kalendarza PC */
     }
     #calendar-mobile-container {
