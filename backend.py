@@ -3164,14 +3164,14 @@ def search_clients():
                             client_record = clients_table.first(formula=f"{{ClientID}} = '{psid_from_file}'")
                             if client_record:
                                 fields = client_record.get('fields', {})
-                                imie = fields.get('Imie', '')
-                                nazwisko = fields.get('Nazwisko', '')
-                                display_name = f"{imie} {nazwisko}".strip()
+                                imie_klienta = fields.get('ImieKlienta', '')
+                                nazwisko_klienta = fields.get('NazwiskoKlienta', '')
+                                display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
 
                                 if not display_name:
-                                    imie_klienta = fields.get('ImieKlienta', '')
-                                    nazwisko_klienta = fields.get('NazwiskoKlienta', '')
-                                    display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
+                                    imie = fields.get('Imie', '')
+                                    nazwisko = fields.get('Nazwisko', '')
+                                    display_name = f"{imie} {nazwisko}".strip()
                                 
                                 if display_name:
                                     display_name += " (z bazy danych)"
