@@ -237,7 +237,10 @@
 
         /* TABLES */
         .table-responsive {
+            display: block;
+            width: 100%;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             border-radius: 6px;
             border: 1px solid var(--border-color);
         }
@@ -519,8 +522,8 @@
                                 <button class="btn btn-sm btn-info table-selector" data-table="StaleRezerwacje">Stałe</button>
                             </div>
                             
-                            <div class="actions">
-                                <button id="resetTestUserBtn" class="btn btn-sm btn-primary" style="margin-right: 10px;">
+                            <div class="actions" style="display: flex; gap: 10px;">
+                                <button id="resetTestUserBtn" class="btn btn-sm btn-primary">
                                     <i class="fas fa-sync"></i> Reset Testowy
                                 </button>
                                 <button class="btn btn-sm btn-success" onclick="openAddModal()">
