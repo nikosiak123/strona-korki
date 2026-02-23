@@ -123,7 +123,7 @@ except Exception as e:
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
-CORS(app)
+CORS(app, supports_credentials=True)
 
 def require_admin(f):
     @wraps(f)
