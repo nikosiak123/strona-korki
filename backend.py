@@ -3506,18 +3506,7 @@ def get_admin_comment_logs():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/admin/comment-logs', methods=['GET'])
-def get_admin_comment_logs():
-    """Pobiera logi komentarzy z zewnętrznego serwera statystyk."""
-    require_admin()
-    try:
-        external_url = EXTERNAL_STATS_URL.replace('/api/facebook-stats', '/api/comment-logs')
-        response = requests.get(external_url, timeout=10)
-        response.raise_for_status()
-        return jsonify(response.json())
-    except Exception as e:
-        logging.error(f"Błąd pobierania logów komentarzy: {e}")
-        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/<path:path>')
 def catch_all(path):
