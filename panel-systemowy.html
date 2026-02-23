@@ -735,6 +735,7 @@
                             <button class="stats-tab-btn active" data-target="stats-statystyki">Statystyki</button>
                             <button class="stats-tab-btn" data-target="stats-bledy">Błędy</button>
                             <button class="stats-tab-btn" data-target="stats-dzialanie">Działanie</button>
+                            <button class="stats-tab-btn" data-target="stats-komentarze">Log Komentarzy</button>
                         </div>
                     </div>
 
@@ -762,6 +763,13 @@
                         <div class="panel-card">
                             <h3 style="margin-top: 0;">Zrzuty ekranu (Bot Status)</h3>
                             <div id="screenshotList" style="max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+
+                    <div id="stats-komentarze" class="stats-tab-content hidden">
+                        <div class="panel-card">
+                            <h3 style="margin-top: 0;">Log ostatnich komentarzy</h3>
+                            <div id="commentLogsContainer"></div>
                         </div>
                     </div>
                 </div>
@@ -1502,9 +1510,35 @@
             scrList.innerHTML = 'Ładowanie zrzutów ekranu...';
 
             try {
+                // 0. Comment Logs (for Log Komentarzy tab)
+                const resL = await fetch(`${API_BASE_URL}/api/admin/comment-logs`);
+                const dataL = await resL.json();
+                const commentLogsContainer = document.getElementById('commentLogsContainer');
+
+                if (dataL.logs && dataL.logs.length > 0) {
+                    let commentLogsHtml = `<div class="table-responsive">
+                        <table class="table-sm" style="min-width: auto;">
+                            <thead><tr><th>Czas</th><th>Autor</th><th>Fragment posta</th><th>Scrolle</th><th>Status</th></tr></thead>
+                            <tbody>
+                                ${dataL.logs.map(log => `<tr>
+                                    <td><small>${new Date(log.timestamp).toLocaleString()}</small></td>
+                                    <td>${log.author}</td>
+                                    <td>${log.post_snippet}...</td>
+                                    <td style="text-align: right;">${log.scrolls_since_refresh}</td>
+                                    <td>${log.status}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+                    commentLogsContainer.innerHTML = commentLogsHtml;
+                } else {
+                    commentLogsContainer.innerHTML = '<p>Brak logów komentarzy.</p>';
+                }
+
                 // 1. Hourly Stats (for Działanie tab)
                 const resH = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
                 const dataH = await resH.json();
+                
                 
                 if(dataH.stats) {
                     const canvas = document.getElementById('hourlyStatsChart');
@@ -1552,13 +1586,14 @@
                         <h3 style="margin-top:0;">Podsumowanie dzienne</h3>
                         <div class="table-responsive">
                             <table class="table-sm" style="min-width: auto;">
-                                <thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ost. Komentarz</th></tr></thead>
+                                <thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Scrolle</th><th>Ost. Komentarz</th></tr></thead>
                                 <tbody>
                                     ${dataD.stats.map(s => `<tr>
                                         <td>${s.Data}</td>
                                         <td>${s.Przeslane || 0}</td>
                                         <td>${s.Odrzucone || 0}</td>
                                         <td>${s.Oczekuje || 0}</td>
+                                        <td>${s.Scrolls || 0}</td>
                                         <td>${s.LastCommentTime || '-'}</td>
                                     </tr>`).join('')}
                                 </tbody>
