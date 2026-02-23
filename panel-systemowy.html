@@ -1615,13 +1615,6 @@
             
             // Load stats
             loadTutorStats(tName);
-            
-            // --- NEW: Add event listeners for hidden lessons ---
-            const now = new Date();
-            document.getElementById('fetchThisMonthHidden').onclick = () => fetchHiddenLessons(tName, now.getFullYear(), now.getMonth());
-            
-            const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            document.getElementById('fetchLastMonthHidden').onclick = () => fetchHiddenLessons(tName, lastMonthDate.getFullYear(), lastMonthDate.getMonth());
         }
 
         async function fetchHiddenLessons(tutorName, year, month) {
@@ -1741,7 +1734,7 @@
                 // --- RENDER ---
                 container.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center;">
+                        <div id="thisMonthLessonsCard" class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center; cursor: pointer;">
                             <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth.total}</div>
                             <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
@@ -1749,11 +1742,13 @@
                                 <span style="color: #dc3545; font-weight: bold;">${stats.thisMonth.unpaid} nieopłacone</span>
                             </div>
                         </div>
-                        <div class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center;">
+                        <div id="lastMonthLessonsCard" class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center; cursor: pointer;">
                             <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu (opłacone)</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonthPaid}</div>
                         </div>
                     </div>
+
+                    <div id="hiddenLessonsResult" style="margin-top: 1rem; margin-bottom: 2rem;"></div>
 
                     <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
                     <div class="table-responsive">
@@ -1792,12 +1787,11 @@
                             </tbody>
                         </table>
                     </div>
-                    <div id="tutorHiddenLessons" style="margin-top: 2rem;">
-                        <button id="fetchThisMonthHidden" class="btn btn-sm btn-info">Pokaż niezrealizowane lekcje w tym miesiącu</button>
-                        <button id="fetchLastMonthHidden" class="btn btn-sm btn-info">Pokaż niezrealizowane lekcje w zeszłym miesiącu</button>
-                        <div id="hiddenLessonsResult" style="margin-top: 1rem;"></div>
-                    </div>
                 `;
+
+                // --- NEW: Add event listeners for hidden lessons ---
+                document.getElementById('thisMonthLessonsCard').onclick = () => fetchHiddenLessons(tutorName, currentYear, currentMonth);
+                document.getElementById('lastMonthLessonsCard').onclick = () => fetchHiddenLessons(tutorName, lastMonthYear, lastMonth);
 
             } catch(e) {
                 console.error(e);
