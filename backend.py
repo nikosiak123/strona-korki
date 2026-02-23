@@ -1499,11 +1499,21 @@ def get_tutor_hidden_lessons_stats():
         # Get all reservations for the month
         from calendar import monthrange
         _, num_days = monthrange(year, month)
-        start_date_obj = datetime(year, month, 1)
-        end_date_obj = datetime(year, month, num_days)
+        start_date = datetime(year, month, 1).date()
+        end_date = datetime(year, month, num_days).date()
 
-        formula = f"AND({{Korepetytor}} = '{tutor_name}', IS_AFTER({{Data}}, DATETIME_PARSE('{(start_date_obj - timedelta(days=1)).strftime('%Y-%m-%d')}', 'YYYY-MM-DD')), IS_BEFORE({{Data}}, DATETIME_PARSE('{(end_date_obj + timedelta(days=1)).strftime('%Y-%m-%d')}', 'YYYY-MM-DD')))"
-        reservations = reservations_table.all(formula=formula)
+        # Fetch ALL reservations for the tutor, then filter in Python
+        formula = f"{{Korepetytor}} = '{tutor_name}'"
+        all_reservations = reservations_table.all(formula=formula)
+
+        reservations = []
+        for r in all_reservations:
+            try:
+                lesson_date = datetime.strptime(r['fields'].get('Data'), '%Y-%m-%d').date()
+                if start_date <= lesson_date <= end_date:
+                    reservations.append(r)
+            except (ValueError, TypeError):
+                continue
         
         booked_slots = set()
         for r in reservations:
