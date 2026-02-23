@@ -1705,7 +1705,7 @@
                 // --- RENDER ---
                 container.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center;">
+                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center; cursor: pointer;" onclick="toggleTutorDetails()">
                             <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth.total}</div>
                             <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
@@ -1719,48 +1719,57 @@
                         </div>
                     </div>
 
-                    <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
-                    <div class="table-responsive">
-                        <table class="table" style="width: auto; min-width: 600px;">
-                            <thead>
-                                <tr>
-                                    <th style="width: 200px;">Typ Szkoły</th>
-                                    <th>Poziom / Klasa</th>
-                                    <th style="width: 100px; text-align: right;">Ilość</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Podstawówka</strong></td>
-                                    <td>Wszystkie klasy</td>
-                                    <td style="text-align: right; font-weight: bold;">${stats.primary}</td>
-                                </tr>
-                                <tr style="background-color: #f9f9fc;">
-                                    <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy niematuralne</small></td>
-                                    <td>Podstawa</td>
-                                    <td style="text-align: right;">${stats.highSchool.nonMatric.basic}</td>
-                                </tr>
-                                <tr style="background-color: #f9f9fc;">
-                                    <td>Rozszerzenie</td>
-                                    <td style="text-align: right;">${stats.highSchool.nonMatric.extended}</td>
-                                </tr>
-                                <tr>
-                                    <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy maturalne</small></td>
-                                    <td>Podstawa</td>
-                                    <td style="text-align: right;">${stats.highSchool.matric.basic}</td>
-                                </tr>
-                                <tr>
-                                    <td>Rozszerzenie</td>
-                                    <td style="text-align: right;">${stats.highSchool.matric.extended}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div id="tutor-details-breakdown" style="display: none;">
+                        <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
+                        <div class="table-responsive">
+                            <table class="table" style="width: auto; min-width: 600px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 200px;">Typ Szkoły</th>
+                                        <th>Poziom / Klasa</th>
+                                        <th style="width: 100px; text-align: right;">Ilość</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Podstawówka</strong></td>
+                                        <td>Wszystkie klasy</td>
+                                        <td style="text-align: right; font-weight: bold;">${stats.primary}</td>
+                                    </tr>
+                                    <tr style="background-color: #f9f9fc;">
+                                        <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy niematuralne</small></td>
+                                        <td>Podstawa</td>
+                                        <td style="text-align: right;">${stats.highSchool.nonMatric.basic}</td>
+                                    </tr>
+                                    <tr style="background-color: #f9f9fc;">
+                                        <td>Rozszerzenie</td>
+                                        <td style="text-align: right;">${stats.highSchool.nonMatric.extended}</td>
+                                    </tr>
+                                    <tr>
+                                        <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy maturalne</small></td>
+                                        <td>Podstawa</td>
+                                        <td style="text-align: right;">${stats.highSchool.matric.basic}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Rozszerzenie</td>
+                                        <td style="text-align: right;">${stats.highSchool.matric.extended}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 `;
 
             } catch(e) {
                 console.error(e);
                 container.innerHTML = `<div style="color:red; padding:1rem; text-align:center;">Błąd ładowania statystyk: ${e.message}</div>`;
+            }
+        }
+
+        function toggleTutorDetails() {
+            const details = document.getElementById('tutor-details-breakdown');
+            if (details) {
+                details.style.display = details.style.display === 'none' ? 'block' : 'none';
             }
         }
 
