@@ -123,7 +123,7 @@ except Exception as e:
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Dla sesji Flask
-CORS(app, supports_credentials=True)
+CORS(app)
 
 def require_admin(f):
     @wraps(f)
@@ -1478,92 +1478,6 @@ def block_single_slot():
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany statusu terminu.")
         
-@app.route('/api/admin/table/tutor-hidden-lessons-stats')
-@require_admin
-def get_tutor_hidden_lessons_stats():
-    try:
-        tutor_name = request.args.get('tutorName')
-        year = int(request.args.get('year'))
-        month = int(request.args.get('month'))
-        
-        if not all([tutor_name, year, month]):
-            abort(400, "Brak wymaganych parametrów (tutorName, year, month).")
-
-        tutor_record = tutors_table.first(formula=f"{{ImieNazwisko}} = '{tutor_name}'")
-        if not tutor_record:
-            abort(404, "Nie znaleziono korepetytora.")
-
-        tutor_fields = tutor_record.get('fields', {})
-        tutor_levels = normalize_tutor_field(tutor_fields.get('PoziomNauczania', []))
-
-        # Get all reservations for the month
-        from calendar import monthrange
-        _, num_days = monthrange(year, month)
-        start_date = datetime(year, month, 1).date()
-        end_date = datetime(year, month, num_days).date()
-
-        # Fetch ALL reservations for the tutor, then filter in Python
-        formula = f"{{Korepetytor}} = '{tutor_name}'"
-        all_reservations = reservations_table.all(formula=formula)
-
-        reservations = []
-        for r in all_reservations:
-            try:
-                lesson_date = datetime.strptime(r['fields'].get('Data'), '%Y-%m-%d').date()
-                if start_date <= lesson_date <= end_date:
-                    reservations.append(r)
-            except (ValueError, TypeError):
-                continue
-        
-        booked_slots = set()
-        for r in reservations:
-            f = r.get('fields', {})
-            status = f.get('Status', '')
-            if status not in ['Anulowana (brak płatności)', 'Odwołana - brak potwierdzenia', 'Dostępny', 'Niedostępny']:
-                 booked_slots.add((f.get('Data'), f.get('Godzina')))
-
-        # Get tutor's schedule
-        schedule = {}
-        for day_name in WEEKDAY_MAP.values():
-            schedule_value = tutor_fields.get(day_name)
-            if isinstance(schedule_value, str):
-                try:
-                    schedule[day_name] = json.loads(schedule_value)
-                except json.JSONDecodeError:
-                    schedule[day_name] = []
-            elif isinstance(schedule_value, list):
-                schedule[day_name] = schedule_value
-            else:
-                schedule[day_name] = []
-
-        hidden_lessons_count = 0
-        
-        for day in range(1, num_days + 1):
-            date = datetime(year, month, day)
-            date_str = date.strftime('%Y-%m-%d')
-            day_name = WEEKDAY_MAP[date.weekday()]
-            
-            if day_name in schedule:
-                for time_slot in schedule[day_name]:
-                    if (date_str, time_slot) not in booked_slots:
-                        hidden_lessons_count += 1
-        
-        # Since we cannot know the level of a lesson that wasn't booked,
-        # we will distribute the count among the levels the tutor teaches.
-        stats = {}
-        if tutor_levels and hidden_lessons_count > 0:
-            levels_str = ", ".join(tutor_levels)
-            stats[levels_str] = hidden_lessons_count
-        elif hidden_lessons_count > 0:
-            stats["nieokreślony"] = hidden_lessons_count
-
-
-        return jsonify({"stats": stats})
-
-    except Exception as e:
-        traceback.print_exc()
-        abort(500, "Błąd serwera podczas obliczania statystyk.")
-
 # Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)
 
 # Importy i definicje pozostają bez zmian (datetime, timedelta, jsonify, etc.)

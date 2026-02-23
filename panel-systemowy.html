@@ -1617,43 +1617,6 @@
             loadTutorStats(tName);
         }
 
-        async function fetchHiddenLessons(tutorName, year, month) {
-            const container = document.getElementById('hiddenLessonsResult');
-            container.innerHTML = '<div style="padding:1rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin"></i> Ładowanie...</div>';
-            
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/table/tutor-hidden-lessons-stats?tutorName=${encodeURIComponent(tutorName)}&year=${year}&month=${month + 1}`);
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Object.keys(data.stats).length === 0) {
-                        container.innerHTML = '<div style="padding:1rem; text-align:center; color:#7e8299;">Brak danych o niezrealizowanych lekcjach w tym okresie.</div>';
-                        return;
-                    }
-                    
-                    let html = '<h4>Niezrealizowane lekcje (wg grafiku)</h4><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Poziom</th><th style="text-align:right;">Ilość</th></tr></thead><tbody>';
-                    for (const level in data.stats) {
-                        html += `<tr><td>${level}</td><td style="text-align:right;">${data.stats[level]}</td></tr>`;
-                    }
-                    html += '</tbody></table></div>';
-                    container.innerHTML = html;
-                } else {
-                    if (res.status === 401) {
-                        throw new Error('Brak autoryzacji. Proszę odświeżyć stronę i zalogować się ponownie.');
-                    }
-                    const errorText = await res.text();
-                    throw new Error(`Błąd serwera: ${res.status}.`);
-                }
-            } catch (e) {
-                 if (e instanceof SyntaxError) {
-                     container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: Otrzymano nieprawidłową odpowiedź od serwera.</div>`;
-                } else {
-                    container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
-                }
-            }
-        }
-
-
         async function loadTutorStats(tutorName) {
             const container = document.getElementById('tutorManagementContent');
             container.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Obliczanie statystyk...</div>';
@@ -1742,7 +1705,7 @@
                 // --- RENDER ---
                 container.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                        <div id="thisMonthLessonsCard" class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center; cursor: pointer;">
+                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center;">
                             <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth.total}</div>
                             <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
@@ -1750,13 +1713,11 @@
                                 <span style="color: #dc3545; font-weight: bold;">${stats.thisMonth.unpaid} nieopłacone</span>
                             </div>
                         </div>
-                        <div id="lastMonthLessonsCard" class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center; cursor: pointer;">
+                        <div class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center;">
                             <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu (opłacone)</div>
                             <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonthPaid}</div>
                         </div>
                     </div>
-
-                    <div id="hiddenLessonsResult" style="margin-top: 1rem; margin-bottom: 2rem;"></div>
 
                     <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
                     <div class="table-responsive">
@@ -1796,10 +1757,6 @@
                         </table>
                     </div>
                 `;
-
-                // --- NEW: Add event listeners for hidden lessons ---
-                document.getElementById('thisMonthLessonsCard').onclick = () => fetchHiddenLessons(tutorName, currentYear, currentMonth);
-                document.getElementById('lastMonthLessonsCard').onclick = () => fetchHiddenLessons(tutorName, lastMonthYear, lastMonth);
 
             } catch(e) {
                 console.error(e);
