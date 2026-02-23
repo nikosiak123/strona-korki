@@ -724,22 +724,40 @@
 
                 <!-- VIEW: STATS -->
                 <div id="view-stats" class="panel-view hidden">
-                    <!-- Status Cards -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;" id="statsCards">
-                        <!-- Wstrzykiwane dynamicznie -->
-                    </div>
-
-                    <div class="panel-card">
-                        <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
-                        <div style="height: 300px;">
-                            <canvas id="hourlyStatsChart"></canvas>
+                    
+                    <div class="panel-card" style="margin-bottom: 1.5rem;">
+                        <div class="stats-tabs" style="display: flex; gap: 0.5rem; ">
+                            <button class="btn btn-sm btn-primary stats-tab-btn active" data-target="stats-statystyki">Statystyki</button>
+                            <button class="btn btn-sm btn-info stats-tab-btn" data-target="stats-bledy">Błędy</button>
+                            <button class="btn btn-sm btn-info stats-tab-btn" data-target="stats-dzialanie">Działanie</button>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- Bot Status Card - always visible -->
+                    <div id="botStatusCard" style="margin-bottom: 1.5rem;">
+                       <!-- Dynamically injected status -->
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div id="stats-statystyki" class="stats-tab-content">
+                         <div id="dailySummaryContainer">
+                            <!-- Daily summary table will be injected here -->
+                         </div>
+                    </div>
+
+                    <div id="stats-bledy" class="stats-tab-content hidden">
                         <div class="panel-card">
                             <h3 style="margin-top: 0;">Ostatnie Logi/Błędy</h3>
                             <div id="errorLogsList" style="max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+
+                    <div id="stats-dzialanie" class="stats-tab-content hidden">
+                        <div class="panel-card" style="margin-bottom: 1.5rem;">
+                            <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
+                            <div style="height: 300px;">
+                                <canvas id="hourlyStatsChart"></canvas>
+                            </div>
                         </div>
                         <div class="panel-card">
                             <h3 style="margin-top: 0;">Zrzuty ekranu (Bot Status)</h3>
@@ -863,6 +881,27 @@
             const lastView = localStorage.getItem('adminLastView') || 'database';
             const navItem = document.querySelector(`.menu-item[data-target="${lastView}"]`);
             if (navItem) navItem.click();
+
+            // Stats Tabs
+            document.querySelectorAll('.stats-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.target;
+
+                    // Button active state
+                    document.querySelectorAll('.stats-tab-btn').forEach(b => {
+                        b.classList.remove('active', 'btn-primary');
+                        b.classList.add('btn-info');
+                    });
+                    btn.classList.add('active', 'btn-primary');
+                    btn.classList.remove('btn-info');
+
+                    // Show/hide content
+                    document.querySelectorAll('.stats-tab-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(target).classList.remove('hidden');
+                });
+            });
 
             // Login Handler
             document.getElementById('loginBtn').addEventListener('click', handleLogin);
@@ -1455,18 +1494,29 @@
 
         // --- STATS PANEL ---
         async function loadStats() {
-            const container = document.getElementById('statsCards');
+            const botStatusContainer = document.getElementById('botStatusCard');
+            const dailySummaryContainer = document.getElementById('dailySummaryContainer');
             const errList = document.getElementById('errorLogsList');
             const scrList = document.getElementById('screenshotList');
             
+            // Clear previous content to avoid stale data
+            botStatusContainer.innerHTML = 'Ładowanie statusu...';
+            dailySummaryContainer.innerHTML = '';
+            errList.innerHTML = 'Ładowanie błędów...';
+            scrList.innerHTML = 'Ładowanie zrzutów ekranu...';
+
             try {
-                // 1. Hourly Stats
+                // 1. Hourly Stats (for Działanie tab)
                 const resH = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
                 const dataH = await resH.json();
                 
                 if(dataH.stats) {
-                    const ctx = document.getElementById('hourlyStatsChart');
-                    new Chart(ctx, {
+                    const canvas = document.getElementById('hourlyStatsChart');
+                    // Destroy previous chart instance if it exists
+                    if (canvas.chart) {
+                        canvas.chart.destroy();
+                    }
+                    canvas.chart = new Chart(canvas, {
                         type: 'bar',
                         data: {
                             labels: dataH.stats.map(s => {
@@ -1483,28 +1533,29 @@
                                 backgroundColor: '#1bc5bd'
                             }]
                         },
-                        options: { maintainAspectRatio: false }
+                        options: { maintainAspectRatio: false, responsive: true }
                     });
                 }
 
-                // 2. Daily Summary (FB Status)
+                // 2. Daily Summary & Bot Status (for Statystyki tab and main view)
                 const resD = await fetch(`${API_BASE_URL}/api/admin/facebook-stats`);
                 const dataD = await resD.json();
                 
-                let statusHtml = `
-                    <div class="panel-card" style="border-left: 5px solid ${dataD.isRunning ? '#1bc5bd' : '#f64e60'};">
-                        <div style="font-size:0.9rem; color:#7e8299;">Status Bota FB</div>
-                        <div style="font-size:1.5rem; font-weight:700;">${dataD.isRunning ? 'AKTYWNY' : 'ZATRZYMANY'}</div>
-                        <small>Ost. komentarz: ${dataD.lastCommentTime || '-'}</small>
-                    </div>
+                // Bot Status Card (Always Visible)
+                botStatusContainer.innerHTML = `
+                 <div class="panel-card" style="border-left: 5px solid ${dataD.isRunning ? '#1bc5bd' : '#f64e60'};">
+                    <div style="font-size:0.9rem; color:#7e8299;">Status Bota FB</div>
+                    <div style="font-size:1.5rem; font-weight:700;">${dataD.isRunning ? 'AKTYWNY' : 'ZATRZYMANY'}</div>
+                    <small>Ost. komentarz: ${dataD.lastCommentTime || '-'}</small>
+                </div>
                 `;
                 
-                // Add Daily Stats Table
+                // Daily Stats Table (Statystyki Tab)
                 if(dataD.stats && dataD.stats.length > 0) {
-                    statusHtml += `<div class="panel-card" style="grid-column: 1 / -1;">
+                    dailySummaryContainer.innerHTML = `<div class="panel-card">
                         <h3 style="margin-top:0;">Podsumowanie dzienne</h3>
                         <div class="table-responsive">
-                            <table class="table-sm">
+                            <table class="table-sm" style="min-width: auto;">
                                 <thead><tr><th>Data</th><th>Przesłane</th><th>Odrzucone</th><th>Oczekuje</th><th>Ost. Komentarz</th></tr></thead>
                                 <tbody>
                                     ${dataD.stats.map(s => `<tr>
@@ -1518,29 +1569,31 @@
                             </table>
                         </div>
                     </div>`;
+                } else {
+                     dailySummaryContainer.innerHTML = '<div class="panel-card"><p>Brak statystyk dziennych.</p></div>';
                 }
-                
-                container.innerHTML = statusHtml;
 
-                // 3. Screenshots
+                // 3. Screenshots (for Działanie tab)
                 const resS = await fetch(`${API_BASE_URL}/api/admin/facebook-status-screenshots`);
                 const dataS = await resS.json();
                 
-                if(dataS.screenshots) {
-                    let html = '<table class="table-sm">';
+                if(dataS.screenshots && dataS.screenshots.length > 0) {
+                    let html = '<table class="table-sm" style="min-width: auto;">';
                     dataS.screenshots.forEach(s => {
                         html += `<tr><td><small>${s.timestamp}</small></td><td><a href="${API_BASE_URL}/api/admin/download-status-screenshot?file=${s.filename}" target="_blank">Pobierz</a></td></tr>`;
                     });
                     html += '</table>';
                     scrList.innerHTML = html;
+                } else {
+                    scrList.innerHTML = '<p>Brak zrzutów ekranu.</p>';
                 }
 
-                // 4. Errors
+                // 4. Errors (for Błędy tab)
                 const resE = await fetch(`${API_BASE_URL}/api/admin/facebook-errors`);
                 const dataE = await resE.json();
                 
-                if(dataE.errors) {
-                    let html = '<table class="table-sm">';
+                if(dataE.errors && dataE.errors.length > 0) {
+                    let html = '<table class="table-sm" style="min-width: auto;">';
                     dataE.errors.forEach(e => {
                         html += `<tr>
                             <td><small>${new Date(e.timestamp).toLocaleTimeString()}</small></td>
@@ -1550,9 +1603,14 @@
                     });
                     html += '</table>';
                     errList.innerHTML = html;
+                } else {
+                    errList.innerHTML = '<p>Brak błędów.</p>';
                 }
 
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error(e); 
+                botStatusContainer.innerHTML = '<div class="panel-card" style="color:red;">Błąd ładowania statystyk.</div>';
+            }
         }
 
         // --- TUTORS VIEW ---
