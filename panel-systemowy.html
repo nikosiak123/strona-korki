@@ -1623,9 +1623,9 @@
             
             try {
                 const res = await fetch(`${API_BASE_URL}/api/admin/tutor-hidden-lessons-stats?tutorName=${encodeURIComponent(tutorName)}&year=${year}&month=${month + 1}`);
-                const data = await res.json();
                 
                 if (res.ok) {
+                    const data = await res.json();
                     if (Object.keys(data.stats).length === 0) {
                         container.innerHTML = '<div style="padding:1rem; text-align:center; color:#7e8299;">Brak danych o niezrealizowanych lekcjach w tym okresie.</div>';
                         return;
@@ -1638,10 +1638,18 @@
                     html += '</tbody></table></div>';
                     container.innerHTML = html;
                 } else {
-                    throw new Error(data.error || 'Błąd serwera');
+                    if (res.status === 401) {
+                        throw new Error('Brak autoryzacji. Proszę odświeżyć stronę i zalogować się ponownie.');
+                    }
+                    const errorText = await res.text();
+                    throw new Error(`Błąd serwera: ${res.status}.`);
                 }
             } catch (e) {
-                container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
+                 if (e instanceof SyntaxError) {
+                     container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: Otrzymano nieprawidłową odpowiedź od serwera.</div>`;
+                } else {
+                    container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
+                }
             }
         }
 
