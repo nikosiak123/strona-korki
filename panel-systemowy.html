@@ -1617,36 +1617,42 @@
             loadTutorStats(tName);
         }
 
-        async function loadTutorStats(tutorName) {
+                async function loadTutorStats(tutorName) {
             const container = document.getElementById('tutorManagementContent');
             container.innerHTML = '<div style="padding:2rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Obliczanie statystyk...</div>';
+
+            const calculateLessonPrice = (school_type, school_level, school_class) => {
+                if (school_type === 'szkola_podstawowa') return 65;
+                if (school_class && (String(school_class).toLowerCase().includes('4') || String(school_class).toLowerCase().includes('5'))) return 80;
+                if (school_level === 'rozszerzony') return 75;
+                return 70;
+            };
+
+            const getTutorRate = (school_type, school_class) => {
+                if (school_type === 'szkola_podstawowa') return 35;
+                if (school_type === 'liceum' || school_type === 'technikum') {
+                    const cls = String(school_class || '');
+                    if ((school_type === 'liceum' && cls.includes('4')) || (school_type === 'technikum' && cls.includes('5'))) return 45;
+                    return 40;
+                }
+                return 0;
+            };
             
             try {
-                // Fetch all reservations
                 const res = await fetch(`${API_BASE_URL}/api/admin/table/Rezerwacje`);
                 const data = await res.json();
                 
                 if (!data.records) throw new Error('Brak danych rezerwacji');
 
-                // Filter for this tutor
                 const lessons = data.records.filter(r => r.fields.Korepetytor === tutorName);
                 
-                // --- CALCULATE STATS ---
                 const now = new Date();
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
-                const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                const lastMonth = lastMonthDate.getMonth();
-                const lastMonthYear = lastMonthDate.getFullYear();
 
-                let stats = {
-                    thisMonth: { total: 0, paid: 0, unpaid: 0 },
-                    lastMonthPaid: 0,
-                    primary: 0,
-                    highSchool: {
-                        nonMatric: { basic: 0, extended: 0 },
-                        matric: { basic: 0, extended: 0 }
-                    }
+                let earnings = {
+                    tutor: { total: 0, primary: 0, highSchoolNormal: 0, highSchoolMatura: 0 },
+                    company: { total: 0, primary: 0, highSchoolNormal: 0, highSchoolMatura: 0 }
                 };
 
                 lessons.forEach(l => {
@@ -1654,109 +1660,66 @@
                     if (!f.Data) return;
                     
                     const status = f.Status || '';
-                    // Exclude invalid statuses
-                    if (
-                        status.includes('Anulowana') || 
-                        status.includes('Odwołana') || 
-                        status === 'Przeniesiona' || 
-                        status === 'Dostępny' || 
-                        status === 'Niedostępny' ||
-                        status === 'Termin płatności minął'
-                    ) return;
+                    if (status.includes('Anulowana') || status.includes('Odwołana') || status === 'Przeniesiona' || status === 'Dostępny' || status === 'Niedostępny' || status === 'Termin płatności minął' || f.Oplacona !== true) return;
 
                     const date = new Date(f.Data);
-                    const isPaid = f.Oplacona === true || status === 'Opłacona';
-                    
-                    // Month counts
-                    if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                        stats.thisMonth.total++;
-                        if (isPaid) stats.thisMonth.paid++;
-                        else stats.thisMonth.unpaid++;
-                    }
-                    
-                    if (date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear) {
-                        if (isPaid) stats.lastMonthPaid++;
-                    }
+                    if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) return;
 
-                    // Breakdown
-                    const type = f.TypSzkoly;
-                    const level = f.Poziom;
-                    const cls = String(f.Klasa || '');
+                    const lessonPrice = calculateLessonPrice(f.TypSzkoly, f.Poziom, f.Klasa);
+                    const tutorRate = getTutorRate(f.TypSzkoly, f.Klasa);
+                    const companyProfit = lessonPrice - tutorRate;
 
-                    if (type === 'szkola_podstawowa') {
-                        stats.primary++;
-                    } else if (type === 'liceum' || type === 'technikum') {
-                        let isMatric = false;
-                        if (type === 'liceum' && cls.includes('4')) isMatric = true;
-                        if (type === 'technikum' && cls.includes('5')) isMatric = true;
-
-                        const isExtended = level === 'rozszerzony';
-
-                        if (isMatric) {
-                            if (isExtended) stats.highSchool.matric.extended++;
-                            else stats.highSchool.matric.basic++;
+                    let earningsCategory = 'primary';
+                     if (f.TypSzkoly === 'liceum' || f.TypSzkoly === 'technikum') {
+                        const cls = String(f.Klasa || '');
+                        if ((f.TypSzkoly === 'liceum' && cls.includes('4')) || (f.TypSzkoly === 'technikum' && cls.includes('5'))) {
+                            earningsCategory = 'highSchoolMatura';
                         } else {
-                            if (isExtended) stats.highSchool.nonMatric.extended++;
-                            else stats.highSchool.nonMatric.basic++;
+                            earningsCategory = 'highSchoolNormal';
                         }
                     }
+                    
+                    earnings.tutor[earningsCategory] += tutorRate;
+                    earnings.company[earningsCategory] += companyProfit;
                 });
 
-                // --- RENDER ---
-                container.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
-                        <div class="panel-card" style="background: #e1f0ff; border-color: #b5d0f5; text-align: center; cursor: pointer;" onclick="toggleTutorDetails()">
-                            <div style="font-size: 0.9rem; color: #0050a5; margin-bottom: 5px;">Lekcje w tym miesiącu</div>
-                            <div style="font-size: 2.5rem; font-weight: 800; color: #0050a5;">${stats.thisMonth.total}</div>
-                            <div style="font-size: 0.85rem; color: #555; margin-top: 5px;">
-                                <span style="color: #28a745; font-weight: bold;">${stats.thisMonth.paid} opłacone</span> / 
-                                <span style="color: #dc3545; font-weight: bold;">${stats.thisMonth.unpaid} nieopłacone</span>
-                            </div>
-                        </div>
-                        <div class="panel-card" style="background: #fff4de; border-color: #ffe2b5; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #b58105; margin-bottom: 5px;">Lekcje w zeszłym miesiącu (opłacone)</div>
-                            <div style="font-size: 2.5rem; font-weight: 800; color: #b58105;">${stats.lastMonthPaid}</div>
-                        </div>
-                    </div>
+                earnings.tutor.total = earnings.tutor.primary + earnings.tutor.highSchoolNormal + earnings.tutor.highSchoolMatura;
+                earnings.company.total = earnings.company.primary + earnings.company.highSchoolNormal + earnings.company.highSchoolMatura;
 
-                    <div id="tutor-details-breakdown" style="display: none;">
-                        <h3 style="margin-bottom: 1rem;">Szczegółowy podział (Wszystkie lekcje)</h3>
-                        <div class="table-responsive">
-                            <table class="table" style="width: auto; min-width: 600px;">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 200px;">Typ Szkoły</th>
-                                        <th>Poziom / Klasa</th>
-                                        <th style="width: 100px; text-align: right;">Ilość</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Podstawówka</strong></td>
-                                        <td>Wszystkie klasy</td>
-                                        <td style="text-align: right; font-weight: bold;">${stats.primary}</td>
-                                    </tr>
-                                    <tr style="background-color: #f9f9fc;">
-                                        <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy niematuralne</small></td>
-                                        <td>Podstawa</td>
-                                        <td style="text-align: right;">${stats.highSchool.nonMatric.basic}</td>
-                                    </tr>
-                                    <tr style="background-color: #f9f9fc;">
-                                        <td>Rozszerzenie</td>
-                                        <td style="text-align: right;">${stats.highSchool.nonMatric.extended}</td>
-                                    </tr>
-                                    <tr>
-                                        <td rowspan="2" style="vertical-align: top;"><strong>Szkoła Średnia</strong><br><small style="color:#777;">Klasy maturalne</small></td>
-                                        <td>Podstawa</td>
-                                        <td style="text-align: right;">${stats.highSchool.matric.basic}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Rozszerzenie</td>
-                                        <td style="text-align: right;">${stats.highSchool.matric.extended}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                container.innerHTML = `
+                    <h3 style="margin-bottom: 1rem;">Rozliczenie (Bieżący Miesiąc)</h3>
+                    <div class="table-responsive">
+                        <table class="table" style="width: auto; min-width: 800px;">
+                            <thead>
+                                <tr>
+                                    <th>Poziom</th>
+                                    <th style="text-align: right;">Zarobek Korepetytora (Brutto)</th>
+                                    <th style="text-align: right;">Przychód Firmy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Szkoła Podstawowa</td>
+                                    <td style="text-align: right;">${earnings.tutor.primary.toFixed(2)} zł</td>
+                                    <td style="text-align: right;">${earnings.company.primary.toFixed(2)} zł</td>
+                                </tr>
+                                <tr style="background-color: #f9f9fc;">
+                                    <td>Szkoła Średnia (nie-maturalne)</td>
+                                    <td style="text-align: right;">${earnings.tutor.highSchoolNormal.toFixed(2)} zł</td>
+                                    <td style="text-align: right;">${earnings.company.highSchoolNormal.toFixed(2)} zł</td>
+                                </tr>
+                                <tr>
+                                    <td>Szkoła Średnia (maturalne)</td>
+                                    <td style="text-align: right;">${earnings.tutor.highSchoolMatura.toFixed(2)} zł</td>
+                                    <td style="text-align: right;">${earnings.company.highSchoolMatura.toFixed(2)} zł</td>
+                                </tr>
+                                <tr style="font-weight: bold; border-top: 2px solid #333;">
+                                    <td>Suma</td>
+                                    <td style="text-align: right;">${earnings.tutor.total.toFixed(2)} zł</td>
+                                    <td style="text-align: right;">${earnings.company.total.toFixed(2)} zł</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 `;
 
@@ -1765,14 +1728,6 @@
                 container.innerHTML = `<div style="color:red; padding:1rem; text-align:center;">Błąd ładowania statystyk: ${e.message}</div>`;
             }
         }
-
-        function toggleTutorDetails() {
-            const details = document.getElementById('tutor-details-breakdown');
-            if (details) {
-                details.style.display = details.style.display === 'none' ? 'block' : 'none';
-            }
-        }
-
         function backToTutorsList() {
              document.querySelectorAll('.panel-view').forEach(view => view.classList.add('hidden'));
              document.getElementById('view-tutors').classList.remove('hidden');
