@@ -1478,7 +1478,7 @@ def block_single_slot():
         traceback.print_exc()
         abort(500, "Wystąpił błąd podczas zmiany statusu terminu.")
         
-@app.route('/api/admin/tutor-hidden-lessons-stats')
+@app.route('/api/admin/table/tutor-hidden-lessons-stats')
 @require_admin
 def get_tutor_hidden_lessons_stats():
     try:

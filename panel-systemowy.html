@@ -1622,7 +1622,7 @@
             container.innerHTML = '<div style="padding:1rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin"></i> Ładowanie...</div>';
             
             try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/tutor-hidden-lessons-stats?tutorName=${encodeURIComponent(tutorName)}&year=${year}&month=${month + 1}`);
+                const res = await fetch(`${API_BASE_URL}/api/admin/table/tutor-hidden-lessons-stats?tutorName=${encodeURIComponent(tutorName)}&year=${year}&month=${month + 1}`);
                 
                 if (res.ok) {
                     const data = await res.json();
