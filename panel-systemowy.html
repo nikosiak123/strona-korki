@@ -1615,7 +1615,43 @@
             
             // Load stats
             loadTutorStats(tName);
+            
+            // --- NEW: Add event listeners for hidden lessons ---
+            const now = new Date();
+            document.getElementById('fetchThisMonthHidden').onclick = () => fetchHiddenLessons(tName, now.getFullYear(), now.getMonth());
+            
+            const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            document.getElementById('fetchLastMonthHidden').onclick = () => fetchHiddenLessons(tName, lastMonthDate.getFullYear(), lastMonthDate.getMonth());
         }
+
+        async function fetchHiddenLessons(tutorName, year, month) {
+            const container = document.getElementById('hiddenLessonsResult');
+            container.innerHTML = '<div style="padding:1rem; text-align:center; color:#999;"><i class="fas fa-spinner fa-spin"></i> Ładowanie...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/tutor-hidden-lessons-stats?tutorName=${encodeURIComponent(tutorName)}&year=${year}&month=${month + 1}`);
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (Object.keys(data.stats).length === 0) {
+                        container.innerHTML = '<div style="padding:1rem; text-align:center; color:#7e8299;">Brak danych o niezrealizowanych lekcjach w tym okresie.</div>';
+                        return;
+                    }
+                    
+                    let html = '<h4>Niezrealizowane lekcje (wg grafiku)</h4><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Poziom</th><th style="text-align:right;">Ilość</th></tr></thead><tbody>';
+                    for (const level in data.stats) {
+                        html += `<tr><td>${level}</td><td style="text-align:right;">${data.stats[level]}</td></tr>`;
+                    }
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                } else {
+                    throw new Error(data.error || 'Błąd serwera');
+                }
+            } catch (e) {
+                container.innerHTML = `<div style="color:red; padding:1rem;">Błąd: ${e.message}</div>`;
+            }
+        }
+
 
         async function loadTutorStats(tutorName) {
             const container = document.getElementById('tutorManagementContent');
@@ -1755,6 +1791,11 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div id="tutorHiddenLessons" style="margin-top: 2rem;">
+                        <button id="fetchThisMonthHidden" class="btn btn-sm btn-info">Pokaż niezrealizowane lekcje w tym miesiącu</button>
+                        <button id="fetchLastMonthHidden" class="btn btn-sm btn-info">Pokaż niezrealizowane lekcje w zeszłym miesiącu</button>
+                        <div id="hiddenLessonsResult" style="margin-top: 1rem;"></div>
                     </div>
                 `;
 
