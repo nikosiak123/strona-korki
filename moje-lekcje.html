@@ -643,9 +643,12 @@
                 let statusText = lesson.status;
 
                 // Specjalna logika dla zakończonych lekcji testowych: możliwość opłacenia tylko jeśli potwierdzone i nieopłacone
-                if (isPast && lesson.isTest && !lesson.isPaid && lesson.confirmed && lesson.status !== 'Anulowana (brak płatności)') {
+                if (isPast && lesson.isTest && !lesson.isPaid && lesson.confirmed && lesson.status !== 'Anulowana (brak płatności)' && lesson.status !== 'Odwołana przez klienta' && lesson.status !== 'Odwołana - brak potwierdzenia') {
                     actionsHtml = `<button class="btn-pay" data-token="${lesson.managementToken}">Opłać</button> <span style="color: #d32f2f; font-weight: bold; font-size: 0.9em;">zapłać za odbytą lekcję</span>`;
                     statusText = 'Zakończona (można opłacić)';
+                } else if (isPast) {
+                    // Domyślny status dla innych zakończonych lekcji
+                     actionsHtml = '<span>Zakończona</span>';
                 }
 
                 if (!isPast) {
