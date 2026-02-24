@@ -1999,12 +1999,7 @@ def create_reservation():
                 "JestTestowa": is_test_lesson
             }
             
-            # Dla lekcji testowych ustaw deadline potwierdzenia na 24h przed lekcją
-            if is_test_lesson:
-                lesson_datetime_str = f"{data['selectedDate']} {data['selectedTime']}"
-                lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
-                confirmation_deadline = lesson_start - timedelta(hours=24)
-                new_one_time_reservation["confirmation_deadline"] = confirmation_deadline.strftime("%Y-%m-%d %H:%M:%S")
+
             
             new_one_time_reservation.update(extra_info)
             reservations_table.create(new_one_time_reservation)
