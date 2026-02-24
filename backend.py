@@ -254,7 +254,7 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
         return
 
     dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
-    ankieta_link = "https://docs.google.com/forms/d/1sNFt0jWy0hakuVTvZm_YJYThxCVV3lUmZ1Xh81-BZew/edit"
+    ankieta_link = "https://forms.gle/Z5Jwyw5d7QhV4zEQA"
     
     # Użycie potrójnego cudzysłowu zapobiega błędom unterminated string literal
     message_to_send = f"""Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊
@@ -323,7 +323,7 @@ Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona
 def check_unconfirmed_lessons():
     """Sprawdza niepotwierdzone lekcje testowe i odwołuje te, które minął deadline."""
     now = datetime.now()
-    logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
+    #logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
     
     # Znajdź wszystkie niepotwierdzone lekcje testowe
     unconfirmed_lessons = reservations_table.all(formula="AND({JestTestowa} = 1, {confirmed} = 0, NOT({Status} = 'Odwołana - brak potwierdzenia'), NOT({Status} = 'Przeniesiona (zakończona)'), NOT({Status} = 'Anulowana (brak płatności)'))")
@@ -1258,7 +1258,7 @@ def tutor_reschedule():
             if MESSENGER_PAGE_TOKEN and psid:
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
                 message_to_send = (
-                    f"Ważna informacja! Twój korepetytor musiał przenieść lekcję zaplanowaną na {date} o {time}.\n\n"
+                    f"Ważna informacja! Twój korepetytor musiał przenieść lekcję zaplanowaną na {date} o {time}.\n"
                     f"Prosimy o wejście do panelu klienta i wybranie nowego, dogodnego terminu:\n{dashboard_link}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -1981,7 +1981,7 @@ def create_reservation():
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
                 message_to_send = (
-                    f"Dziękujemy! Twój stały termin na {data['subject']} w każdy {day_of_week_name} o {data['selectedTime']} został pomyślnie zarezerwowany.\n\n"
+                    f"Dziękujemy! Twój stały termin na {data['subject']} w każdy {day_of_week_name} o {data['selectedTime']} został pomyślnie zarezerwowany.\n"
                     f"Pamiętaj, aby potwierdzać każdą nadchodzącą lekcję w swoim panelu klienta:\n{dashboard_link}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -2056,9 +2056,9 @@ def create_reservation():
 
                 
                 message_to_send = (
-                    f"Dziękujemy za rezerwację!\n\n"
+                    f"Dziękujemy za rezerwację!\n"
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
-                    f"{data['selectedDate']} o godzinie {data['selectedTime']}.\n\n"
+                    f"{data['selectedDate']} o godzinie {data['selectedTime']}."
                 )
 
                 # Dodaj ostrzeżenie o potwierdzeniu dla lekcji testowej
@@ -2074,19 +2074,19 @@ def create_reservation():
                         # Jeśli rezerwacja jest 24h przed lub mniej, klient może już teraz potwierdzić
                         message_to_send += (
                             f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia.\n"
-                            f"Możesz już teraz potwierdzić lekcję w panelu klienta.\n\n"
+                            f"Możesz już teraz potwierdzić lekcję w panelu klienta.\n"
                         )
                     else:
                         # Jeśli więcej niż 24h, klient otrzyma przypomnienie
                         message_to_send += (
                             f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia 24 godziny przed terminem.\n"
                             f"Otrzymasz przypomnienie na Messenger z linkiem do potwierdzenia.\n"
-                            f"Możesz też potwierdzić lekcję w panelu klienta.\n\n"
+                            f"Możesz też potwierdzić lekcję w panelu klienta.\n"
                         )
 
                 
                 message_to_send += (
-                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n\n"
+                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n"
                     f"{wiadomosc}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -2203,7 +2203,7 @@ def confirm_next_lesson():
             psid = client_uuid.strip()
             dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
             message_to_send = (
-                f"Potwierdzono! Twoja nadchodząca lekcja z przedmiotu '{subject}' została potwierdzona na dzień {next_lesson_date_str} o {lesson_time}.\n\n"
+                f"Potwierdzono! Twoja nadchodząca lekcja z przedmiotu '{subject}' została potwierdzona na dzień {next_lesson_date_str} o {lesson_time}.\n"
                 f"Prosimy o opłacenie jej najpóźniej 12 godzin przed rozpoczęciem. Możesz zarządzać swoimi lekcjami tutaj:\n{dashboard_link}"
             )
             send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -2528,7 +2528,7 @@ def reschedule_reservation():
             psid = original_fields.get('Klient')
             if psid:
                 message_to_send = (
-                    f"Termin Twojej lekcji został pomyślnie zmieniony.\n\n"
+                    f"Termin Twojej lekcji został pomyślnie zmieniony.\n"
                     f"Nowy termin to: {new_date} o godzinie {new_time}."
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -2606,14 +2606,8 @@ def confirm_lesson():
         if client_record:
             psid = client_record['fields'].get('ClientID')
             payment_text = "z obowiązkiem zapłaty teraz" if payment_option == 'now' else "z możliwością zapłaty później"
-            message = f"""✅ Twoja lekcja testowa została potwierdzona {payment_text}!
-
-📅 Data: {fields.get('Data')}
-🕐 Godzina: {fields.get('Godzina')}
-📚 Przedmiot: {fields.get('Przedmiot')}
-👨‍🏫 Korepetytor: {fields.get('Korepetytor')}
-
-Link do spotkania: {fields.get('TeamsLink')}"""
+            message = f"""Twoja lekcja testowa w dniu {fields.get('Data')} o {fields.get('Godzina')} została pomyślnie potwierdzona. 
+            Link do spotkania: {fields.get('TeamsLink')}"""
             send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
     
     return jsonify({"success": True, "message": "Lekcja została potwierdzona."})
@@ -2654,11 +2648,7 @@ def cancel_lesson():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
         if client_record:
             psid = client_record['fields'].get('ClientID')
-            message = f"""❌ Twoja lekcja testowa została odwołana.
-
-📅 Data: {fields.get('Data')}
-🕐 Godzina: {fields.get('Godzina')}
-📚 Przedmiot: {fields.get('Przedmiot')}"""
+            message = f""""Twoja lekcja testowa z przedmiotu '{fields.get('Przedmiot')}' w dniu {fields.get('Data')} o {fields.get('Godzina')} została pomyślnie odwołana.""""
             send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
     
     return jsonify({"success": True, "message": "Lekcja została odwołana."})
@@ -3297,8 +3287,8 @@ def send_reservation_link():
 
         # Wygeneruj link rezerwacji
         reservation_link = f"https://zakręcone-korepetycje.pl/rezerwacja-testowa.html?clientID={client_id}"
-        final_message = (f"Utworzyłem dla Państwa osobisty link do rezerwacji.\n\n"
-                         f"{reservation_link}\n\n"
+        final_message = (f"Utworzyłem dla Państwa osobisty link do rezerwacji.\n"
+                         f"{reservation_link}\n"
                          f"Lekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem.")
 
         # Wyślij wiadomość przez Messenger
@@ -3443,7 +3433,7 @@ def send_reminder_message():
         profile_link = f"https://zakręcone-korepetycje.pl/index.html?tutor={tutor_name_encoded}"
         
         message = (
-            f"Nasz korepetytor ({tutor_name}) poprosił nas, aby przypomnieć o skontaktowaniu się z nim przez Messengera w celu omówienia szczegółów zajęć.\n\n"
+            f"Nasz korepetytor ({tutor_name}) poprosił nas, aby przypomnieć o skontaktowaniu się z nim przez Messengera w celu omówienia szczegółów zajęć.\n"
             f"Link do profilu: {profile_link}"
         )
 
