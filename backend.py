@@ -1990,11 +1990,12 @@ def create_reservation():
             teams_link = generate_teams_meeting_link(f"Korepetycje: {data['subject']} dla {first_name}")
             if not teams_link: abort(500, "Nie udało się wygenerować linku Teams.")
 
+            status = "Oczekuje na potwierdzenie" if is_test_lesson else "Oczekuje na płatność"
             new_one_time_reservation = {
                 "Klient": client_uuid.strip(), "Korepetytor": tutor_for_reservation,
                 "Data": data['selectedDate'], "Godzina": data['selectedTime'],
                 "Przedmiot": data.get('subject'), "ManagementToken": management_token,
-                "Typ": "Jednorazowa", "Status": "Oczekuje na płatność", "TeamsLink": teams_link,
+                "Typ": "Jednorazowa", "Status": status, "TeamsLink": teams_link,
                 "JestTestowa": is_test_lesson
             }
             
@@ -2594,6 +2595,8 @@ def confirm_lesson():
     if payment_option == 'now':
         update_data["Oplacona"] = True
         update_data["Status"] = "Opłacona"
+    else: # payment_option == 'later'
+        update_data["Status"] = "Oczekuje na płatność"
     
     reservations_table.update(record['id'], update_data)
     
