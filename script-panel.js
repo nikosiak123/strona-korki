@@ -239,7 +239,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('closeActionModalBtn').onclick = () => actionModal.classList.remove('active');
         
         document.getElementById('rescheduleBtn').onclick = async () => {
-            // ... (reszta funkcji bez zmian)
+            if (confirm("Czy na pewno chcesz przełożyć te zajęcia? Uczeń zostanie poinformowany o konieczności wyboru nowego terminu.")) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/tutor-reschedule`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tutorName: tutorName,
+                            date: slot.date,
+                            time: slot.time
+                        })
+                    });
+                    if (!response.ok) throw new Error((await response.json()).message || "Nie udało się przełożyć zajęć.");
+                    alert("Zajęcia zostały przełożone. Uczeń został poproszony o wybór nowego terminu.");
+                    actionModal.classList.remove('active');
+                    await renderWeeklyCalendar(currentWeekStart); // Refresh the calendar
+                } catch (error) {
+                    alert(`Błąd: ${error.message}`);
+                }
+            }
         };
     }
 
