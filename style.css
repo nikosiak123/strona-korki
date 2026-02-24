@@ -86,12 +86,14 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .time-label { background-color: #FAFAFA; font-weight: 600; color: var(--text-light); width: 60px; padding: 8px 5px; font-size: 0.85em; vertical-align: middle; }
 
 .time-block.cancelled-no-payment {
+    font-size: 0.65em;  
     background-color: #fee2e2 !important;
     color: #991b1b !important;
     border: 1px solid #fca5a5 !important;
     text-decoration: line-through;
 }
 .time-block.cancelled-no-confirmation {
+    font-size: 0.65em;  
     background-color: #fff3cd !important;
     color: #856404 !important;
     border: 1px solid #ffeeba !important;
