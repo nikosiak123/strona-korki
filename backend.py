@@ -1584,6 +1584,8 @@ def get_schedule():
                     slot_status = "completed"
                 elif status == 'Anulowana (brak płatności)':
                     slot_status = "cancelled_no_payment"
+                elif status == 'Odwołana - brak potwierdzenia':
+                    slot_status = "cancelled_no_confirmation"
                 elif status in ['Niedostępny', 'Przeniesiona']:
                     slot_status = 'blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'
                 else:

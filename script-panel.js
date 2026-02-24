@@ -335,6 +335,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 block.textContent = "Odwołana (brak płatności)";
                                 block.addEventListener('click', () => showActionModal(slotData));
                                 break;
+                            case 'cancelled_no_confirmation':
+                                block.classList.add('cancelled-no-confirmation');
+                                block.textContent = "ODWOŁANA (brak potwierdzenia)";
+                                block.addEventListener('click', () => showActionModal(slotData));
+                                break;
                             case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
                             case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event)); break;
                             default: block.classList.add('unavailable'); block.textContent = "Przeniesione"; block.style.cursor = 'not-allowed';
@@ -396,6 +401,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     block.classList.add('cancelled-no-payment');
                                     block.textContent = `${timeSlot} - Odwołana (brak płatności)`;
                                     break;
+                                case 'cancelled_no_confirmation':
+                                    block.classList.add('cancelled-no-confirmation');
+                                    block.textContent = `${timeSlot} - ODWOŁANA (brak potwierdzenia)`;
+                                    break;
                                 default:
                                      block.classList.add('unavailable');
                                      block.textContent = `${timeSlot} - Zajęty`;
@@ -416,13 +425,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const time = blockEl.textContent.split(' - ')[0];
                         const date = formattedDate;
                         const slotData = scheduleMap[date] ? scheduleMap[date][time] : null;
-    
+
                         if (slotData && (slotData.status === 'available' || slotData.status === 'blocked_by_tutor')) {
-                             blockEl.addEventListener('click', (event) => handleBlockClick(date, time, slotData.status, event));
+                            blockEl.addEventListener('click', (event) => handleBlockClick(date, time, slotData.status, event));
                         } else if (blockEl.classList.contains('booked-lesson')) {
-                             blockEl.addEventListener('click', () => showActionModal(slotData));
+                            blockEl.addEventListener('click', () => showActionModal(slotData));
+                        } else if (blockEl.classList.contains('cancelled-no-payment') || blockEl.classList.contains('cancelled-no-confirmation')) {
+                            blockEl.addEventListener('click', () => showActionModal(slotData));
                         } else if (blockEl.classList.contains('disabled')) {
-                             blockEl.addEventListener('click', (event) => handleAddHocSlot(date, time, event));
+                            blockEl.addEventListener('click', (event) => handleAddHocSlot(date, time, event));
                         }
                     });
                 });
