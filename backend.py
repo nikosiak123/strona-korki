@@ -2274,7 +2274,7 @@ def get_client_dashboard():
                 "confirmed": fields.get('confirmed', False)
             }
             
-            inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)']
+            inactive_statuses = ['Anulowana (brak płatności)', 'Przeniesiona (zakończona)', 'Odwołana przez klienta', 'Odwołana - brak potwierdzenia']
             is_test_lesson = fields.get('JestTestowa', False)
             is_paid = fields.get('Oplacona', False)
             
