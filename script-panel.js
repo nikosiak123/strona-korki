@@ -207,7 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         let paymentStatusHtml = '';
-        if (slot.isTest && !slot.isPaid) {
+        if (slot.status === 'cancelled_no_payment') {
+            paymentStatusHtml = `<div class="modal-details-item" style="background-color: #fee2e2; padding: 0.5rem; border-radius: 4px;"><strong>Status:</strong> <span style="color: #991b1b; font-weight: bold;">ODWOŁANA - BRAK PŁATNOŚCI</span></div>`;
+        } else if (slot.isTest && !slot.isPaid) {
             paymentStatusHtml = `<div class="modal-details-item" style="background-color: #FFF8E1; padding: 0.5rem; border-radius: 4px;"><strong>Płatność:</strong> <span style="color: #D32F2F; font-weight: bold;">TESTOWA - PRZYPOMNIJ O PŁATNOŚCI</span></div>`;
         } else if (slot.isPaid) {
             paymentStatusHtml = `<div class="modal-details-item"><strong>Płatność:</strong> <span style="color: green; font-weight: bold;">Opłacona</span></div>`;
@@ -328,6 +330,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             case 'available': block.classList.add('available'); block.textContent = "Dostępny"; block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event)); break;
                             case 'booked_lesson': case 'cyclic_reserved': block.classList.add('booked-lesson'); block.textContent = slotData.studentName; block.addEventListener('click', () => showActionModal(slotData)); break;
                             case 'completed': block.classList.add('completed'); block.textContent = slotData.studentName; block.style.cursor = 'not-allowed'; break;
+                            case 'cancelled_no_payment':
+                                block.classList.add('cancelled-no-payment');
+                                block.textContent = "Odwołana (brak płatności)";
+                                block.addEventListener('click', () => showActionModal(slotData));
+                                break;
                             case 'rescheduled_by_tutor': block.classList.add('rescheduled'); block.textContent = "PRZENIESIONE"; block.style.cursor = 'not-allowed'; break;
                             case 'blocked_by_tutor': block.classList.add('unavailable'); block.textContent = "BLOKADA"; block.addEventListener('click', (event) => handleBlockClick(formattedDate, timeSlot, slotData.status, event)); break;
                             default: block.classList.add('unavailable'); block.textContent = "Przeniesione"; block.style.cursor = 'not-allowed';
@@ -384,6 +391,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 case 'blocked_by_tutor':
                                     block.classList.add('unavailable');
                                     block.textContent = `${timeSlot} - BLOKADA`;
+                                    break;
+                                case 'cancelled_no_payment':
+                                    block.classList.add('cancelled-no-payment');
+                                    block.textContent = `${timeSlot} - Odwołana (brak płatności)`;
                                     break;
                                 default:
                                      block.classList.add('unavailable');

@@ -1190,7 +1190,7 @@ def get_tutor_lessons():
                 continue
                 
             status = fields.get('Status')
-            if status in ['Niedostępny', 'Dostępny']:
+            if status in ['Niedostępny', 'Dostępny', 'Odwołana przez klienta', 'Odwołana - brak potwierdzenia', 'Anulowana (brak płatności)']:
                 continue
 
             client_id = fields.get('Klient')
@@ -1582,6 +1582,8 @@ def get_schedule():
                 
                 if status == 'Przeniesiona (zakończona)':
                     slot_status = "completed"
+                elif status == 'Anulowana (brak płatności)':
+                    slot_status = "cancelled_no_payment"
                 elif status in ['Niedostępny', 'Przeniesiona']:
                     slot_status = 'blocked_by_tutor' if status == 'Niedostępny' else 'rescheduled_by_tutor'
                 else:

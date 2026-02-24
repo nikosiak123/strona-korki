@@ -85,6 +85,13 @@ button#reserveButton:disabled { background-color: #E0E0E0; color: var(--text-lig
 .calendar-grid-table th { background-color: #FAFAFA; font-weight: 600; padding: 10px 4px; color: var(--text-medium); font-size: 0.85em; }
 .time-label { background-color: #FAFAFA; font-weight: 600; color: var(--text-light); width: 60px; padding: 8px 5px; font-size: 0.85em; vertical-align: middle; }
 
+.time-block.cancelled-no-payment {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fca5a5 !important;
+    text-decoration: line-through;
+}
+
 .time-block { height: 35px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-size: 0.8em; font-weight: 600; border-radius: 4px; }
 .time-block:not(.disabled):not(.past) { background-color: var(--available-color); color: var(--available-text-color); border: 1px solid transparent; cursor: pointer; }
 .time-block:not(.disabled):not(.past):hover:not(.selected) { background-color: var(--available-hover-color); border-color: #81C784; transform: scale(1.05); }
