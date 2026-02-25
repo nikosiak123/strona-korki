@@ -66,6 +66,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import atexit
 
+import pytz
+import atexit
+import logging
+
 # --- Konfiguracja strefy czasowej ---
 WARSAW_TZ = pytz.timezone('Europe/Warsaw')
 
