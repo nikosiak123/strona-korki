@@ -745,11 +745,16 @@
                             <!-- Daily summary table will be injected here -->
                          </div>
 
-                        <div class="panel-card" style="margin-top: 1.5rem;">
-                            <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
-                            <div style="height: 300px;">
-                                <canvas id="hourlyStatsChart"></canvas>
+                        <!-- Kolumna Komentarze i Wiadomości -->
+                        <div style="margin-top: 1.5rem;">
+                            <div class="panel-card">
+                                <h3 style="margin-top: 0;">Aktywność godzinowa - Statystyki</h3>
+                                <div style="height: 300px;">
+                                    <canvas id="hourlyStatsChart"></canvas>
+                                </div>
                             </div>
+
+
                         </div>
                     </div>
 
@@ -761,6 +766,14 @@
                     </div>
 
                     <div id="stats-dzialanie" class="stats-tab-content hidden">
+                        <!-- Kolumna Posty -->
+                        <div class="panel-card" style="margin-bottom: 1.5rem;">
+                            <h3 style="margin-top: 0;">Aktywność godzinowa - Posty</h3>
+                            <div style="height: 300px;">
+                                <canvas id="hourlyPostsChart"></canvas>
+                            </div>
+                        </div>
+
                         <div class="panel-card">
                             <h3 style="margin-top: 0;">Zrzuty ekranu (Bot Status)</h3>
                             <div id="screenshotList" style="max-height: 300px; overflow-y: auto;"></div>
@@ -1542,34 +1555,72 @@
                 
                 
                 if(dataH.stats) {
-                    const canvas = document.getElementById('hourlyStatsChart');
-                    // Destroy previous chart instance if it exists
-                    if (canvas.chart) {
-                        canvas.chart.destroy();
-                    }
-                    canvas.chart = new Chart(canvas, {
-                        type: 'bar',
-                        data: {
-                            labels: dataH.stats.map(s => {
-                                const d = new Date(s.timestamp);
-                                return `${d.getHours()}:${(d.getMinutes()<10?'0':'')+d.getMinutes()}`;
-                            }),
-                            datasets: [{
-                                label: 'Posty',
-                                data: dataH.stats.map(s => s.loaded_posts_total),
-                                backgroundColor: '#3699ff'
-                            }, {
-                                label: 'Komentarze (Próby)',
-                                data: dataH.stats.map(s => s.commented_posts),
-                                backgroundColor: '#1bc5bd'
-                            }, {
-                                label: 'Komentarze (Wysłane)',
-                                data: dataH.stats.map(s => s.sent_comments_count || 0),
-                                backgroundColor: '#8950fc'
-                            }]
-                        },
-                        options: { maintainAspectRatio: false, responsive: true }
+                    const labels = dataH.stats.map(s => {
+                        const d = new Date(s.timestamp);
+                        return `${d.getHours()}:${(d.getMinutes()<10?'0':'')+d.getMinutes()}`;
                     });
+
+                    // --- Chart 1: POSTY ---
+                    const canvasPosts = document.getElementById('hourlyStatsChartPosts');
+                    if (canvasPosts) {
+                        if (canvasPosts.chart) canvasPosts.chart.destroy();
+                        canvasPosts.chart = new Chart(canvasPosts, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Posty',
+                                    data: dataH.stats.map(s => s.loaded_posts_total),
+                                    backgroundColor: '#3699ff'
+                                }]
+                            },
+                            options: { maintainAspectRatio: false, responsive: true }
+                        });
+                    }
+
+                    // --- Chart 2: KOMENTARZE ---
+                    const canvasComments = document.getElementById('hourlyStatsChartComments');
+                     if (canvasComments) {
+                        if (canvasComments.chart) canvasComments.chart.destroy();
+                        canvasComments.chart = new Chart(canvasComments, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Komentarze (Próby)',
+                                    data: dataH.stats.map(s => s.commented_posts),
+                                    backgroundColor: '#1bc5bd'
+                                }, {
+                                    label: 'Komentarze (Wysłane)',
+                                    data: dataH.stats.map(s => s.sent_comments_count || 0),
+                                    backgroundColor: '#8950fc'
+                                }]
+                            },
+                            options: { maintainAspectRatio: false, responsive: true }
+                        });
+                    }
+                    
+                    // --- Chart 3: WIADOMOŚCI ---
+                    const canvasMessages = document.getElementById('hourlyStatsChartMessages');
+                    if (canvasMessages) {
+                        if (canvasMessages.chart) canvasMessages.chart.destroy();
+                        canvasMessages.chart = new Chart(canvasMessages, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Wiadomości (Odebrane)',
+                                    data: dataH.stats.map(s => s.received_messages || 0),
+                                    backgroundColor: '#F64E60'
+                                }, {
+                                    label: 'Wiadomości (Wysłane)',
+                                    data: dataH.stats.map(s => s.sent_messages || 0),
+                                    backgroundColor: '#F2C94C'
+                                }]
+                            },
+                            options: { maintainAspectRatio: false, responsive: true }
+                        });
+                    }
                 }
 
                 // 2. Daily Summary & Bot Status (for Statystyki tab and main view)
