@@ -1558,9 +1558,13 @@
                                 data: dataH.stats.map(s => s.loaded_posts_total),
                                 backgroundColor: '#3699ff'
                             }, {
-                                label: 'Komentarze',
+                                label: 'Komentarze (Próby)',
                                 data: dataH.stats.map(s => s.commented_posts),
                                 backgroundColor: '#1bc5bd'
+                            }, {
+                                label: 'Komentarze (Wysłane)',
+                                data: dataH.stats.map(s => s.sent_comments_count || 0),
+                                backgroundColor: '#8950fc'
                             }]
                         },
                         options: { maintainAspectRatio: false, responsive: true }
