@@ -2648,7 +2648,7 @@ def cancel_lesson():
         client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id.strip()}'")
         if client_record:
             psid = client_record['fields'].get('ClientID')
-            message = f""""Twoja lekcja testowa z przedmiotu '{fields.get('Przedmiot')}' w dniu {fields.get('Data')} o {fields.get('Godzina')} została pomyślnie odwołana."""
+            message = f"""Twoja lekcja testowa z przedmiotu '{fields.get('Przedmiot')}' w dniu {fields.get('Data')} o {fields.get('Godzina')} została pomyślnie odwołana."""
             send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
     
     return jsonify({"success": True, "message": "Lekcja została odwołana."})
