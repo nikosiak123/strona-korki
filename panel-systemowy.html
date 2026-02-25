@@ -744,6 +744,13 @@
                          <div id="dailySummaryContainer">
                             <!-- Daily summary table will be injected here -->
                          </div>
+
+                        <div class="panel-card" style="margin-top: 1.5rem;">
+                            <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
+                            <div style="height: 300px;">
+                                <canvas id="hourlyStatsChart"></canvas>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="stats-bledy" class="stats-tab-content hidden">
@@ -754,12 +761,6 @@
                     </div>
 
                     <div id="stats-dzialanie" class="stats-tab-content hidden">
-                        <div class="panel-card" style="margin-bottom: 1.5rem;">
-                            <h3 style="margin-top: 0;">Aktywność godzinowa</h3>
-                            <div style="height: 300px;">
-                                <canvas id="hourlyStatsChart"></canvas>
-                            </div>
-                        </div>
                         <div class="panel-card">
                             <h3 style="margin-top: 0;">Zrzuty ekranu (Bot Status)</h3>
                             <div id="screenshotList" style="max-height: 300px; overflow-y: auto;"></div>
@@ -1535,7 +1536,7 @@
                     commentLogsContainer.innerHTML = '<p>Brak logów komentarzy.</p>';
                 }
 
-                // 1. Hourly Stats (for Działanie tab)
+                // 1. Hourly Stats (for Statystyki tab)
                 const resH = await fetch(`${API_BASE_URL}/api/admin/facebook-hourly-stats`);
                 const dataH = await resH.json();
                 
