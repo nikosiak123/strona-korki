@@ -66,10 +66,36 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 import atexit
 
+# --- Konfiguracja strefy czasowej ---
+WARSAW_TZ = pytz.timezone('Europe/Warsaw')
+
+def get_now():
+    """Zwraca aktualny czas w strefie czasowej Warszawy."""
+    return datetime.now(WARSAW_TZ)
+
+# --- Konfiguracja logowania ---
+class TimezoneFormatter(logging.Formatter):
+    def converter(self, timestamp):
+        return datetime.fromtimestamp(timestamp, WARSAW_TZ)
+
+    def formatTime(self, record, datefmt=None):
+        dt = self.converter(record.created)
+        if datefmt:
+            s = dt.strftime(datefmt)
+        else:
+            s = dt.isoformat(sep=' ', timespec='milliseconds')
+        return s
+
+formatter = TimezoneFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+root_logger.addHandler(handler)
+# --- Koniec konfiguracji logowania ---
+
+
 scheduler = None
-import logging 
-logging.basicConfig(level=logging.DEBUG, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 import pickle
 from io import BytesIO
 from bot import create_or_find_client_in_airtable, load_history, save_history
@@ -322,7 +348,7 @@ Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona
 
 def check_unconfirmed_lessons():
     """Sprawdza niepotwierdzone lekcje testowe i odwołuje te, które minął deadline."""
-    now = datetime.now()
+    now = get_now()
     #logging.info("Sprawdzanie niepotwierdzonych lekcji testowych...")
     
     # Znajdź wszystkie niepotwierdzone lekcje testowe
@@ -334,6 +360,7 @@ def check_unconfirmed_lessons():
         
         try:
             lesson_start = datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M")
+            lesson_start = WARSAW_TZ.localize(lesson_start)
             time_until_lesson = lesson_start - now
             
             # Jeśli zostało mniej niż 6 godzin LUB lekcja już minęła
@@ -430,8 +457,7 @@ def send_messenger_confirmation(psid, message_text, page_access_token):
 def check_and_cancel_unpaid_lessons():
     """To zadanie jest uruchamiane w tle, aby ZMIENIĆ STATUS nieopłaconych lekcji."""
 
-    warsaw_tz = pytz.timezone('Europe/Warsaw')
-    current_local_time = datetime.now(warsaw_tz)
+    current_local_time = get_now()
 
     try:
         # --- Sprawdzamy wszystkie nieopłacone lekcje (bez warunku czasowego w Airtable) ---
@@ -455,7 +481,7 @@ def check_and_cancel_unpaid_lessons():
                 continue
 
             lesson_datetime_naive = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
-            lesson_datetime_aware = warsaw_tz.localize(lesson_datetime_naive)
+            lesson_datetime_aware = WARSAW_TZ.localize(lesson_datetime_naive)
             
             # Jeśli to lekcja testowa, nie anuluj jej automatycznie
             if is_test_lesson:
@@ -570,7 +596,7 @@ def generate_teams_meeting_link(meeting_subject):
             'Content-Type': 'application/json'
         }
         
-        start_time = datetime.utcnow() + timedelta(minutes=5)
+        start_time = datetime.now(pytz.utc) + timedelta(minutes=5)
         end_time = start_time + timedelta(hours=1)
         
         # FIX: Poprawiony format daty z .000Z
@@ -718,11 +744,12 @@ def is_cancellation_allowed(record):
         # Pamiętaj, że datetime.now() domyślnie jest naiwne (bez strefy czasowej),
         # ale ponieważ Airtable Data/Godzina również jest naiwne, porównanie powinno działać.
         lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+        lesson_datetime = WARSAW_TZ.localize(lesson_datetime)
     except ValueError:
         # Błąd formatu daty/czasu w rekordzie
         return False
 
-    time_remaining = lesson_datetime - datetime.now()
+    time_remaining = lesson_datetime - get_now()
 
     # Warunek dla lekcji testowych: Pozwalamy na zarządzanie do 6 godzin przed rozpoczęciem.
     if is_test_lesson:
@@ -742,9 +769,10 @@ def is_lesson_ended(record):
 
     try:
         lesson_datetime = datetime.strptime(f"{lesson_date_str} {lesson_time_str}", "%Y-%m-%d %H:%M")
+        lesson_datetime = WARSAW_TZ.localize(lesson_datetime)
         # Lekcja kończy się 1 godzinę po rozpoczęciu
         lesson_end = lesson_datetime + timedelta(hours=1)
-        return lesson_end < datetime.now()
+        return lesson_end < get_now()
     except ValueError:
         return False
 
@@ -757,8 +785,7 @@ def send_email_via_brevo(to_email, subject, html_content):
     }
     
     # Dodajemy timestamp do tematu (zapobiega grupowaniu w Gmailu)
-    from datetime import datetime
-    unique_subject = f"{subject} [{datetime.now().strftime('%H:%M:%S')}]"
+    unique_subject = f"{subject} [{get_now().strftime('%H:%M:%S')}]"
 
     payload = {
         "sender": {
@@ -825,7 +852,7 @@ def check_cyclic_availability():
         lesson_time = fields.get('Godzina')
         
         day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
-        today = datetime.now().date()
+        today = get_now().date()
         days_ahead = day_num - today.weekday()
         if days_ahead <= 0: days_ahead += 7
         next_lesson_date = today + timedelta(days=days_ahead)
@@ -1174,7 +1201,7 @@ def get_tutor_lessons():
         lessons_records = reservations_table.all(formula=formula)
 
         upcoming_lessons = []
-        today = datetime.now().date()
+        today = get_now().date()
         for record in lessons_records:
             fields = record.get('fields', {})
             
@@ -1684,7 +1711,7 @@ def get_schedule():
                 
                 # === ŻELAZNA ZASADA 12 GODZIN (tylko dla widoku klienta) ===
                 is_tutor_panel = bool(tutor_name_filter)
-                now = datetime.now()
+                now = get_now()
                 min_booking_time = now + timedelta(hours=12)
 
                 for slot_time_str in available_times:
@@ -1695,6 +1722,7 @@ def get_schedule():
                         try:
                             slot_time_obj = datetime.strptime(slot_time_str, "%H:%M").time()
                             slot_datetime = datetime.combine(current_date, slot_time_obj)
+                            slot_datetime = WARSAW_TZ.localize(slot_datetime)
                             
                             if slot_datetime < min_booking_time:
                                 continue
@@ -2066,7 +2094,8 @@ def create_reservation():
                     # Oblicz czas do lekcji, aby dostosować wiadomość
                     lesson_datetime_str = f"{data['selectedDate']} {data['selectedTime']}"
                     lesson_datetime = datetime.strptime(lesson_datetime_str, '%Y-%m-%d %H:%M')
-                    now = datetime.now()
+                    lesson_datetime = WARSAW_TZ.localize(lesson_datetime)
+                    now = get_now()
                     time_diff = lesson_datetime - now
                     hours_diff = time_diff.total_seconds() / 3600
 
@@ -2129,7 +2158,7 @@ def confirm_next_lesson():
         first_name = client_record['fields'].get('Imie')
 
         day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
-        today = datetime.now().date()
+        today = get_now().date()
         days_ahead = day_num - today.weekday()
         if days_ahead <= 0: 
             days_ahead += 7
@@ -2140,7 +2169,7 @@ def confirm_next_lesson():
         next_lesson_dt = datetime.strptime(next_lesson_datetime_str, '%Y-%m-%d %H:%M')
         
         # === BLOKADA POTWIERDZANIA < 12H ===
-        if next_lesson_dt < datetime.now() + timedelta(hours=12):
+        if next_lesson_dt < get_now() + timedelta(hours=12):
              abort(400, "Zbyt późno na potwierdzenie. Lekcję należy potwierdzić minimum 12 godzin przed jej rozpoczęciem.")
         # ===================================
 
@@ -2255,6 +2284,7 @@ def get_client_dashboard():
             try:
                 # W tym miejscu najczęściej występuje błąd 500 (ValueError)
                 lesson_datetime = datetime.strptime(f"{fields['Data']} {fields['Godzina']}", "%Y-%m-%d %H:%M")
+                lesson_datetime = WARSAW_TZ.localize(lesson_datetime)
                 logging.debug(f"Dashboard: Pomyślnie sparsowano datę dla rekordu ID: {record_id} ({fields['Data']} {fields['Godzina']}).")
             except ValueError as e:
                 logging.error(f"Dashboard: BŁĄD KRYTYCZNY formatu daty dla rekordu ID: {record_id}. Dane: Data='{fields.get('Data')}', Godzina='{fields.get('Godzina')}'. Wyjątek: {e}", exc_info=True)
@@ -2289,14 +2319,14 @@ def get_client_dashboard():
             should_go_to_past = False
             if status in inactive_statuses:
                 should_go_to_past = True
-            elif lesson_end_time < datetime.now():
+            elif lesson_end_time < get_now():
                 should_go_to_past = True
             
             if should_go_to_past:
                 past.append(lesson_data)
             else:
                 # Dodajemy informację czy lekcja jest w trakcie
-                is_ongoing = lesson_datetime <= datetime.now() < lesson_end_time
+                is_ongoing = lesson_datetime <= get_now() < lesson_end_time
                 lesson_data['isOngoing'] = is_ongoing
                 upcoming.append(lesson_data)
         # --- KONIEC BLOKU ZWIĘKSZONEGO LOGOWANIA ---
@@ -2317,7 +2347,7 @@ def get_client_dashboard():
         cyclic_records = cyclic_reservations_table.all(formula=f"{{Klient_ID}} = '{client_id}'")
         logging.debug(f"Dashboard: Znaleziono {len(cyclic_records)} rezerwacji stałych.")
         
-        today = datetime.now().date()
+        today = get_now().date()
 
         for record in cyclic_records:
             record_id_cyclic = record.get('id', 'N/A')
@@ -2580,7 +2610,8 @@ def confirm_lesson():
     lesson_datetime_str = f"{fields.get('Data')} {fields.get('Godzina')}"
     try:
         lesson_datetime = datetime.strptime(lesson_datetime_str, '%Y-%m-%d %H:%M')
-        now = datetime.now()
+        lesson_datetime = WARSAW_TZ.localize(lesson_datetime)
+        now = get_now()
         time_diff = lesson_datetime - now
         if time_diff.total_seconds() > 24 * 3600:  # Więcej niż 24h
             abort(400, "Potwierdzenie lekcji testowej jest dostępne tylko 24 godziny przed jej rozpoczęciem.")
