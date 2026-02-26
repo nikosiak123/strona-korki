@@ -532,6 +532,27 @@
             font-size: 1.2rem;
             margin-right: 15px;
         }
+
+        /* Accordion for logs */
+        .log-day-details {
+            border-bottom: 1px solid var(--border-color);
+        }
+        .log-day-summary {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9fc;
+            font-weight: 600;
+        }
+        .log-day-summary:hover {
+            background-color: #f1f1f5;
+        }
+        .log-content {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -1666,15 +1687,37 @@
                 const dataE = await resE.json();
                 
                 if(dataE.errors && dataE.errors.length > 0) {
-                    let html = '<table class="table-sm" style="min-width: auto;">';
-                    dataE.errors.forEach(e => {
-                        html += `<tr>
-                            <td><small>${new Date(e.timestamp).toLocaleTimeString()}</small></td>
-                            <td>${e.location}</td>
-                            <td>${e.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${e.png}" target="_blank">IMG</a>` : ''}</td>
-                        </tr>`;
-                    });
-                    html += '</table>';
+                    const errorsByDay = dataE.errors.reduce((acc, err) => {
+                        const day = new Date(err.timestamp).toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+                        if (!acc[day]) {
+                            acc[day] = [];
+                        }
+                        acc[day].push(err);
+                        return acc;
+                    }, {});
+
+                    let html = '';
+                    for (const day in errorsByDay) {
+                        html += `
+                            <details class="log-day-details">
+                                <summary class="log-day-summary">
+                                    <span>${day}</span>
+                                    <span class="badge" style="background-color: #f64e60; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">${errorsByDay[day].length}</span>
+                                </summary>
+                                <div class="log-content">
+                                    <table class="table-sm" style="min-width: auto;">
+                                        ${errorsByDay[day].map(e => `
+                                            <tr>
+                                                <td><small>${new Date(e.timestamp).toLocaleTimeString()}</small></td>
+                                                <td>${e.location}</td>
+                                                <td>${e.png ? `<a href="${API_BASE_URL}/api/admin/download-error?file=${e.png}" target="_blank">IMG</a>` : ''}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </table>
+                                </div>
+                            </details>
+                        `;
+                    }
                     errList.innerHTML = html;
                 } else {
                     errList.innerHTML = '<p>Brak błędów.</p>';
