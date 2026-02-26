@@ -1561,7 +1561,7 @@
                     });
 
                     // --- Chart 1: POSTY ---
-                    const canvasPosts = document.getElementById('hourlyStatsChartPosts');
+                    const canvasPosts = document.getElementById('hourlyPostsChart');
                     if (canvasPosts) {
                         if (canvasPosts.chart) canvasPosts.chart.destroy();
                         canvasPosts.chart = new Chart(canvasPosts, {
@@ -1578,11 +1578,11 @@
                         });
                     }
 
-                    // --- Chart 2: KOMENTARZE ---
-                    const canvasComments = document.getElementById('hourlyStatsChartComments');
-                     if (canvasComments) {
-                        if (canvasComments.chart) canvasComments.chart.destroy();
-                        canvasComments.chart = new Chart(canvasComments, {
+                    // --- Chart 2: STATYSTYKI (Komentarze i Wiadomości) ---
+                    const canvasStats = document.getElementById('hourlyStatsChart');
+                     if (canvasStats) {
+                        if (canvasStats.chart) canvasStats.chart.destroy();
+                        canvasStats.chart = new Chart(canvasStats, {
                             type: 'bar',
                             data: {
                                 labels: labels,
@@ -1594,21 +1594,7 @@
                                     label: 'Komentarze (Wysłane)',
                                     data: dataH.stats.map(s => s.sent_comments_count || 0),
                                     backgroundColor: '#8950fc'
-                                }]
-                            },
-                            options: { maintainAspectRatio: false, responsive: true }
-                        });
-                    }
-                    
-                    // --- Chart 3: WIADOMOŚCI ---
-                    const canvasMessages = document.getElementById('hourlyStatsChartMessages');
-                    if (canvasMessages) {
-                        if (canvasMessages.chart) canvasMessages.chart.destroy();
-                        canvasMessages.chart = new Chart(canvasMessages, {
-                            type: 'bar',
-                            data: {
-                                labels: labels,
-                                datasets: [{
+                                }, {
                                     label: 'Wiadomości (Odebrane)',
                                     data: dataH.stats.map(s => s.received_messages || 0),
                                     backgroundColor: '#F64E60'
