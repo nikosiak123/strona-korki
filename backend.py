@@ -3177,106 +3177,48 @@ def search_clients():
     require_admin()
     try:
         query = request.args.get('query', '').strip().lower()
+        if not query:
+            return jsonify({'clients': []})
+
+        from bot import load_user_conversations, save_user_conversations # Import lokalny
+
+        conv_store = load_user_conversations()
+        needs_saving = False
         
-        matching_clients = []
-        seen_psids = set()
-
-        # 1. Get all PSIDs from conversation_store
-        import os
-        conversation_store_dir = "../strona/conversation_store"
-        psids_in_store = []
-        if os.path.exists(conversation_store_dir):
-            for filename in os.listdir(conversation_store_dir):
-                if filename.endswith('.json'):
-                    psids_in_store.append(filename[:-5])
-
-        # 2. Search by name in database, but only for clients with conversation history
-        if query:
-            # Note: DatabaseTable.all() with OR formula might return all records if not supported,
-            # so we perform manual filtering here to be safe and ensure correct results.
-            db_clients = clients_table.all()
-            query_lower = query.lower()
+        results = []
+        
+        # Przeszukaj conv_store
+        for psid, data in conv_store.items():
+            user_name = data.get('user_name', '').lower()
             
-            for record in db_clients:
-                fields = record.get('fields', {})
-                
-                # Manual filtering check
-                imie = str(fields.get('Imie', '')).lower()
-                nazwisko = str(fields.get('Nazwisko', '')).lower()
-                imie_klienta = str(fields.get('ImieKlienta', '')).lower()
-                nazwisko_klienta = str(fields.get('NazwiskoKlienta', '')).lower()
-                
-                # Check if query is part of any name field
-                is_match = (query_lower in imie or 
-                           query_lower in nazwisko or 
-                           query_lower in imie_klienta or 
-                           query_lower in nazwisko_klienta)
-                           
-                # Also check full name combinations for better UX (e.g. "Tomasz Jankowski")
-                if not is_match:
-                    full_name_1 = f"{imie} {nazwisko}".strip()
-                    full_name_2 = f"{imie_klienta} {nazwisko_klienta}".strip()
-                    full_name_3 = f"{nazwisko} {imie}".strip() # Reverse order
-                    if (query_lower in full_name_1 or 
-                        query_lower in full_name_2 or
-                        query_lower in full_name_3):
-                        is_match = True
+            if query in psid.lower() or query in user_name:
+                display_name = data.get('user_name', '')
 
-                if is_match:
-                    psid = fields.get('ClientID')
-                    if psid and psid in psids_in_store and psid not in seen_psids:
-                        display_name = f"{fields.get('ImieKlienta', '')} {fields.get('NazwiskoKlienta', '')}".strip()
-                        if not display_name:
-                            display_name = f"{fields.get('Imie', '')} {fields.get('Nazwisko', '')}".strip()
-                        
-                        matching_clients.append({
-                            'psid': psid,
-                            'displayName': f"{display_name} (z bazy danych)",
-                            'fullInfo': f"{display_name} ({psid})"
-                        })
-                        seen_psids.add(psid)
-
-        # 3. Search by PSID in conversation_store
-        for psid_from_file in psids_in_store:
-            if (not query or query in psid_from_file.lower()) and psid_from_file not in seen_psids:
-                display_name = "Nieznany (tylko historia)"
-                try:
-                    client_record = clients_table.first(formula=f"{{ClientID}} = '{psid_from_file}'")
+                # Jeśli nie ma imienia, poszukaj w bazie danych
+                if not display_name:
+                    client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
                     if client_record:
-                        fields = client_record.get('fields', {})
-                        imie_klienta = fields.get('ImieKlienta', '')
-                        nazwisko_klienta = fields.get('NazwiskoKlienta', '')
-                        display_name = f"{imie_klienta} {nazwisko_klienta}".strip()
+                        imie = client_record['fields'].get('Imie', '')
+                        nazwisko = client_record['fields'].get('Nazwisko', '')
+                        db_name = f"{imie} {nazwisko}".strip()
+                        if db_name:
+                            display_name = db_name
+                            # Zaktualizuj conv_store i oznacz do zapisu
+                            conv_store[psid]['user_name'] = db_name
+                            needs_saving = True
 
-                        if not display_name:
-                            imie = fields.get('Imie', '')
-                            nazwisko = fields.get('Nazwisko', '')
-                            display_name = f"{imie} {nazwisko}".strip()
-                        
-                        if display_name:
-                            display_name += " (z bazy danych)"
-                        else:
-                            display_name = "Nieznany (tylko historia)"
-                except:
-                    pass
-
-                matching_clients.append({
-                    'psid': psid_from_file,
-                    'displayName': display_name,
-                    'fullInfo': f"{display_name} ({psid_from_file})"
+                results.append({
+                    "psid": psid,
+                    "displayName": display_name or psid, # Pokaż PSID jeśli wciąż brak nazwy
+                    "source": "conv_store"
                 })
-                seen_psids.add(psid_from_file)
-                
-                if len(matching_clients) >= 20:
-                    break
-        
-        # Remove duplicates
-        final_clients = []
-        for client in matching_clients:
-            if client not in final_clients:
-                final_clients.append(client)
-        
-        return jsonify({'clients': final_clients})
+
+        # Zapisz zmiany w conv_store, jeśli były
+        if needs_saving:
+            save_user_conversations(conv_store)
+            
+        return jsonify({'clients': results})
+
     except Exception as e:
         logging.error(f"Błąd w search_clients: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
