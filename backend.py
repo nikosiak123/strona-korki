@@ -3180,43 +3180,51 @@ def search_clients():
         if not query:
             return jsonify({'clients': []})
 
-        from bot import load_user_conversations, save_user_conversations # Import lokalny
+        from bot import load_history, save_history, HISTORY_DIR # Importy lokalne
+        import os
 
-        conv_store = load_user_conversations()
-        needs_saving = False
-        
         results = []
         
-        # Przeszukaj conv_store
-        for psid, data in conv_store.items():
-            user_name = data.get('user_name', '').lower()
-            
-            if query in psid.lower() or query in user_name:
-                display_name = data.get('user_name', '')
+        if not os.path.exists(HISTORY_DIR):
+            logging.error("Katalog conversation_store nie istnieje.")
+            return jsonify({'clients': []})
 
-                # Jeśli nie ma imienia, poszukaj w bazie danych
-                if not display_name:
-                    client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
-                    if client_record:
-                        imie = client_record['fields'].get('Imie', '')
-                        nazwisko = client_record['fields'].get('Nazwisko', '')
-                        db_name = f"{imie} {nazwisko}".strip()
-                        if db_name:
-                            display_name = db_name
-                            # Zaktualizuj conv_store i oznacz do zapisu
-                            conv_store[psid]['user_name'] = db_name
-                            needs_saving = True
+        # Przeszukaj pliki w conversation_store
+        for filename in os.listdir(HISTORY_DIR):
+            if filename.endswith('.json'):
+                psid = filename[:-5]
+                
+                history = load_history(psid)
+                user_name = ''
+                
+                # Spróbuj znaleźć imię w historii
+                for msg in history:
+                    if msg.role == 'model' and msg.parts[0].text.startswith("name:"):
+                        user_name = msg.parts[0].text.replace("name:", "").strip()
+                        break
+                
+                # Sprawdź dopasowanie
+                if query in psid.lower() or query in user_name.lower():
+                    # Jeśli nie ma imienia w historii, poszukaj w bazie danych
+                    if not user_name:
+                        client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+                        if client_record:
+                            imie = client_record['fields'].get('Imie', '')
+                            nazwisko = client_record['fields'].get('Nazwisko', '')
+                            db_name = f"{imie} {nazwisko}".strip()
+                            if db_name:
+                                user_name = db_name
+                                # Zaktualizuj historię i zapisz
+                                name_str = f"name: {db_name}"
+                                history.insert(0, Content(role="model", parts=[Part.from_text(name_str)]))
+                                save_history(psid, history)
 
-                results.append({
-                    "psid": psid,
-                    "displayName": display_name or psid, # Pokaż PSID jeśli wciąż brak nazwy
-                    "source": "conv_store"
-                })
+                    results.append({
+                        "psid": psid,
+                        "displayName": user_name or psid,
+                        "source": "conv_store"
+                    })
 
-        # Zapisz zmiany w conv_store, jeśli były
-        if needs_saving:
-            save_user_conversations(conv_store)
-            
         return jsonify({'clients': results})
 
     except Exception as e:
