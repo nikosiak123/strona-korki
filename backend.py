@@ -3180,9 +3180,7 @@ def search_clients():
         query_raw = request.args.get('query')
         query = query_raw.strip().lower() if query_raw else ""
 
-        # Usunięto warunek `if not query: return jsonify({'clients': []})`
-
-        from bot import load_history, save_history, HISTORY_DIR, Content, Part # Importy lokalne
+        from bot import load_history, save_history, HISTORY_DIR, Content, Part
         import os
 
         results = []
@@ -3201,7 +3199,6 @@ def search_clients():
                 
                 # Spróbuj znaleźć imię w historii
                 for msg in history:
-                    # Użyj hasattr dla bezpieczeństwa, na wypadek gdyby 'parts' nie istniało
                     if msg.role == 'model' and hasattr(msg, 'parts') and msg.parts and msg.parts[0].text.startswith("name:"):
                         user_name = msg.parts[0].text.replace("name:", "").strip()
                         break
@@ -3214,9 +3211,14 @@ def search_clients():
                     if not user_name:
                         client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
                         if client_record:
-                            imie = client_record['fields'].get('Imie', '')
-                            nazwisko = client_record['fields'].get('Nazwisko', '')
+                            imie = client_record['fields'].get('ImieKlienta', '')
+                            nazwisko = client_record['fields'].get('NazwiskoKlienta', '')
                             db_name = f"{imie} {nazwisko}".strip()
+                            if not db_name: # Fallback na stare pola
+                                imie = client_record['fields'].get('Imie', '')
+                                nazwisko = client_record['fields'].get('Nazwisko', '')
+                                db_name = f"{imie} {nazwisko}".strip()
+
                             if db_name:
                                 user_name = db_name
                                 # Zaktualizuj historię i zapisz
