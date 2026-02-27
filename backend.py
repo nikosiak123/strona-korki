@@ -3176,11 +3176,13 @@ def get_user_details(psid):
 def search_clients():
     require_admin()
     try:
-        query = request.args.get('query', '').strip().lower()
-        if not query:
-            return jsonify({'clients': []})
+        # Pomiń .strip() i .lower() jeśli query może być None
+        query_raw = request.args.get('query')
+        query = query_raw.strip().lower() if query_raw else ""
 
-        from bot import load_history, save_history, HISTORY_DIR # Importy lokalne
+        # Usunięto warunek `if not query: return jsonify({'clients': []})`
+
+        from bot import load_history, save_history, HISTORY_DIR, Content, Part # Importy lokalne
         import os
 
         results = []
@@ -3199,12 +3201,15 @@ def search_clients():
                 
                 # Spróbuj znaleźć imię w historii
                 for msg in history:
-                    if msg.role == 'model' and msg.parts[0].text.startswith("name:"):
+                    # Użyj hasattr dla bezpieczeństwa, na wypadek gdyby 'parts' nie istniało
+                    if msg.role == 'model' and hasattr(msg, 'parts') and msg.parts and msg.parts[0].text.startswith("name:"):
                         user_name = msg.parts[0].text.replace("name:", "").strip()
                         break
                 
-                # Sprawdź dopasowanie
-                if query in psid.lower() or query in user_name.lower():
+                # Sprawdź dopasowanie (LUB jeśli query jest puste)
+                is_match = not query or query in psid.lower() or query in user_name.lower()
+                
+                if is_match:
                     # Jeśli nie ma imienia w historii, poszukaj w bazie danych
                     if not user_name:
                         client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
