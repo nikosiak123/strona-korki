@@ -2085,7 +2085,8 @@ def create_reservation():
             if MESSENGER_PAGE_TOKEN:
                 psid = client_uuid.strip()
                 dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
-
+                tutor_name_encoded = urllib.parse.quote(tutor_for_reservation)
+                tutor_profile_link = f"https://zakręcone-korepetycje.pl/index.html?tutor={tutor_name_encoded}"
                 
                 message_to_send = (
                     f"Dziękujemy za rezerwację!\n"
@@ -2120,6 +2121,7 @@ def create_reservation():
                 
                 message_to_send += (
                     f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n"
+                    f"W celu omówienia materiału na zajęcia, skontaktuj się z korepetytorem: {tutor_profile_link}\n"
                     f"{wiadomosc}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -3279,9 +3281,8 @@ def send_reservation_link():
 
         # Wygeneruj link rezerwacji
         reservation_link = f"https://zakręcone-korepetycje.pl/rezerwacja-testowa.html?clientID={client_id}"
-        final_message = (f"Utworzyłem dla Państwa osobisty link do rezerwacji.\n"
-                         f"{reservation_link}\n"
-                         f"Lekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem.")
+        final_message = f"Zarezerwowałem dla Państwa lekcję. Proszę wybrać dogodny termin zajęć.\n{reservation_link}\nLekcję testową można wyjątkowo opłacić po połączeniu z korepetytorem. \n\nLink do rezerwacji jest ważny tylko przez 24 godziny. Po tym czasie link wygasa i trzeba będzie poprosić o nowy."
+
 
         # Wyślij wiadomość przez Messenger
         send_messenger_confirmation(psid, final_message, page_token)
