@@ -328,15 +328,10 @@ def send_confirmation_reminder(management_token):
     dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
     
     message_to_send = f"""🔔 PRZYPOMNIENIE: Potwierdź swoją lekcję testową!
-
 Masz zaplanowaną lekcję testową z {subject} na {lesson_date} o godzinie {lesson_time}.
-
 Aby lekcja się odbyła, musisz ją potwierdzić w ciągu najbliższych 18 godzin.
-
 Potwierdź teraz: {confirmation_link}
-
-Możesz też potwierdzić w panelu klienta: {dashboard_link}
-
+Otwórz panel klienta: {dashboard_link}
 Jeśli nie potwierdzisz lekcji na 6 godzin przed jej rozpoczęciem, zostanie ona automatycznie odwołana."""
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
@@ -2636,7 +2631,7 @@ def confirm_lesson():
             psid = client_record['fields'].get('ClientID')
             payment_text = "z obowiązkiem zapłaty teraz" if payment_option == 'now' else "z możliwością zapłaty później"
             message = f"""Twoja lekcja testowa w dniu {fields.get('Data')} o {fields.get('Godzina')} została pomyślnie potwierdzona. 
-            Link do spotkania: {fields.get('TeamsLink')}"""
+Link do spotkania: {fields.get('TeamsLink')}"""
             send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
     
     return jsonify({"success": True, "message": "Lekcja została potwierdzona."})
