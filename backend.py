@@ -2065,7 +2065,7 @@ def create_reservation():
                 logging.info(f"SCHEDULER: Zaplanowano przypomnienie o potwierdzeniu dla {client_uuid} na {confirmation_reminder_time}.")
                 
 # --- POWIADOMIENIE MESSENGER: JEDNORAZOWA/TESTOWA ---
-            if is_test_lesson: wiadomosc = "Lekcje można opłacić do 5 minut po rozpoczęciu zajęć. W przypadku zrezygnowania z zajeć, bardzo prosimy o odwołanie ich w panelu klienta."
+            if is_test_lesson: wiadomosc = "Lekcje można opłacić wyjątkowo po połączeniu się z korepetytorem. W przypadku zrezygnowania z zajeć, bardzo prosimy o odwołanie ich w panelu klienta."
 
             else: wiadomosc = "Pamiętaj aby opłacić lekcję do 12h przed rozpoczęciem. Nieopłacona lekcja zostanie automatycznie odwołana."
 
@@ -2076,7 +2076,6 @@ def create_reservation():
                 tutor_profile_link = f"https://zakręcone-korepetycje.pl/index.html?tutor={tutor_name_encoded}"
                 
                 message_to_send = (
-                    f"Dziękujemy za rezerwację!\n"
                     f"Twoja jednorazowa lekcja z przedmiotu '{data['subject']}' została pomyślnie umówiona na dzień "
                     f"{data['selectedDate']} o godzinie {data['selectedTime']}."
                 )
@@ -2102,13 +2101,12 @@ def create_reservation():
                         message_to_send += (
                             f"⚠️ UWAGA: Lekcje testowe wymagają potwierdzenia 24 godziny przed terminem.\n"
                             f"Otrzymasz przypomnienie na Messenger z linkiem do potwierdzenia.\n"
-                            f"Możesz też potwierdzić lekcję w panelu klienta.\n"
                         )
 
                 
                 message_to_send += (
-                    f"Możesz zarządzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n"
-                    f"W celu omówienia materiału na zajęcia, skontaktuj się z korepetytorem: {tutor_profile_link}\n"
+                    f"Możesz potwierdzać, zmieniać termin, odwoływać swoje lekcje w osobistym panelu klienta pod adresem:\n{dashboard_link}\n"
+                    f"\nW celu omówienia materiału na zajęcia, skontaktuj się z korepetytorem: {tutor_profile_link}\n"
                     f"{wiadomosc}"
                 )
                 send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
