@@ -287,15 +287,7 @@ def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     ankieta_link = "https://forms.gle/Z5Jwyw5d7QhV4zEQA"
     
     # Użycie potrójnego cudzysłowu zapobiega błędom unterminated string literal
-    message_to_send = f"""Witaj! Mam nadzieję, że Twoja lekcja testowa z {subject} była udana! 😊
-
-Zapraszamy do dalszej współpracy. Aby umówić się na stałe zajęcia, wystarczy w panelu klienta nacisnąć przycisk 'Zarezerwuj stałe zajęcia'.
-Dostęp do panelu: {dashboard_link}
-
-Stałe zajęcia gwarantują miejsce o wybranej godzinie w każdym tygodniu. Jeśli wolisz lekcję jednorazową, zaznacz odpowiednie pole podczas rezerwacji.
-
-Bardzo pomogłoby nam, gdybyś wypełnił krótką ankietę (zajmuje mniej niż 30 sekund): 
-{ankieta_link}"""
+    message_to_send = f"""Dzień dobry, czy lekcja przebiegła pomyślnie? Są Państwo może zainteresowani umówieniem stałych zajęć?"""
     
     send_messenger_confirmation(psid, message_to_send, MESSENGER_PAGE_TOKEN)
     logging.info(f"MESSENGER: Wysłano wiadomość follow-up do {psid}.")
