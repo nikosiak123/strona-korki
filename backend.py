@@ -3561,7 +3561,7 @@ def delete_client_full(psid):
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
+    # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
     # Zmieniamy na 5 minut (lub nawet minutes=1 dla szybszej reakcji)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=5)
     scheduler.start()
