@@ -2157,7 +2157,8 @@ def confirm_next_lesson():
         next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
 
         next_lesson_datetime_str = f"{next_lesson_date_str} {lesson_time}"
-        next_lesson_dt = datetime.strptime(next_lesson_datetime_str, '%Y-%m-%d %H:%M')
+        next_lesson_dt_naive = datetime.strptime(next_lesson_datetime_str, '%Y-%m-%d %H:%M')
+        next_lesson_dt = WARSAW_TZ.localize(next_lesson_dt_naive)
         
         # === BLOKADA POTWIERDZANIA < 12H ===
         if next_lesson_dt < get_now() + timedelta(hours=12):
