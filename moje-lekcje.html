@@ -332,7 +332,7 @@
                 if (lesson.isNextLessonConfirmed) {
                     confirmButtonHtml = `<span class="confirmed-info">Najbliższa lekcja potwierdzona</span>`;
                 } else {
-                    confirmButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button>`;
+                    confirmButtonHtml = `<button class="btn-confirm" data-id="${lesson.id}">Potwierdź najbliższą lekcję</button> <span style="font-weight: bold;">(${lesson.nextLessonDate})</span>`;
                 }
 
                 // --- ZMIANA: Dodano przycisk odsubskrybowania ---

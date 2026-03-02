@@ -2379,6 +2379,7 @@ def get_client_dashboard():
                     continue
 
             tutor_name = fields.get('Korepetytor')
+            next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
             cyclic_lessons.append({
                 "id": record['id'],
                 "dayOfWeek": fields.get('DzienTygodnia'),
@@ -2386,7 +2387,8 @@ def get_client_dashboard():
                 "tutor": tutor_name,
                 "subject": fields.get('Przedmiot'),
                 "isNextLessonConfirmed": is_next_lesson_confirmed,
-                "tutorContactLink": None
+                "tutorContactLink": None,
+                "nextLessonDate": next_lesson_date_str
             })
 
         logging.info(f"Dashboard: Pomyślnie wygenerowano dane dla panelu klienta {client_id}.")
