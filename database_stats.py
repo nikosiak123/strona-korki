@@ -147,7 +147,7 @@ def get_stats():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Statystyki ORDER BY Data DESC")
+        cursor.execute("SELECT * FROM Statystyki ORDER BY SUBSTR(Data, 7, 4) DESC, SUBSTR(Data, 4, 2) DESC, SUBSTR(Data, 1, 2) DESC")
         records = cursor.fetchall()
         conn.close()
         return [dict(record) for record in records]
