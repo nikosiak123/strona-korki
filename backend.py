@@ -63,6 +63,7 @@ from datetime import time as dt_time
 import time
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 import pytz
 import atexit
 
@@ -3562,7 +3563,17 @@ def delete_client_full(psid):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    scheduler = BackgroundScheduler()
+    # Konfiguracja job store (bazy danych dla zadań)
+    jobstores = {
+        'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
+    }
+    
+    # Konfiguracja schedulera z job store i strefą czasową
+    scheduler = BackgroundScheduler(
+        jobstores=jobstores,
+        timezone=pytz.timezone('Europe/Warsaw')
+    )
+
     # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
     # Zmieniamy na 5 minut (lub nawet minutes=1 dla szybszej reakcji)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=5)
