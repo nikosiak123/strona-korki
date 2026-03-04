@@ -3590,14 +3590,14 @@ def generate_invoice_pdf():
             pdf.set_font('Helvetica', '', 14)
 
         # Document Title
-        pdf.cell(0, 10, 'Rachunek za usługi korepetytorskie', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        pdf.cell(0, 10, 'Rachunek za usługę korepetycji', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
 
         # Invoice Details
         pdf.set_font_size(12)
         pdf.cell(0, 8, f'Korepetytor: {tutor_name}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.cell(0, 8, f'Miesiąc: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.cell(0, 8, f'Numer umowy/zlecenia: {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 8, f'Numer umowy o zlecenie: {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(10)
 
         # Table Header
