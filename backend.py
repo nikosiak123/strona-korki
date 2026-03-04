@@ -3598,34 +3598,41 @@ def generate_invoice_pdf():
         # Invoice Metadata
         place_of_issue = "Warszawa"
         date_of_issue = datetime.now(pytz.timezone('Europe/Warsaw')).strftime('%d.%m.%Y')
-        # --- Nagłówek i tytuł (już masz) ---
-        pdf.cell(0, 8, f'{place_of_issue}, dnia {date_of_issue}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
-        pdf.ln(10)
-
+        # --- Tytuł (już masz) ---
         pdf.set_font_size(16)
         pdf.cell(0, 10, f'Rachunek do umowy o zlecenie nr {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-        pdf.ln(15)
+        pdf.ln(10)
 
-        # --- Zleceniodawca (lewa strona, ale w pionie) ---
+        # --- ZLECENIODAWCA ---
         pdf.set_font_size(11)
         pdf.cell(0, 7, 'Zleceniodawca:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
         pdf.set_font_size(10)
         pdf.cell(0, 6, 'Edu Paweł Najechalski', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.cell(0, 6, 'Wał Miedzeszyński 42D', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.cell(0, 6, '04-987 Warszawa', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.cell(0, 6, 'NIP: 5671120946', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(10)
+        pdf.ln(5)
 
-        # --- Zleceniobiorca ---
+        # --- ZLECENIOBIORCA ---
         pdf.set_font_size(11)
         pdf.cell(0, 7, 'Zleceniobiorca:', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
         pdf.set_font_size(10)
+        # Imię i nazwisko
         pdf.cell(0, 6, tutor_name, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        # Adres może być wieloliniowy – użyj multi_cell, ale w obrębie szerokości strony
-        pdf.multi_cell(0, 6, tutor_address, 0, 'L')
-        # Po multi_cell kursor jest na końcu adresu – dodajemy PESEL w nowej linii
+
+        # Adres – rozbijamy na maksymalnie dwie linie po przecinku, aby uniknąć multi_cell
+        address_parts = tutor_address.split(',', 1)
+        if len(address_parts) == 2:
+            pdf.cell(0, 6, address_parts[0].strip(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(0, 6, address_parts[1].strip(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+            pdf.cell(0, 6, tutor_address, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        # PESEL
         pdf.cell(0, 6, f'PESEL: {tutor_pesel}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(10)
+        pdf.ln(5)
 
         # Table
         pdf.set_font_size(11)
