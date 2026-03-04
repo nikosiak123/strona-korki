@@ -3587,7 +3587,7 @@ def generate_invoice_pdf():
             # For production, you might need to specify the full path to the font file.
             pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
             pdf.set_font('DejaVu', '', 14)
-        except RuntimeError:
+        except (RuntimeError, FileNotFoundError):
             print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam Arial. Polskie znaki mogą nie działać.")
             pdf.set_font('Arial', '', 14)
 
