@@ -3583,7 +3583,6 @@ def generate_invoice_pdf():
         pdf.add_page()
         
         try:
-            # Try with a common absolute path for the font
             pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
             pdf.set_font('DejaVu', '', 14)
         except (RuntimeError, FileNotFoundError):
@@ -3591,13 +3590,13 @@ def generate_invoice_pdf():
             pdf.set_font('Helvetica', '', 14)
 
         # Document Title
-        pdf.cell(0, 10, 'Rachunek za uslugi korepetytorskie', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        pdf.cell(0, 10, 'Rachunek za usługi korepetytorskie', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
 
         # Invoice Details
         pdf.set_font_size(12)
         pdf.cell(0, 8, f'Korepetytor: {tutor_name}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.cell(0, 8, f'Miesiac: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 8, f'Miesiąc: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.cell(0, 8, f'Numer umowy/zlecenia: {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(10)
 
@@ -3609,9 +3608,9 @@ def generate_invoice_pdf():
 
         # Table Body
         levels_map = {
-            'primary': 'Szkola Podstawowa',
-            'highSchoolNormal': 'Szkola Srednia (nie-mat.)',
-            'highSchoolMatura': 'Szkola Srednia (mat.)'
+            'primary': 'Szkoła Podstawowa',
+            'highSchoolNormal': 'Szkoła Średnia (nie-mat.)',
+            'highSchoolMatura': 'Szkoła Średnia (mat.)'
         }
 
         for level_key, level_name in levels_map.items():
@@ -3625,8 +3624,8 @@ def generate_invoice_pdf():
         pdf.cell(30, 10, str(month_data['total']['hours']), 1, align='C')
         pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
 
-        # Generate PDF output (already bytes)
-        pdf_output = pdf.output()
+        # Generate PDF output and ensure it is bytes
+        pdf_output = bytes(pdf.output())
         
         return Response(pdf_output,
                         mimetype='application/pdf',
@@ -3634,7 +3633,7 @@ def generate_invoice_pdf():
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": f"Wystapil wewnetrzny blad: {str(e)}"}), 500
+        return jsonify({"error": f"Wystąpił wewnętrzny błąd: {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Konfiguracja job store (bazy danych dla zadań)
