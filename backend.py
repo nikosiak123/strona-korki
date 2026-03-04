@@ -58,6 +58,7 @@ from functools import wraps
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../strona')))
 from flask import Flask, jsonify, request, abort, session, send_from_directory, Response
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from datetime import time as dt_time
@@ -3581,33 +3582,31 @@ def generate_invoice_pdf():
         pdf = FPDF()
         pdf.add_page()
         
-        # Add font that supports Polish characters
         try:
-            # Assuming DejaVuSans.ttf is in a known path or the current directory
-            # For production, you might need to specify the full path to the font file.
-            pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+            # Try with a common absolute path for the font
+            pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
             pdf.set_font('DejaVu', '', 14)
         except (RuntimeError, FileNotFoundError):
-            print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam Arial. Polskie znaki mogą nie działać.")
-            pdf.set_font('Arial', '', 14)
+            print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam helvetica. Polskie znaki mogą nie działać.")
+            pdf.set_font('Helvetica', '', 14)
 
         # Document Title
-        pdf.cell(0, 10, f'Rachunek za uslugi korepetytorskie', 0, 1, 'C')
+        pdf.cell(0, 10, 'Rachunek za uslugi korepetytorskie', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
 
         # Invoice Details
         pdf.set_font_size(12)
-        pdf.cell(0, 8, f'Korepetytor: {tutor_name}', 0, 1)
-        pdf.cell(0, 8, f'Miesiac: {month:02d}/{year}', 0, 1)
-        pdf.cell(0, 8, f'Numer umowy/zlecenia: {contract_number}', 0, 1)
+        pdf.cell(0, 8, f'Korepetytor: {tutor_name}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 8, f'Miesiac: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 8, f'Numer umowy/zlecenia: {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(10)
 
         # Table Header
         pdf.set_font_size(11)
         pdf.set_font(style='B')
-        pdf.cell(60, 10, 'Poziom', 1, 0, 'C')
-        pdf.cell(30, 10, 'Godziny', 1, 0, 'C')
-        pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, 1, 'C')
+        pdf.cell(60, 10, 'Poziom', 1, align='C')
+        pdf.cell(30, 10, 'Godziny', 1, align='C')
+        pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
         # Table Body
         pdf.set_font(style='')
@@ -3620,19 +3619,18 @@ def generate_invoice_pdf():
 
         for level_key, level_name in levels_map.items():
             if level_key in month_data and month_data[level_key]['hours'] > 0:
-                pdf.cell(60, 10, level_name, 1, 0)
-                pdf.cell(30, 10, str(month_data[level_key]['hours']), 1, 0, 'C')
-                pdf.cell(50, 10, f"{month_data[level_key]['tutor']:.2f}", 1, 1, 'R')
+                pdf.cell(60, 10, level_name, 1)
+                pdf.cell(30, 10, str(month_data[level_key]['hours']), 1, align='C')
+                pdf.cell(50, 10, f"{month_data[level_key]['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
         
         # Table Footer (Total)
         pdf.set_font(style='B')
-        pdf.cell(60, 10, 'Suma', 1, 0, 'C')
-        pdf.cell(30, 10, str(month_data['total']['hours']), 1, 0, 'C')
-        pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, 1, 'R')
+        pdf.cell(60, 10, 'Suma', 1, align='C')
+        pdf.cell(30, 10, str(month_data['total']['hours']), 1, align='C')
+        pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
 
-        # Generate PDF output as a byte string
-        # Use latin-1 encoding as FPDF output is a byte string that can be encoded this way
-        pdf_output = pdf.output(dest='S').encode('latin-1')
+        # Generate PDF output (already bytes)
+        pdf_output = pdf.output()
         
         return Response(pdf_output,
                         mimetype='application/pdf',
