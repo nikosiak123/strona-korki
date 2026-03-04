@@ -3603,14 +3603,11 @@ def generate_invoice_pdf():
 
         # Table Header
         pdf.set_font_size(11)
-        pdf.set_font(style='B')
         pdf.cell(60, 10, 'Poziom', 1, align='C')
         pdf.cell(30, 10, 'Godziny', 1, align='C')
         pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
         # Table Body
-        pdf.set_font(style='')
-        
         levels_map = {
             'primary': 'Szkola Podstawowa',
             'highSchoolNormal': 'Szkola Srednia (nie-mat.)',
@@ -3624,7 +3621,6 @@ def generate_invoice_pdf():
                 pdf.cell(50, 10, f"{month_data[level_key]['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
         
         # Table Footer (Total)
-        pdf.set_font(style='B')
         pdf.cell(60, 10, 'Suma', 1, align='C')
         pdf.cell(30, 10, str(month_data['total']['hours']), 1, align='C')
         pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
