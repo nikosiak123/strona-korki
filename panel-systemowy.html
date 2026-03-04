@@ -1923,6 +1923,11 @@
                     <div id="tutor-stats-details-last-month" class="tutor-stats-details-container" style="display: none;">
                         <h3 style="margin-bottom: 1rem;">Rozliczenie (Zeszły Miesiąc)</h3>
                         ${renderTable(lastMonthData, 'zeszłym miesiącu')}
+                        <div style="text-align: right; margin-top: 1.5rem;">
+                            <button class="btn btn-primary" onclick='promptForInvoiceDetails("${tutorName}", ${JSON.stringify(lastMonthData)}, ${lastMonthYear}, ${lastMonth + 1})'>
+                                <i class="fas fa-print"></i> Drukuj rachunek PDF
+                            </button>
+                        </div>
                     </div>
                 `;
 
@@ -1943,6 +1948,57 @@
         function backToTutorsList() {
              document.querySelectorAll('.panel-view').forEach(view => view.classList.add('hidden'));
              document.getElementById('view-tutors').classList.remove('hidden');
+        }
+
+        // --- INVOICE PDF GENERATION ---
+        function promptForInvoiceDetails(tutorName, monthData, year, month) {
+            const contractNumber = prompt("Proszę podać numer umowy lub zlecenia dla rachunku:");
+            if (contractNumber && contractNumber.trim() !== "") {
+                generateInvoice(tutorName, monthData, contractNumber.trim(), year, month);
+            } else if (contractNumber !== null) { // User clicked OK but left it empty
+                alert("Numer umowy nie może być pusty.");
+            }
+        }
+
+        async function generateInvoice(tutorName, monthData, contractNumber, year, month) {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generowanie...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/generate-invoice-pdf`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        tutorName: tutorName,
+                        monthData: monthData,
+                        contractNumber: contractNumber,
+                        year: year,
+                        month: month
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Nie udało się wygenerować pliku PDF.");
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `rachunek_${tutorName.replace(/ /g, '_')}_${year}-${String(month).padStart(2, '0')}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                alert(`Błąd: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-print"></i> Drukuj rachunek PDF';
+            }
         }
 
         // --- UTILS ---

@@ -8,3 +8,4 @@ Pillow
 selenium
 imagehash
 SQLAlchemy
+fpdf2

@@ -56,7 +56,8 @@ import hashlib
 import sys
 from functools import wraps
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../strona')))
-from flask import Flask, jsonify, request, abort, session, send_from_directory
+from flask import Flask, jsonify, request, abort, session, send_from_directory, Response
+from fpdf import FPDF
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from datetime import time as dt_time
@@ -3561,6 +3562,85 @@ def delete_client_full(psid):
     except Exception as e:
         logging.error(f"Błąd pełnego usuwania klienta {psid}: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/generate-invoice-pdf', methods=['POST'])
+def generate_invoice_pdf():
+    require_admin()
+    try:
+        data = request.json
+        tutor_name = data.get('tutorName')
+        month_data = data.get('monthData')
+        contract_number = data.get('contractNumber')
+        year = data.get('year')
+        month = data.get('month')
+
+        if not all([tutor_name, month_data, contract_number, year, month]):
+            return jsonify({"error": "Brak wszystkich wymaganych danych."}), 400
+
+        pdf = FPDF()
+        pdf.add_page()
+        
+        # Add font that supports Polish characters
+        try:
+            # Assuming DejaVuSans.ttf is in a known path or the current directory
+            # For production, you might need to specify the full path to the font file.
+            pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
+            pdf.set_font('DejaVu', '', 14)
+        except RuntimeError:
+            print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam Arial. Polskie znaki mogą nie działać.")
+            pdf.set_font('Arial', '', 14)
+
+        # Document Title
+        pdf.cell(0, 10, f'Rachunek za uslugi korepetytorskie', 0, 1, 'C')
+        pdf.ln(10)
+
+        # Invoice Details
+        pdf.set_font_size(12)
+        pdf.cell(0, 8, f'Korepetytor: {tutor_name}', 0, 1)
+        pdf.cell(0, 8, f'Miesiac: {month:02d}/{year}', 0, 1)
+        pdf.cell(0, 8, f'Numer umowy/zlecenia: {contract_number}', 0, 1)
+        pdf.ln(10)
+
+        # Table Header
+        pdf.set_font_size(11)
+        pdf.set_font(style='B')
+        pdf.cell(60, 10, 'Poziom', 1, 0, 'C')
+        pdf.cell(30, 10, 'Godziny', 1, 0, 'C')
+        pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, 1, 'C')
+
+        # Table Body
+        pdf.set_font(style='')
+        
+        levels_map = {
+            'primary': 'Szkola Podstawowa',
+            'highSchoolNormal': 'Szkola Srednia (nie-mat.)',
+            'highSchoolMatura': 'Szkola Srednia (mat.)'
+        }
+
+        for level_key, level_name in levels_map.items():
+            if level_key in month_data and month_data[level_key]['hours'] > 0:
+                pdf.cell(60, 10, level_name, 1, 0)
+                pdf.cell(30, 10, str(month_data[level_key]['hours']), 1, 0, 'C')
+                pdf.cell(50, 10, f"{month_data[level_key]['tutor']:.2f}", 1, 1, 'R')
+        
+        # Table Footer (Total)
+        pdf.set_font(style='B')
+        pdf.cell(60, 10, 'Suma', 1, 0, 'C')
+        pdf.cell(30, 10, str(month_data['total']['hours']), 1, 0, 'C')
+        pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, 1, 'R')
+
+        # Generate PDF output as a byte string
+        # Use latin-1 encoding as FPDF output is a byte string that can be encoded this way
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+        
+        return Response(pdf_output,
+                        mimetype='application/pdf',
+                        headers={'Content-Disposition': f'attachment;filename=rachunek_{tutor_name.replace(" ", "_")}_{year}-{month:02d}.pdf'})
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Wystapil wewnetrzny blad: {str(e)}"}), 500
 
 if __name__ == '__main__':
     # Konfiguracja job store (bazy danych dla zadań)
