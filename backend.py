@@ -3598,48 +3598,53 @@ def generate_invoice_pdf():
         # Invoice Metadata
         place_of_issue = "Warszawa"
         date_of_issue = datetime.now(pytz.timezone('Europe/Warsaw')).strftime('%d.%m.%Y')
+        # --- Nagłówek i tytuł (już masz) ---
         pdf.cell(0, 8, f'{place_of_issue}, dnia {date_of_issue}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
         pdf.ln(10)
 
-        # Title
         pdf.set_font_size(16)
         pdf.cell(0, 10, f'Rachunek do umowy o zlecenie nr {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
 
-        # Parties
+        # Zapamiętaj pozycję Y po tytule (będzie potrzebna do wyrównania kolumn)
+        start_y = pdf.get_y()
+
+        # --- LEWA KOLUMNA: Zleceniodawca ---
         pdf.set_font_size(11)
+        pdf.set_xy(10, start_y)
+        pdf.cell(95, 7, 'Zleceniodawca:', new_y=YPos.NEXT)
         
-        # Lewa kolumna - Zleceniodawca
-        pdf.set_xy(10, pdf.get_y())
-        pdf.set_font_size(11)
-        pdf.cell(95, 7, 'Zleceniodawca:')
         pdf.set_font_size(10)
-        pdf.ln()
-        pdf.cell(95, 6, 'Edu Paweł Najechalski')
-        pdf.ln()
-        pdf.cell(95, 6, 'Wał Miedzeszyński 42D')
-        pdf.ln()
-        pdf.cell(95, 6, '04-987 Warszawa')
-        pdf.ln()
-        pdf.cell(95, 6, 'NIP: 5671120946')
-        left_y = pdf.get_y()
+        pdf.cell(95, 6, 'Edu Paweł Najechalski', new_y=YPos.NEXT)
+        pdf.cell(95, 6, 'Wał Miedzeszyński 42D', new_y=YPos.NEXT)
+        pdf.cell(95, 6, '04-987 Warszawa', new_y=YPos.NEXT)
+        pdf.cell(95, 6, 'NIP: 5671120946', new_y=YPos.NEXT)
 
-        # Prawa kolumna - Zleceniobiorca
-        pdf.set_xy(105, 30)  # 30 to orientacyjna górna krawędź (dostosuj)
+        # Zapamiętaj pozycję Y po lewej kolumnie
+        left_end_y = pdf.get_y()
+
+        # --- PRAWA KOLUMNA: Zleceniobiorca ---
+        pdf.set_xy(105, start_y)  # start od tej samej wysokości co lewa
         pdf.set_font_size(11)
-        pdf.cell(95, 7, 'Zleceniobiorca:')
+        pdf.cell(95, 7, 'Zleceniobiorca:', new_y=YPos.NEXT)
+        
         pdf.set_font_size(10)
-        pdf.ln()
-        pdf.cell(95, 6, tutor_name)
-        pdf.ln()
-        pdf.multi_cell(95, 6, tutor_address, 0, 'L')
+        pdf.cell(95, 6, tutor_name, new_y=YPos.NEXT)
+        
+        # Adres – używamy multi_cell, bo może być wieloliniowy
         pdf.set_x(105)
-        pdf.cell(95, 6, f'PESEL: {tutor_pesel}')
-        pdf.ln()
-        right_y = pdf.get_y()
+        pdf.multi_cell(95, 6, tutor_address, 0, 'L')
+        
+        # Po multi_cell kursor jest na końcu adresu – wracamy do odpowiedniej kolumny
+        pdf.set_xy(105, pdf.get_y())
+        pdf.cell(95, 6, f'PESEL: {tutor_pesel}', new_y=YPos.NEXT)
 
-        # Ustaw kursor poniżej obu kolumn
-        pdf.set_y(max(left_y, right_y) + 5)
+        # Zapamiętaj pozycję Y po prawej kolumnie
+        right_end_y = pdf.get_y()
+
+        # Ustaw kursor poniżej obu kolumn (wybierz większą wartość Y)
+        pdf.set_y(max(left_end_y, right_end_y) + 5)
+        pdf.ln(5)
 
         # Table
         pdf.set_font_size(11)
