@@ -3609,24 +3609,37 @@ def generate_invoice_pdf():
         # Parties
         pdf.set_font_size(11)
         
-        pdf.cell(95, 7, 'Zleceniodawca:', new_y=YPos.NEXT)
-        pdf.set_font_size(10)
-        pdf.cell(95, 6, 'Edu Paweł Najechalski', new_y=YPos.NEXT)
-        pdf.cell(95, 6, 'Wał Miedzeszyński 42D', new_y=YPos.NEXT)
-        pdf.cell(95, 6, '04-987 Warszawa', new_y=YPos.NEXT)
-        pdf.cell(95, 6, 'NIP: 5671120946', new_y=YPos.NEXT)
-        
-        pdf.set_xy(105, pdf.get_y() - 25)
-
+        # Lewa kolumna - Zleceniodawca
+        pdf.set_xy(10, pdf.get_y())
         pdf.set_font_size(11)
-        pdf.cell(95, 7, 'Zleceniobiorca:', new_y=YPos.NEXT)
+        pdf.cell(95, 7, 'Zleceniodawca:')
         pdf.set_font_size(10)
-        pdf.cell(95, 6, tutor_name, new_y=YPos.NEXT)
-        pdf.multi_cell(95, 6, tutor_address, 0, 'L')
-        pdf.set_x(105) 
-        pdf.cell(95, 6, f'PESEL: {tutor_pesel}', new_y=YPos.NEXT)
+        pdf.ln()
+        pdf.cell(95, 6, 'Edu Paweł Najechalski')
+        pdf.ln()
+        pdf.cell(95, 6, 'Wał Miedzeszyński 42D')
+        pdf.ln()
+        pdf.cell(95, 6, '04-987 Warszawa')
+        pdf.ln()
+        pdf.cell(95, 6, 'NIP: 5671120946')
+        left_y = pdf.get_y()
 
-        pdf.ln(15)
+        # Prawa kolumna - Zleceniobiorca
+        pdf.set_xy(105, 30)  # 30 to orientacyjna górna krawędź (dostosuj)
+        pdf.set_font_size(11)
+        pdf.cell(95, 7, 'Zleceniobiorca:')
+        pdf.set_font_size(10)
+        pdf.ln()
+        pdf.cell(95, 6, tutor_name)
+        pdf.ln()
+        pdf.multi_cell(95, 6, tutor_address, 0, 'L')
+        pdf.set_x(105)
+        pdf.cell(95, 6, f'PESEL: {tutor_pesel}')
+        pdf.ln()
+        right_y = pdf.get_y()
+
+        # Ustaw kursor poniżej obu kolumn
+        pdf.set_y(max(left_y, right_y) + 5)
 
         # Table
         pdf.set_font_size(11)
