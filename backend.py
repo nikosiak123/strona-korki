@@ -99,6 +99,10 @@ handler.setFormatter(formatter)
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.DEBUG)
 root_logger.addHandler(handler)
+
+# Silence verbose logs from PDF library
+logging.getLogger('fontTools').setLevel(logging.INFO)
+logging.getLogger('fpdf').setLevel(logging.INFO)
 # --- Koniec konfiguracji logowania ---
 
 
@@ -3575,8 +3579,10 @@ def generate_invoice_pdf():
         contract_number = data.get('contractNumber')
         year = data.get('year')
         month = data.get('month')
+        tutor_address = data.get('tutorAddress')
+        tutor_pesel = data.get('tutorPesel')
 
-        if not all([tutor_name, month_data, contract_number, year, month]):
+        if not all([tutor_name, month_data, contract_number, year, month, tutor_address, tutor_pesel]):
             return jsonify({"error": "Brak wszystkich wymaganych danych."}), 400
 
         pdf = FPDF()
@@ -3589,19 +3595,43 @@ def generate_invoice_pdf():
             print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam helvetica. Polskie znaki mogą nie działać.")
             pdf.set_font('Helvetica', '', 14)
 
-        # Document Title
-        pdf.cell(0, 10, 'Rachunek za usługę korepetycji', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        # Invoice Metadata
+        place_of_issue = "Warszawa"
+        date_of_issue = datetime.now(pytz.timezone('Europe/Warsaw')).strftime('%d.%m.%Y')
+        pdf.cell(0, 8, f'{place_of_issue}, dnia {date_of_issue}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
         pdf.ln(10)
 
-        # Invoice Details
-        pdf.set_font_size(12)
-        pdf.cell(0, 8, f'Korepetytor: {tutor_name}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.cell(0, 8, f'Miesiąc: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.cell(0, 8, f'Numer umowy o zlecenie: {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # Title
+        pdf.set_font_size(16)
+        pdf.cell(0, 10, f'Rachunek do umowy o zlecenie nr {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
 
-        # Table Header
+        # Parties
         pdf.set_font_size(11)
+        
+        pdf.cell(95, 7, 'Zleceniodawca:', new_y=YPos.NEXT)
+        pdf.set_font_size(10)
+        pdf.cell(95, 6, 'Edu Paweł Najechalski', new_y=YPos.NEXT)
+        pdf.cell(95, 6, 'Wał Miedzeszyński 42D', new_y=YPos.NEXT)
+        pdf.cell(95, 6, '04-987 Warszawa', new_y=YPos.NEXT)
+        pdf.cell(95, 6, 'NIP: 5671120946', new_y=YPos.NEXT)
+        
+        pdf.set_xy(105, pdf.get_y() - 25)
+
+        pdf.set_font_size(11)
+        pdf.cell(95, 7, 'Zleceniobiorca:', new_y=YPos.NEXT)
+        pdf.set_font_size(10)
+        pdf.cell(95, 6, tutor_name, new_y=YPos.NEXT)
+        pdf.multi_cell(95, 6, tutor_address, 0, 'L')
+        pdf.set_x(105) 
+        pdf.cell(95, 6, f'PESEL: {tutor_pesel}', new_y=YPos.NEXT)
+
+        pdf.ln(15)
+
+        # Table
+        pdf.set_font_size(11)
+        pdf.cell(0, 8, f'Rachunek za usługę korepetycji w miesiącu: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(5)
         pdf.cell(60, 10, 'Poziom', 1, align='C')
         pdf.cell(30, 10, 'Godziny', 1, align='C')
         pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
