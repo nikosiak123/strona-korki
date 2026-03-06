@@ -3588,6 +3588,7 @@ def generate_invoice_pdf():
         pdf = FPDF()
         pdf.add_page()
         
+        # Próba załadowania czcionki z polskimi znakami
         try:
             pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
             pdf.set_font('DejaVu', '', 14)
@@ -3595,10 +3596,14 @@ def generate_invoice_pdf():
             print("OSTRZEŻENIE: Nie znaleziono czcionki DejaVu, używam helvetica. Polskie znaki mogą nie działać.")
             pdf.set_font('Helvetica', '', 14)
 
-        # Invoice Metadata
+        # Miejsce i data wystawienia
         place_of_issue = "Warszawa"
-        date_of_issue = datetime.now(pytz.timezone('Europe/Warsaw')).strftime('%d.%m.%Y')
-        # --- Tytuł (już masz) ---
+        warsaw_tz = pytz.timezone('Europe/Warsaw')
+        date_of_issue = datetime.now(warsaw_tz).strftime('%d.%m.%Y')
+        pdf.cell(0, 8, f'{place_of_issue}, dnia {date_of_issue}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+        pdf.ln(10)
+
+        # Tytuł
         pdf.set_font_size(16)
         pdf.cell(0, 10, f'Rachunek do umowy o zlecenie nr {contract_number}', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         pdf.ln(10)
@@ -3622,7 +3627,7 @@ def generate_invoice_pdf():
         # Imię i nazwisko
         pdf.cell(0, 6, tutor_name, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-        # Adres – rozbijamy na maksymalnie dwie linie po przecinku, aby uniknąć multi_cell
+        # Adres – rozbijamy na maksymalnie dwie linie po przecinku (jeśli istnieje)
         address_parts = tutor_address.split(',', 1)
         if len(address_parts) == 2:
             pdf.cell(0, 6, address_parts[0].strip(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -3634,33 +3639,44 @@ def generate_invoice_pdf():
         pdf.cell(0, 6, f'PESEL: {tutor_pesel}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(5)
 
-        # Table
+        # --- Tabela z rozliczeniem ---
         pdf.set_font_size(11)
         pdf.cell(0, 8, f'Rachunek za usługę korepetycji w miesiącu: {month:02d}/{year}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(5)
+
+        # Nagłówki tabeli
+        pdf.set_font_size(10)
         pdf.cell(60, 10, 'Poziom', 1, align='C')
         pdf.cell(30, 10, 'Godziny', 1, align='C')
         pdf.cell(50, 10, 'Suma Brutto (PLN)', 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
-        # Table Body
+        # Wiersze danych
         levels_map = {
             'primary': 'Szkoła Podstawowa',
             'highSchoolNormal': 'Szkoła Średnia (nie-mat.)',
             'highSchoolMatura': 'Szkoła Średnia (mat.)'
         }
 
-        for level_key, level_name in levels_map.items():
-            if level_key in month_data and month_data[level_key]['hours'] > 0:
-                pdf.cell(60, 10, level_name, 1)
-                pdf.cell(30, 10, str(month_data[level_key]['hours']), 1, align='C')
-                pdf.cell(50, 10, f"{month_data[level_key]['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
-        
-        # Table Footer (Total)
+        for key, label in levels_map.items():
+            if key in month_data and month_data[key]['hours'] > 0:
+                pdf.cell(60, 10, label, 1)
+                pdf.cell(30, 10, str(month_data[key]['hours']), 1, align='C')
+                pdf.cell(50, 10, f"{month_data[key]['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
+
+        # Podsumowanie
         pdf.cell(60, 10, 'Suma', 1, align='C')
         pdf.cell(30, 10, str(month_data['total']['hours']), 1, align='C')
         pdf.cell(50, 10, f"{month_data['total']['tutor']:.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R')
 
-        # Generate PDF output and ensure it is bytes
+        pdf.ln(10)
+
+        # --- Informacja o płatności ---
+        pdf.set_font_size(10)
+        pdf.cell(0, 6, 'Płatność zostanie zrealizowana przelewem w ciągu 10 dni od akceptacji rachunku.',
+                 new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(5)
+
+        # Generowanie PDF
         pdf_output = bytes(pdf.output())
         
         return Response(pdf_output,
@@ -3671,6 +3687,8 @@ def generate_invoice_pdf():
         traceback.print_exc()
         return jsonify({"error": f"Wystąpił wewnętrzny błąd: {str(e)}"}), 500
 
+
+        
 if __name__ == '__main__':
     # Konfiguracja job store (bazy danych dla zadań)
     jobstores = {
