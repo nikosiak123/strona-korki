@@ -740,6 +740,14 @@
                                 <p>Wybierz użytkownika z listy, aby rozpocząć czat</p>
                             </div>
                         </div>
+                        <div style="margin-top: 2rem;">
+                            <h3 style="margin-top: 0; font-size: 1rem; color: #7e8299; text-transform: uppercase;">
+                                Ostatnie konwersacje (24h)
+                            </h3>
+                            <div id="recentConversationsList">
+                                <p style="text-align: center; color: #999;">Ładowanie...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -933,7 +941,10 @@
 
                     // Load data if needed
                     if (target === 'database') loadTableData(state.currentTable);
-                    if (target === 'messages') loadManualUsers();
+                    if (target === 'messages') {
+                        loadManualUsers();
+                        loadRecentConversations(); // <-- DODAJ TĘ LINIĘ
+                    }
                     if (target === 'stats') loadStats();
                     if (target === 'tutors') {
                         state.currentTable = 'Korepetytorzy'; // Ensure correct table context for editing
@@ -1321,6 +1332,36 @@
                 });
                 list.innerHTML = html;
             } catch (e) { console.error(e); }
+        }
+
+        async function loadRecentConversations() {
+            const container = document.getElementById('recentConversationsList');
+            container.innerHTML = '<div style="text-align:center; padding:10px;"><i class="fas fa-spinner fa-spin"></i></div>';
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/recent-conversations?hours=24`);
+                const data = await res.json();
+                
+                if (data.users.length === 0) {
+                    container.innerHTML = '<p style="color:#999; text-align:center;">Brak konwersacji w ciągu ostatnich 24h</p>';
+                    return;
+                }
+                
+                let html = '';
+                data.users.forEach(u => {
+                    html += `
+                        <div class="user-item" onclick="openChat('${u.psid}', '${u.name}')">
+                            <div style="font-weight:600;">${u.name}</div>
+                            <div style="font-size:0.8rem; color:#777;">${u.lastMessage || ''}</div>
+                            <div style="font-size:0.7rem; color:#999;">Ostatnia: ${new Date(u.lastActive).toLocaleString()}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Błąd ładowania ostatnich konwersacji:', e);
+                container.innerHTML = '<p style="color:red;">Błąd ładowania</p>';
+            }
         }
 
         async function openChat(psid, name) {

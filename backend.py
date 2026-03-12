@@ -275,6 +275,77 @@ def normalize_tutor_field(field_value):
         return field_value
     else:
         return [str(field_value)] if field_value else []
+
+def send_cyclic_lesson_reminders():
+    """
+    Wysyła przypomnienia dla lekcji cyklicznych, które nie zostały potwierdzone
+    lub opłacone na 24 godziny przed planowanym terminem.
+    """
+    now = get_now()
+    # Pobierz wszystkie aktywne rezerwacje cykliczne
+    cyclic_records = cyclic_reservations_table.all(formula="{Aktywna}=1")
+    
+    for rec in cyclic_records:
+        fields = rec.get('fields', {})
+        tutor = fields.get('Korepetytor')
+        day_name = fields.get('DzienTygodnia')
+        lesson_time = fields.get('Godzina')
+        client_id = fields.get('Klient_ID')
+        subject = fields.get('Przedmiot', 'nieznany przedmiot')
+        
+        if not all([tutor, day_name, lesson_time, client_id]):
+            continue
+
+        # Oblicz najbliższą datę lekcji
+        try:
+            day_num = list(WEEKDAY_MAP.keys())[list(WEEKDAY_MAP.values()).index(day_name)]
+        except ValueError:
+            continue  # nieprawidłowa nazwa dnia
+
+        today = now.date()
+        days_ahead = day_num - today.weekday()
+        if days_ahead < 0 or (days_ahead == 0 and lesson_time <= now.strftime('%H:%M')):
+            days_ahead += 7
+        next_lesson_date = today + timedelta(days=days_ahead)
+        next_lesson_date_str = next_lesson_date.strftime('%Y-%m-%d')
+
+        # Sprawdź, czy istnieje już rezerwacja na tę datę (nieanulowana)
+        formula_check = f"AND({{Korepetytor}} = '{tutor}', {{Data}} = '{next_lesson_date_str}', {{Godzina}} = '{lesson_time}', NOT({{Status}} = 'Anulowana (brak płatności)'), NOT({{Status}} = 'Przeniesiona (zakończona)'))"
+        existing = reservations_table.first(formula=formula_check)
+
+        # Sprawdź, czy wysłaliśmy już przypomnienie dla tej daty
+        last_reminder = fields.get('last_reminder_for_date')
+        if last_reminder == next_lesson_date_str:
+            continue
+
+        # Sprawdź, czy do lekcji pozostało <= 24h i > 0
+        lesson_datetime_str = f"{next_lesson_date_str} {lesson_time}"
+        try:
+            lesson_datetime = WARSAW_TZ.localize(datetime.strptime(lesson_datetime_str, "%Y-%m-%d %H:%M"))
+        except ValueError:
+            continue
+        time_until = lesson_datetime - now
+        if timedelta(hours=0) < time_until <= timedelta(hours=24):
+            # Warunek: brak rezerwacji LUB istnieje ale nie jest opłacona
+            if not existing or (existing and not existing['fields'].get('Oplacona', False)):
+                # Wyślij wiadomość
+                client_record = clients_table.first(formula=f"{{ClientID}} = '{client_id}'")
+                if client_record and MESSENGER_PAGE_TOKEN:
+                    psid = client_record['fields'].get('ClientID')
+                    if not psid:
+                        continue
+                    dashboard_link = f"https://zakręcone-korepetycje.pl/moje-lekcje?clientID={psid}"
+                    message = (
+                        f"🔔 Przypomnienie o lekcji cyklicznej!\n"
+                        f"Masz zaplanowaną lekcję z {subject} na {next_lesson_date_str} o {lesson_time}. "
+                        f"Aby lekcja się odbyła, musisz ją potwierdzić i opłacić w swoim panelu klienta:\n"
+                        f"{dashboard_link}"
+                    )
+                    send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+                    logging.info(f"Wysłano przypomnienie cykliczne dla klienta {client_id} na lekcję {next_lesson_date_str} {lesson_time}")
+                    # Zapisz datę wysłania
+                    cyclic_reservations_table.update(rec['id'], {'last_reminder_for_date': next_lesson_date_str})    
+
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
@@ -892,6 +963,63 @@ def check_cyclic_availability():
 # ⚠️ UWAGA: Ten endpoint jest tylko do testów i panelu admina.
 # Prawdziwe płatności powinny przechodzić przez:
 # /api/initiate-payment → Przelewy24 → /api/payment-notification (webhook)
+
+@app.route('/api/admin/recent-conversations')
+def get_recent_conversations():
+    require_admin()
+    try:
+        hours = request.args.get('hours', default=24, type=int)
+        cutoff = get_now() - timedelta(hours=hours)
+
+        import os
+        from bot import load_history
+
+        HISTORY_DIR = os.path.join(os.path.dirname(__file__), "../strona/conversation_store")
+        if not os.path.exists(HISTORY_DIR):
+            return jsonify({'users': []})
+
+        recent_users = []
+        for filename in os.listdir(HISTORY_DIR):
+            if not filename.endswith('.json'):
+                continue
+            psid = filename[:-5]
+            filepath = os.path.join(HISTORY_DIR, filename)
+
+            # data ostatniej modyfikacji pliku (przybliżony czas ostatniej wiadomości)
+            mtime = datetime.fromtimestamp(os.path.getmtime(filepath), WARSAW_TZ)
+            if mtime < cutoff:
+                continue  # pomiń jeśli plik był modyfikowany dawniej niż 24h temu
+
+            history = load_history(psid)
+            # znajdź ostatnią rzeczywistą wiadomość (pomijamy znaczniki trybu)
+            last_msg_text = ''
+            for msg in reversed(history):
+                if msg.parts and msg.parts[0].text not in ['MANUAL_MODE', 'POST_RESERVATION_MODE']:
+                    last_msg_text = msg.parts[0].text
+                    break
+
+            # pobierz dane klienta z bazy
+            client_record = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+            name = 'Nieznany'
+            if client_record:
+                name = client_record['fields'].get('Imie', 'Nieznany')
+
+            recent_users.append({
+                'psid': psid,
+                'name': name,
+                'lastMessage': last_msg_text[:100],
+                'lastActive': mtime.isoformat()
+            })
+
+        # Sortuj od najnowszych
+        recent_users.sort(key=lambda x: x['lastActive'], reverse=True)
+
+        return jsonify({'users': recent_users})
+
+    except Exception as e:
+        logging.error(f"Błąd w get_recent_conversations: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/api/mark-lesson-as-paid', methods=['POST'])
 def mark_lesson_as_paid():
     """Endpoint do symulacji płatności - TYLKO DLA ADMINISTRATORÓW."""
@@ -3701,9 +3829,10 @@ if __name__ == '__main__':
         timezone=pytz.timezone('Europe/Warsaw')
     )
 
-    # scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", seconds=60)
+    scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", hours=1)
     # Zmieniamy na 5 minut (lub nawet minutes=1 dla szybszej reakcji)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=5)
+    scheduler.add_job(func=send_cyclic_lesson_reminders, trigger="interval", hours=1, id="cyclic_reminders")
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
