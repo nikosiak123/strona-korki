@@ -1019,7 +1019,7 @@ def get_recent_conversations():
     except Exception as e:
         logging.error(f"Błąd w get_recent_conversations: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
-        
+
 @app.route('/api/mark-lesson-as-paid', methods=['POST'])
 def mark_lesson_as_paid():
     """Endpoint do symulacji płatności - TYLKO DLA ADMINISTRATORÓW."""
@@ -3425,6 +3425,51 @@ def send_reservation_link():
     except Exception as e:
         logging.error(f"Błąd wysyłania linku rezerwacji: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/admin/create-client-for-test', methods=['POST'])
+def create_client_for_test():
+    """
+    Tworzy nowego klienta w bazie na podstawie PSID, imienia i nazwiska.
+    Używane w panelu admina do szybkiego dodania klienta przed otwarciem
+    okna rezerwacji lekcji testowej.
+    """
+    require_admin()
+    try:
+        data = request.json
+        psid = data.get('psid')
+        first_name = data.get('firstName')
+        last_name = data.get('lastName', '')
+
+        if not psid or not first_name:
+            abort(400, "Brak wymaganych danych: psid, firstName")
+
+        # Sprawdź, czy klient już istnieje
+        existing = clients_table.first(formula=f"{{ClientID}} = '{psid}'")
+        if existing:
+            # Opcjonalnie możesz zaktualizować imię/nazwisko, jeśli są puste
+            # Na razie zwracamy informację, że istnieje
+            return jsonify({
+                "success": True,
+                "created": False,
+                "message": "Klient już istnieje"
+            })
+        else:
+            # Utwórz nowego klienta
+            clients_table.create({
+                "ClientID": psid,
+                "Imie": first_name,
+                "Nazwisko": last_name
+            })
+            return jsonify({
+                "success": True,
+                "created": True,
+                "message": "Klient utworzony"
+            })
+
+    except Exception as e:
+        logging.error(f"Błąd w create_client_for_test: {e}", exc_info=True)
+        abort(500, "Błąd serwera")
 
 @app.route('/api/admin/reset-test-user', methods=['POST'])
 def reset_test_user():
