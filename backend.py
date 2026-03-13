@@ -3877,7 +3877,7 @@ if __name__ == '__main__':
     scheduler.add_job(func=check_and_cancel_unpaid_lessons, trigger="interval", hours=1)
     # Zmieniamy na 5 minut (lub nawet minutes=1 dla szybszej reakcji)
     scheduler.add_job(func=check_unconfirmed_lessons, trigger="interval", minutes=5, replace_existing=True)
-    scheduler.add_job(func=send_cyclic_lesson_reminders, trigger="interval", hours=1, id="cyclic_reminders", replace_existing=True)
+    #scheduler.add_job(func=send_cyclic_lesson_reminders, trigger="interval", hours=1, id="cyclic_reminders", replace_existing=True)
     scheduler.start()
     # Zarejestruj funkcję, która zamknie scheduler przy wyjściu z aplikacji
     atexit.register(lambda: scheduler.shutdown())
