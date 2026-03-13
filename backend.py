@@ -341,7 +341,7 @@ def send_cyclic_lesson_reminders():
                         f"Aby lekcja się odbyła, musisz ją potwierdzić i opłacić w swoim panelu klienta:\n"
                         f"{dashboard_link}"
                     )
-                    send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
+                    #send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
                     logging.info(f"Wysłano przypomnienie cykliczne dla klienta {client_id} na lekcję {next_lesson_date_str} {lesson_time}")
                     # Zapisz datę wysłania
                     cyclic_reservations_table.update(rec['id'], {'last_reminder_for_date': next_lesson_date_str})    
