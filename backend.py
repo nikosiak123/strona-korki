@@ -276,7 +276,7 @@ def normalize_tutor_field(field_value):
     else:
         return [str(field_value)] if field_value else []
 
-def def send_cyclic_lesson_reminders():
+def send_cyclic_lesson_reminders():
     """
     Wysyła przypomnienia:
     1. Dla nieopłaconych lekcji (jednorazowych/testowych) – o płatności (24h przed).
@@ -356,7 +356,14 @@ def def send_cyclic_lesson_reminders():
         except ValueError:
             continue
 
+        # Sprawdź, czy termin mieści się w oknie 24h
         if not (window_start <= lesson_datetime <= window_end):
+            continue
+
+        # --- NOWA KONTROLA: czy już wysłano przypomnienie dla tego terminu? ---
+        last_reminder = fields.get('last_reminder_for_date')
+        if last_reminder == lesson_datetime_str:
+            # Już wysłano dla tego terminu – pomiń
             continue
 
         # Sprawdź, czy istnieje już potwierdzona lekcja na ten termin
@@ -388,7 +395,12 @@ def def send_cyclic_lesson_reminders():
         send_messenger_confirmation(psid, message, MESSENGER_PAGE_TOKEN)
         logging.info(f"Wysłano przypomnienie o potwierdzeniu stałej lekcji dla klienta {client_id} (Lekcja: {next_lesson_date_str} {lesson_time})")
 
-
+        # --- NOWY ZAPIS: zaktualizuj datę ostatniego wysłania ---
+        try:
+            cyclic_reservations_table.update(cyclic['id'], {'last_reminder_for_date': lesson_datetime_str})
+        except Exception as e:
+            logging.error(f"Nie udało się zapisać last_reminder_for_date dla cyklu {cyclic['id']}: {e}")
+            
 def send_followup_message(client_id, lesson_date_str, lesson_time_str, subject):
     """Wysyła wiadomość kontrolną po zakończeniu lekcji testowej."""
     
