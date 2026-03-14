@@ -1,8 +1,0 @@
-selenium
-selenium-stealth
-google-genai
-requests
-facebook-sdk
-flask
-flask-cors
-Pillow

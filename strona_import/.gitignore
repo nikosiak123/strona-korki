@@ -1,7 +1,0 @@
-# Configuration file
-config.py
-
-__pycache__/
-*.pyc
-*.db
-.aider*
